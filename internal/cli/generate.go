@@ -200,8 +200,10 @@ const imagesLockHeader = "# images-lock.yaml — compiled image index generated 
 	"# per-image configuration (base, platforms, image-specific packages, tools).\n" +
 	"# Do not edit manually.\n"
 
-// writeImagesLock writes images-lock.yaml: a simple list of active image names
-// plus a configs map with the fully-resolved base, platforms, and tools for each.
+// writeImagesLock writes images-lock.yaml: the active image names, top-level
+// universal packages and tool versions, plus a per-image configs map with the
+// resolved base, platforms, image-specific packages, tool memberships, and
+// optional metadata such as Go version and description.
 func writeImagesLock(cfg *config.Config, path string) error {
 	lk := imagesLock{
 		Packages: cfg.Packages,

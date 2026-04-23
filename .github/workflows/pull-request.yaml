@@ -1,0 +1,56 @@
+name: pull request
+
+on:
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+
+permissions:
+  contents: read
+  id-token: none
+
+jobs:
+  build-ci-image:
+    runs-on: ubuntu-latest
+    container: registry.suse.com/bci/golang:1.26.2@sha256:0c1bfe51ea14f3e28b4730c725687331ce6aa24c61acea3b9735286789c873b9
+    steps:
+      - name: Install needed packages
+        shell: bash
+        run: |
+          zypper -n in docker git-core make
+
+      - name: Configure git
+        shell: bash
+        run: |
+          git config --global safe.directory "$(pwd)"
+          git config --global user.name "rancher-security-team[bot]"
+          git config --global user.email "202797621+rancher-security-team[bot]@users.noreply.github.com"
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set image version
+        id: version
+        shell: bash
+        run: echo "value=$(date -u +%Y%m%d)-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Test
+        shell: bash
+        run: make test
+
+      - name: Generate
+        shell: bash
+        run: make generate
+
+      - name: Verify
+        shell: bash
+        run: make verify
+
+      - name: Build
+        shell: bash
+        run: make build NO_CACHE=1 VERSION="${{ steps.version.outputs.value }}"

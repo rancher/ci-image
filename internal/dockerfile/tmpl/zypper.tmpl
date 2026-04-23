@@ -1,0 +1,8 @@
+RUN zypper -n refresh && \
+    zypper -n install \
+{{- range .}}
+        {{.}} \
+{{- end}}
+    && \
+    zypper -n clean -a && \
+    rm -rf /var/log/{lastlog,tallylog,zypper.log,zypp/history,YaST2}

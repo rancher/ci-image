@@ -1,0 +1,17 @@
+RUN case "${ARCH}" in \
+{{- range .Platforms}}
+        {{.Arch}}) CHECKSUM={{printf "%q" .Checksum}} ;; \
+{{- end}}
+        *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
+    esac && \
+    export TMP_DIR=$(mktemp -d) && \
+    case "${ARCH}" in \
+{{- range .Platforms}}
+        {{.Arch}}) DOWNLOAD_URL={{printf "%q" .DownloadURL}} ;; \
+{{- end}}
+    esac && \
+    curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/{{.Name}}" && \
+    printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/{{.Name}}" > "${TMP_DIR}/checksum.sha256" && \
+    sha256sum -c "${TMP_DIR}/checksum.sha256" && \
+    install "${TMP_DIR}/{{.Name}}" "/usr/local/bin/{{.Name}}" && \
+    rm -rf "${TMP_DIR}"

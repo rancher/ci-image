@@ -1,0 +1,18 @@
+FROM {{.Base}}
+
+LABEL org.opencontainers.image.source="{{.SourceURL}}" \
+      org.opencontainers.image.title="{{.Title}}"{{if .Description}} \
+      org.opencontainers.image.description="{{.Description}}"{{end}}
+
+ARG TARGETARCH
+ENV ARCH=$TARGETARCH
+
+{{template "zypper.tmpl" .Packages}}
+
+{{range .Tools}}# {{.Name}} {{.Version}}
+{{.Install.Render}}
+
+{{end}}{{if .HasGoInstall}}# Cleanup Go caches
+RUN go clean -cache -modcache
+
+{{end}}ENTRYPOINT ["/bin/bash"]

@@ -1,0 +1,7 @@
+<!-- BEGIN IMAGES TABLE -->
+| Image | Go Version | Description |
+|-------|------------|-------------|
+{{- range .}}
+| `{{.Name}}` | {{if .GoVersion}}{{.GoVersion}}{{else}}none{{end}} | {{.Description}} |
+{{- end}}
+<!-- END IMAGES TABLE -->

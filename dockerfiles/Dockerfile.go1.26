@@ -155,6 +155,25 @@ RUN case "${ARCH}" in \
 # govulncheck v1.2.0
 RUN go install golang.org/x/vuln/cmd/govulncheck@a8075323febce35764797d66a61fa9e19a8d9797
 
+# oras v1.3.1
+RUN case "${ARCH}" in \
+        amd64) CHECKSUM="d52c4af76ce6a3ceb8579e51fb751a43ac051cca67f965f973a0b0e897a2bb86" ;; \
+        arm64) CHECKSUM="79946ad57d732836f9242f903f476b6fa484c451d659f121bce54d931ab2a044" ;; \
+        *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
+    esac && \
+    export TMP_DIR=$(mktemp -d) && \
+    export TMP_FILE="${TMP_DIR}/oras.tar.gz" && \
+    case "${ARCH}" in \
+        amd64) DOWNLOAD_URL="https://github.com/oras-project/oras/releases/download/v1.3.1/oras_1.3.1_linux_amd64.tar.gz"; EXTRACT="oras" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/oras-project/oras/releases/download/v1.3.1/oras_1.3.1_linux_arm64.tar.gz"; EXTRACT="oras" ;; \
+    esac && \
+    curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
+    printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
+    sha256sum -c "${TMP_DIR}/checksum.sha256" && \
+    tar xzf "${TMP_FILE}" -C "${TMP_DIR}" && \
+    install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/oras" && \
+    rm -rf "${TMP_DIR}"
+
 # Cleanup Go caches
 RUN go clean -cache -modcache
 

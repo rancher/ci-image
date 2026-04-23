@@ -28,6 +28,7 @@ tools:
     helm: v3.20.2
     helmv4: v4.1.4
     ob-charts-tool: v0.4.0
+    oras: v1.3.1
     slsactl: v0.1.30
 configs:
     charts:
@@ -47,6 +48,7 @@ configs:
             - helm
             - helmv4
             - ob-charts-tool
+            - oras
             - slsactl
         description: Rancher charts build environment
     go1.25:
@@ -64,6 +66,7 @@ configs:
             - govulncheck
             - helm
             - helmv4
+            - oras
             - slsactl
         go_version: 1.25.9
         description: CI image with Go 1.25 toolchain
@@ -82,6 +85,7 @@ configs:
             - govulncheck
             - helm
             - helmv4
+            - oras
             - slsactl
         go_version: 1.26.2
         description: CI image with Go 1.26 toolchain

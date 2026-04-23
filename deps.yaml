@@ -8,6 +8,7 @@ images:
       - golangci-lint
       - goreleaser
       - govulncheck
+      - oras
 
   - name: go1.26
     description: "CI image with Go 1.26 toolchain"
@@ -18,6 +19,7 @@ images:
       - golangci-lint
       - goreleaser
       - govulncheck
+      - oras
 
   - name: python3.11
     description: "CI image with Python 3.11 toolchain"
@@ -54,6 +56,7 @@ images:
       - goreleaser
       - charts-build-scripts
       - ob-charts-tool
+      - oras
 
 packages:
   - docker
@@ -145,6 +148,17 @@ tools:
     install:
       method: go-install
       package: "golang.org/x/vuln/cmd/govulncheck@{version_commit}"
+
+  - name: oras
+    source: oras-project/oras
+    version: v1.3.1
+    checksums:
+      linux/amd64: "d52c4af76ce6a3ceb8579e51fb751a43ac051cca67f965f973a0b0e897a2bb86"
+      linux/arm64: "79946ad57d732836f9242f903f476b6fa484c451d659f121bce54d931ab2a044"
+    release:
+      download_template: "oras_{version|trimprefix:v}_{os}_{arch}.tar.gz"
+      extract: "oras"
+      checksum_template: "oras_{version|trimprefix:v}_checksums.txt"
 
   # charts-build-scripts is a first-party Rancher tool on the compile-time
   # allowlist. mode: release-checksums means checksums are fetched from the

@@ -85,6 +85,23 @@ func runChangedImages(args []string) error {
 	}
 	affected = unionStrings(affected, dfAffected)
 
+	// Drop images that no longer exist in the "to" state — git diff --name-only
+	// includes deletions, so dfAffected can contain images whose Dockerfile was
+	// removed, which would cause make push to fail on a missing file.
+	if next != nil {
+		nextSet := make(map[string]bool, len(next.Images))
+		for _, img := range next.Images {
+			nextSet[img] = true
+		}
+		keep := affected[:0]
+		for _, img := range affected {
+			if nextSet[img] {
+				keep = append(keep, img)
+			}
+		}
+		affected = keep
+	}
+
 	if len(affected) == 0 {
 		// No changes detected; print nothing so callers can detect this and
 		// fall back to building all images.

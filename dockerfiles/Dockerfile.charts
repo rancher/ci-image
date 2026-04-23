@@ -187,4 +187,11 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/ob-charts-tool" "/usr/local/bin/ob-charts-tool" && \
     rm -rf "${TMP_DIR}"
 
+# We trust our base image and the repos that are pulled in workflows. Otherwise
+# each workflow that uses our base images would have to add the step below.
+RUN if (which git &> /dev/null); then \
+        echo "Configuring global git safe directory"; \
+        git config --global --add safe.directory '*'; \
+    fi
+
 ENTRYPOINT ["/bin/bash"]

@@ -40,6 +40,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Set image version
         id: version
@@ -54,12 +55,19 @@ jobs:
         shell: bash
         run: make verify
 
-      - name: List images
+      - name: List changed images
         id: list
         shell: bash
         run: |
-          images=$(awk '/^images:/{f=1;next} /^[a-zA-Z]/{f=0} f && /- /{print $2}' images-lock.yaml | jq -Rcs '[split("\n")[] | select(. != "")]')
-          echo "images=$images" >> "$GITHUB_OUTPUT"
+          changed=$(go run main.go changed-images --from="${{ github.event.before }}" --to="${{ github.sha }}")
+          if [ -z "${changed}" ]; then
+            echo "No image-specific changes detected; building all images"
+            images=$(awk '/^images:/{f=1;next} /^[a-zA-Z]/{f=0} f && /- /{print $2}' images-lock.yaml | jq -Rcs '[split("\n")[] | select(. != "")]')
+          else
+            echo "Changed images: ${changed}"
+            images=$(echo "${changed}" | tr ' ' '\n' | jq -Rcs '[split("\n")[] | select(. != "")]')
+          fi
+          echo "images=${images}" >> "$GITHUB_OUTPUT"
 
   build-ci-image:
     needs: [setup]

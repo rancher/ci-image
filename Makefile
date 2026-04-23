@@ -60,13 +60,13 @@ verify: _setup ## Verify no uncommitted changes exist
 validate: _setup generate verify
 
 define buildx
-	@if [ -z "$(IMAGE)" ]; then \
+	@if [ -z "$(value IMAGE)" ]; then \
 		echo "Error: IMAGE is not set. Specify IMAGE=<name> or use build-all/push-all."; \
 		exit 1; \
 	fi
-	@echo "==> $(1) $(IMAGE):$(VERSION)"
+	@echo "==> $(1) $(value IMAGE):$(VERSION)"
 	@docker buildx build \
-		--file "$(DOCKERFILES_DIR)/Dockerfile.$(IMAGE)" \
+		--file "$(DOCKERFILES_DIR)/Dockerfile.$(value IMAGE)" \
 		--platform "$(TARGET_PLATFORMS)" \
 		--provenance mode=max \
 		--sbom=true \
@@ -76,8 +76,8 @@ define buildx
 		--label "org.opencontainers.image.revision=$(_GIT_COMMIT)" \
 		--label "org.opencontainers.image.created=$(_BUILD_DATE)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
-		--tag "$(IMAGE_REPO)/$(IMAGE):$(VERSION)" \
-		--tag "$(IMAGE_REPO)/$(IMAGE):latest" \
+		--tag "$(IMAGE_REPO)/$(value IMAGE):$(VERSION)" \
+		--tag "$(IMAGE_REPO)/$(value IMAGE):latest" \
 		$(2) \
 		.
 endef

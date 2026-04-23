@@ -26,7 +26,7 @@ _GIT_REMOTE  := $(shell git remote get-url origin 2>/dev/null | sed 's|git@githu
 _BUILD_DATE  := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 _SOURCE_URL   = $(if $(ORG),https://github.com/$(REPO),$(_GIT_REMOTE))
 
-.PHONY: all help test generate verify build push build-all push-all clean setup
+.PHONY: all help test generate verify build push build-all push-all clean setup validate
 
 # Stamp file so setup only runs once per clone, not on every make invocation.
 .git/hooks/.setup-done: .githooks/pre-push
@@ -60,13 +60,13 @@ verify: _setup ## Verify no uncommitted changes exist
 validate: _setup generate verify
 
 define buildx
-	@if [ -z "$(IMAGE)" ]; then \
+	@if [ -z "$(value IMAGE)" ]; then \
 		echo "Error: IMAGE is not set. Specify IMAGE=<name> or use build-all/push-all."; \
 		exit 1; \
 	fi
-	@echo "==> $(1) $(IMAGE):$(VERSION)"
+	@echo "==> $(1) $(value IMAGE):$(VERSION)"
 	@docker buildx build \
-		--file "$(DOCKERFILES_DIR)/Dockerfile.$(IMAGE)" \
+		--file "$(DOCKERFILES_DIR)/Dockerfile.$(value IMAGE)" \
 		--platform "$(TARGET_PLATFORMS)" \
 		--provenance mode=max \
 		--sbom=true \
@@ -76,8 +76,8 @@ define buildx
 		--label "org.opencontainers.image.revision=$(_GIT_COMMIT)" \
 		--label "org.opencontainers.image.created=$(_BUILD_DATE)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
-		--tag "$(IMAGE_REPO)/$(IMAGE):$(VERSION)" \
-		--tag "$(IMAGE_REPO)/$(IMAGE):latest" \
+		--tag "$(IMAGE_REPO)/$(value IMAGE):$(VERSION)" \
+		--tag "$(IMAGE_REPO)/$(value IMAGE):latest" \
 		$(2) \
 		.
 endef

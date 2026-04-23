@@ -24,16 +24,11 @@ env:
 jobs:
   setup:
     runs-on: ubuntu-latest
-    container: registry.suse.com/bci/golang:1.26.2@sha256:0c1bfe51ea14f3e28b4730c725687331ce6aa24c61acea3b9735286789c873b9
+    container: ghcr.io/rancher/ci-image/go1.26:20260423-1@sha256:04d51139d05041cb32ef7616f2edd55ee4150c175219ae92c8f91d44530196a3
     outputs:
       images: ${{ steps.list.outputs.images }}
       version: ${{ steps.version.outputs.value }}
     steps:
-      - name: Install needed packages
-        shell: bash
-        run: |
-          zypper -n in docker git-core make jq
-
       - name: Configure git
         shell: bash
         run: |
@@ -49,7 +44,7 @@ jobs:
       - name: Set image version
         id: version
         shell: bash
-        run: echo "value=$(date -u +%Y%m%d)-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+        run: echo "value=$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
 
       - name: Generate
         shell: bash
@@ -69,17 +64,12 @@ jobs:
   build-ci-image:
     needs: [setup]
     runs-on: ubuntu-latest
-    container: registry.suse.com/bci/golang:1.26.2@sha256:0c1bfe51ea14f3e28b4730c725687331ce6aa24c61acea3b9735286789c873b9
+    container: ghcr.io/rancher/ci-image/go1.26:20260423-1@sha256:04d51139d05041cb32ef7616f2edd55ee4150c175219ae92c8f91d44530196a3
     strategy:
       fail-fast: false
       matrix:
         image: ${{ fromJSON(needs.setup.outputs.images) }}
     steps:
-      - name: Install needed packages
-        shell: bash
-        run: |
-          zypper -n in docker git-core make
-
       - name: Configure git
         shell: bash
         run: |
@@ -98,8 +88,13 @@ jobs:
       - name: Log in to GHCR
         shell: bash
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u "${{ github.actor }}" --password-stdin ghcr.io
+          echo "${GITHUB_TOKEN}" | docker login -u "${GITHUB_ACTOR}" --password-stdin ghcr.io
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push image
         shell: bash
-        run: make push NO_CACHE=1 ORG="${ORG}" IMAGE="${{ matrix.image }}" VERSION="${{ needs.setup.outputs.version }}"
+        run: make push NO_CACHE=1 ORG="${ORG}" IMAGE="${IMAGE}" VERSION="${VERSION}"
+        env:
+          IMAGE: ${{ matrix.image }}
+          VERSION: ${{ needs.setup.outputs.version }}

@@ -28,7 +28,6 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-          fetch-depth: 0
 
       - name: Set image version
         id: version
@@ -50,7 +49,7 @@ jobs:
       - name: Show changed images
         shell: bash
         run: |
-          git fetch origin ${{ github.base_ref }}
+          git fetch origin ${{ github.base_ref }} --depth=1
           changed=$(go run main.go changed-images \
             --from=origin/${{ github.base_ref }} \
             --to=${{ github.event.pull_request.head.sha }})

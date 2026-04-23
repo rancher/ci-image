@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	"os/exec"
+	"path"
 	"strings"
 
 	"github.com/rancher/ci-image/internal/changelog"
@@ -11,7 +13,8 @@ import (
 //
 // It compares two states of images-lock.yaml and prints a space-separated
 // list of image names whose base image, tool versions, or tool set changed.
-// This output can be passed directly to `make push IMAGES="..."`.
+// This output can be fed into a workflow matrix or looped over to invoke
+// `make push IMAGE=...` for each changed image.
 //
 // Usage:
 //
@@ -72,6 +75,15 @@ func runChangedImages(args []string) error {
 	affected := changes.AffectedImages()
 	affected = append(affected, changes.ImagesAdded...)
 
+	// Also diff the generated Dockerfiles directly — catches template/script
+	// changes that don't surface in images-lock.yaml (and makes platform
+	// changes a non-issue since regenerated Dockerfiles will differ).
+	dfAffected, err := changedDockerfileImages(from, to)
+	if err != nil {
+		return fmt.Errorf("checking Dockerfile changes: %w", err)
+	}
+	affected = unionStrings(affected, dfAffected)
+
 	if len(affected) == 0 {
 		// No changes detected; print nothing so callers can detect this and
 		// fall back to building all images.
@@ -80,4 +92,51 @@ func runChangedImages(args []string) error {
 
 	fmt.Println(strings.Join(affected, " "))
 	return nil
+}
+
+// changedDockerfileImages returns image names whose Dockerfile changed between
+// the two refs by running git-diff --name-only on dockerfiles/.
+// When to is empty the working tree is used as the "after" state.
+// Returns nil if the refs are unknown or no Dockerfiles changed.
+func changedDockerfileImages(from, to string) ([]string, error) {
+	args := []string{"diff", "--name-only", from}
+	if to != "" {
+		args = append(args, to)
+	}
+	args = append(args, "--", "dockerfiles/")
+
+	out, err := exec.Command("git", args...).Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 128 {
+			return nil, nil // unknown ref — treat as no diff
+		}
+		return nil, fmt.Errorf("git diff --name-only: %w", err)
+	}
+
+	var images []string
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		base := path.Base(line)
+		name := strings.TrimPrefix(base, "Dockerfile.")
+		if name != base { // had the "Dockerfile." prefix
+			images = append(images, name)
+		}
+	}
+	return images, nil
+}
+
+// unionStrings returns a deduplicated union of a and b preserving order of a
+// then any elements of b not already in a.
+func unionStrings(a, b []string) []string {
+	seen := make(map[string]bool, len(a))
+	for _, s := range a {
+		seen[s] = true
+	}
+	result := append([]string(nil), a...)
+	for _, s := range b {
+		if !seen[s] {
+			result = append(result, s)
+			seen[s] = true
+		}
+	}
+	return result
 }

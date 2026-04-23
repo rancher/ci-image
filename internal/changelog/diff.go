@@ -110,6 +110,14 @@ func computeImageChanges(imgName string, prevTools, nextTools map[string]string,
 		ic.BaseImageUpdated = &BaseImageChange{From: prev.Base, To: next.Base}
 	}
 
+	prevPlats := append([]string(nil), prev.Platforms...)
+	nextPlats := append([]string(nil), next.Platforms...)
+	slices.Sort(prevPlats)
+	slices.Sort(nextPlats)
+	if !slices.Equal(prevPlats, nextPlats) {
+		ic.PlatformsChanged = &PlatformsChange{From: prev.Platforms, To: next.Platforms}
+	}
+
 	// Image-specific package changes (universal packages are diffed separately).
 	prevPkgSet := toSet(prev.Packages)
 	nextPkgSet := toSet(next.Packages)

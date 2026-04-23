@@ -59,6 +59,7 @@ func (c *Changes) AffectedImages() []string {
 type ImageChanges struct {
 	Image              string
 	BaseImageUpdated   *BaseImageChange
+	PlatformsChanged   *PlatformsChange
 	PackagesAdded      []string
 	PackagesRemoved    []string
 	ToolVersionChanged []ToolVersionChange
@@ -69,9 +70,16 @@ type ImageChanges struct {
 // HasChanges returns true if the image has any changes.
 func (ic ImageChanges) HasChanges() bool {
 	return ic.BaseImageUpdated != nil ||
+		ic.PlatformsChanged != nil ||
 		len(ic.PackagesAdded) > 0 || len(ic.PackagesRemoved) > 0 ||
 		len(ic.ToolVersionChanged) > 0 ||
 		len(ic.ToolsAdded) > 0 || len(ic.ToolsRemoved) > 0
+}
+
+// PlatformsChange records a change to the set of target platforms.
+type PlatformsChange struct {
+	From []string
+	To   []string
 }
 
 // BaseImageChange records a base image reference change.

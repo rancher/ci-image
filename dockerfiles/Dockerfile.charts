@@ -16,6 +16,8 @@ RUN zypper -n refresh && \
         make \
         unzip \
         wget \
+        git \
+        patch \
     && \
     zypper -n clean -a && \
     rm -rf /var/log/{lastlog,tallylog,zypper.log,zypp/history,YaST2}

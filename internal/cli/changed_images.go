@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"path"
@@ -95,7 +96,7 @@ func runChangedImages(args []string) error {
 }
 
 // changedDockerfileImages returns image names whose Dockerfile changed between
-// the two refs by running git-diff --name-only on dockerfiles/.
+// the two refs by running git diff --name-only on dockerfiles/.
 // When to is empty the working tree is used as the "after" state.
 // Returns nil if the refs are unknown or no Dockerfiles changed.
 func changedDockerfileImages(from, to string) ([]string, error) {
@@ -107,7 +108,8 @@ func changedDockerfileImages(from, to string) ([]string, error) {
 
 	out, err := exec.Command("git", args...).Output()
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 128 {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok && exitErr.ExitCode() == 128 && (strings.Contains(string(exitErr.Stderr), "unknown revision") ||
+			strings.Contains(string(exitErr.Stderr), "bad revision")) {
 			return nil, nil // unknown ref — treat as no diff
 		}
 		return nil, fmt.Errorf("git diff --name-only: %w", err)

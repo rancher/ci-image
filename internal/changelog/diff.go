@@ -39,6 +39,9 @@ func ReadFromGit(ref, path string) (*ImagesLock, error) {
 
 	var lk ImagesLock
 	if err := yaml.Unmarshal(data, &lk); err != nil {
+		if ref == "" {
+			return nil, fmt.Errorf("parsing images-lock at %s: %w", path, err)
+		}
 		return nil, fmt.Errorf("parsing images-lock at ref %q: %w", ref, err)
 	}
 	return &lk, nil

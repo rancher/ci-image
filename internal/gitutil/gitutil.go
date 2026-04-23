@@ -22,7 +22,10 @@ func ReadFileAtRef(ref, path string) ([]byte, error) {
 	// git cat-file -e exits 0 when the object exists, non-zero otherwise,
 	// with no string-matching required.
 	if err := exec.Command("git", "cat-file", "-e", ref).Run(); err != nil {
-		return nil, nil // ref does not exist — first-run case
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok && exitErr.ExitCode() == 1 {
+			return nil, nil // ref does not exist — first-run case
+		}
+		return nil, fmt.Errorf("git cat-file -e %s: %w", ref, err)
 	}
 
 	out, err := exec.Command("git", "show", ref+":"+path).Output()

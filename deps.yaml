@@ -47,6 +47,8 @@ images:
     description: "Rancher charts build environment"
     base: "registry.suse.com/bci/bci-base:15.7@sha256:3292c81fb9e40b60903e6c88fac34e955b6d5b3acd3eb055d02d5c1538a72aea"
     packages:
+      - git
+      - patch
     tools:
       - golangci-lint
       - goreleaser

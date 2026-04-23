@@ -17,11 +17,6 @@ jobs:
       images: ${{ steps.list.outputs.images }}
       version: ${{ steps.version.outputs.value }}
     steps:
-      - name: Install needed packages
-        shell: bash
-        run: |
-          zypper -n in docker make jq
-
       - name: Configure git
         shell: bash
         run: |
@@ -67,11 +62,6 @@ jobs:
       matrix:
         image: ${{ fromJSON(needs.setup.outputs.images) }}
     steps:
-      - name: Install needed packages
-        shell: bash
-        run: |
-          zypper -n in docker make
-
       - name: Configure git
         shell: bash
         run: |

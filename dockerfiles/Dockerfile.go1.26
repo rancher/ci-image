@@ -158,4 +158,11 @@ RUN go install golang.org/x/vuln/cmd/govulncheck@a8075323febce35764797d66a61fa9e
 # Cleanup Go caches
 RUN go clean -cache -modcache
 
+# We trust our base image and the repos that are pulled in workflows. Otherwise
+# each workflow that uses our base images would have to add the step below.
+RUN if (which git &> /dev/null); then \
+        echo "Configuring global git safe directory"; \
+        git config --global --add safe.directory '*'; \
+    fi
+
 ENTRYPOINT ["/bin/bash"]

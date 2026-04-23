@@ -27,12 +27,15 @@ func ReadFromGit(ref, path string) (*ImagesLock, error) {
 			return nil, fmt.Errorf("reading %s: %w", path, err)
 		}
 	} else {
-		out, err := exec.Command("git", "show", ref+":"+path).Output()
+		out, err := exec.Command("git", "show", ref+":"+path).CombinedOutput()
 		if err != nil {
 			if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 128 {
-				return nil, nil // unknown ref or file not present
+				msg := string(out)
+				if strings.Contains(msg, "unknown revision") || strings.Contains(msg, "does not exist") || strings.Contains(msg, "exists on disk, but not in") {
+					return nil, nil // ref or file not present — first-run case
+				}
 			}
-			return nil, fmt.Errorf("git show %s:%s: %w", ref, path, err)
+			return nil, fmt.Errorf("git show %s:%s: %w\n%s", ref, path, err, out)
 		}
 		data = out
 	}

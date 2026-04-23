@@ -67,6 +67,10 @@ jobs:
 
 Pin to a specific date-stamped tag (e.g. `go1.26:20240419-42`) for fully reproducible workflows.
 
+## Changelog
+
+Per-build changes are tracked in [`CHANGELOG.md`](../../blob/changelog/CHANGELOG.md) on the `changelog` branch. Each entry is generated automatically after a successful push to `main` and records what changed in `images-lock.yaml` — tool version bumps, base image updates, packages added or removed, and images added or removed.
+
 ---
 
 For adding tools, new Go versions, or modifying the build system, see [CONTRIBUTING.md](CONTRIBUTING.md).

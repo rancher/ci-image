@@ -107,3 +107,79 @@ jobs:
         env:
           IMAGE: ${{ matrix.image }}
           VERSION: ${{ needs.setup.outputs.version }}
+
+  update-changelog:
+    # Runs after all images are built. The top-level concurrency group
+    # (cancel-in-progress: false) serializes workflow runs so concurrent merges
+    # queue up and write changelog entries in order without racing.
+    #
+    # CHANGELOG.md lives on the orphan `changelog` branch, not on main, so
+    # this commit never re-triggers the push-release workflow.
+    needs: [setup, build-ci-image]
+    runs-on: ubuntu-latest
+    container: registry.suse.com/bci/golang:1.26.2@sha256:0c1bfe51ea14f3e28b4730c725687331ce6aa24c61acea3b9735286789c873b9
+    permissions:
+      contents: write
+      id-token: none
+      packages: none
+    steps:
+      - name: Install needed packages
+        shell: bash
+        run: |
+          zypper -n in git-core make
+
+      - name: Configure git
+        shell: bash
+        run: |
+          git config --global safe.directory "*"
+          git config --global user.name "rancher-security-team[bot]"
+          git config --global user.email "202797621+rancher-security-team[bot]@users.noreply.github.com"
+
+      - name: Checkout main
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Restore CHANGELOG.md from changelog branch
+        shell: bash
+        run: |
+          if git ls-remote --exit-code origin changelog; then
+            git fetch origin changelog
+            git checkout origin/changelog -- CHANGELOG.md || true
+          fi
+
+      - name: Generate changelog entry
+        shell: bash
+        run: |
+          go run main.go changelog generate \
+            --version="${{ needs.setup.outputs.version }}" \
+            --from="${{ github.event.before }}" \
+            --to="${{ github.sha }}"
+
+      - name: Publish to changelog branch
+        shell: bash
+        env:
+          VERSION: ${{ needs.setup.outputs.version }}
+        run: |
+          cp CHANGELOG.md /tmp/CHANGELOG.md
+
+          # Switch to the changelog branch (create orphan on first run).
+          if git ls-remote --exit-code origin changelog; then
+            git checkout -B _changelog origin/changelog
+          else
+            git checkout --orphan _changelog
+            git rm -rf . --quiet
+          fi
+
+          cp /tmp/CHANGELOG.md CHANGELOG.md
+          git add CHANGELOG.md
+
+          if git diff --cached --quiet; then
+            echo "CHANGELOG.md unchanged, skipping commit"
+            exit 0
+          fi
+
+          git commit -m "chore: update CHANGELOG.md for ${VERSION}"
+          git push origin _changelog:changelog

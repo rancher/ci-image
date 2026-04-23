@@ -49,3 +49,15 @@ The `update` command targets `curl`-based `pinned` tools. Extensions worth consi
 - **Bulk update**: `update --all` to update every tool in one pass. Raises questions about atomicity (what if one tool fails mid-run).
 
 Note: `release-checksums` + `version: latest` tools do not need `update` — their version is resolved automatically by `generate` and tracked in `deps.lock`.
+
+### Version branches and tagged releases
+
+The current changelog is a "head changelog" — one `CHANGELOG.md` on the orphan `changelog` branch, with an entry per CI build keyed to the `YYYYMMDD-<run_number>` version. If the project ever adopts version branches (e.g. `v2`) to manage breaking changes, the model becomes more complex.
+
+Open questions before building anything here:
+
+- **Per-branch changelogs**: does each version branch carry its own `CHANGELOG.md`, or does a single file track all branches with clear section headers?
+- **Versioning scheme**: the `YYYYMMDD-<run_number>` format is head-specific. A tagged release model would want something semver-adjacent. What replaces it, and does the existing `changelog generate --version` flag accommodate both?
+- **Release notes vs. build log**: a tagged release likely wants a curated summary (what changed since the last tag), not a raw append of every build. Are those the same command with different inputs, or separate subcommands?
+- **Workflow parameterization**: `update-changelog` currently hard-codes `git push origin HEAD:main`. Version branches need that parameterized — but should that be a workflow input, inferred from the branch, or something else?
+- **Tag-triggered workflow**: does changelog generation move from a push-to-branch trigger to a tag trigger, or run on both?

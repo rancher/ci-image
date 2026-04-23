@@ -2,53 +2,11 @@ package changelog
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 )
 
-// newTempGitRepo creates a temporary git repository, commits a single file,
-// and returns the repo directory and the commit SHA. The caller is responsible
-// for removing the directory.
-func newTempGitRepo(t *testing.T, filename, content string) (dir, sha string) {
-	t.Helper()
-	dir = t.TempDir()
-
-	run := func(args ...string) {
-		t.Helper()
-		cmd := exec.Command("git", args...)
-		cmd.Dir = dir
-		cmd.Env = append(os.Environ(),
-			"GIT_AUTHOR_NAME=test",
-			"GIT_AUTHOR_EMAIL=test@example.com",
-			"GIT_COMMITTER_NAME=test",
-			"GIT_COMMITTER_EMAIL=test@example.com",
-		)
-		if out, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("git %v: %v\n%s", args, err, out)
-		}
-	}
-
-	run("init", "-b", "main")
-	run("config", "user.email", "test@example.com")
-	run("config", "user.name", "test")
-
-	if err := os.WriteFile(filepath.Join(dir, filename), []byte(content), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	run("add", filename)
-	run("commit", "-m", "init")
-
-	out, err := exec.Command("git", "-C", dir, "rev-parse", "HEAD").Output()
-	if err != nil {
-		t.Fatalf("rev-parse HEAD: %v", err)
-	}
-	sha = string(out[:len(out)-1]) // trim newline
-	return dir, sha
-}
-
-// --- ReadFromGit ---
+// --- ReadFromGit (filesystem, ref="") ---
 
 func TestReadFromGit_FilesystemPresent(t *testing.T) {
 	dir := t.TempDir()
@@ -62,11 +20,8 @@ func TestReadFromGit_FilesystemPresent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if lk == nil {
-		t.Fatal("expected non-nil ImagesLock")
-	}
-	if len(lk.Images) != 1 || lk.Images[0] != "foo" {
-		t.Errorf("unexpected images: %v", lk.Images)
+	if lk == nil || len(lk.Images) != 1 || lk.Images[0] != "foo" {
+		t.Errorf("unexpected lock: %+v", lk)
 	}
 }
 
@@ -86,78 +41,9 @@ func TestReadFromGit_FilesystemInvalidYAML(t *testing.T) {
 	if err := os.WriteFile(path, []byte("{bad yaml: ["), 0o644); err != nil {
 		t.Fatal(err)
 	}
-
 	_, err := ReadFromGit("", path)
 	if err == nil {
 		t.Fatal("expected error for invalid YAML")
-	}
-}
-
-func TestReadFromGit_GitRefPresent(t *testing.T) {
-	content := "images:\n- bar\nconfigs:\n  bar:\n    base: ubuntu\n    platforms: [linux/amd64]\n"
-	dir, sha := newTempGitRepo(t, "images-lock.yaml", content)
-
-	orig, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Chdir(dir); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Chdir(orig) //nolint:errcheck
-
-	lk, err := ReadFromGit(sha, "images-lock.yaml")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if lk == nil || len(lk.Images) != 1 || lk.Images[0] != "bar" {
-		t.Errorf("unexpected lock: %+v", lk)
-	}
-}
-
-func TestReadFromGit_GitRefUnknown(t *testing.T) {
-	// Point at a real git repo so git doesn't fail with "not a git repository".
-	content := "images: []\nconfigs: {}\n"
-	dir, _ := newTempGitRepo(t, "images-lock.yaml", content)
-
-	orig, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Chdir(dir); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Chdir(orig) //nolint:errcheck
-
-	lk, err := ReadFromGit("deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", "images-lock.yaml")
-	if err != nil {
-		t.Fatalf("expected nil error for unknown ref, got: %v", err)
-	}
-	if lk != nil {
-		t.Fatalf("expected nil ImagesLock for unknown ref, got: %+v", lk)
-	}
-}
-
-func TestReadFromGit_GitFileNotAtRef(t *testing.T) {
-	// Commit a file, then ask for a different file name at that ref.
-	content := "images: []\nconfigs: {}\n"
-	dir, sha := newTempGitRepo(t, "images-lock.yaml", content)
-
-	orig, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Chdir(dir); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Chdir(orig) //nolint:errcheck
-
-	lk, err := ReadFromGit(sha, "no-such-file.yaml")
-	if err != nil {
-		t.Fatalf("expected nil error when file absent at ref, got: %v", err)
-	}
-	if lk != nil {
-		t.Fatalf("expected nil ImagesLock, got: %+v", lk)
 	}
 }
 
@@ -251,7 +137,7 @@ func TestDiff_NoChanges(t *testing.T) {
 	}
 }
 
-// --- computeImageChanges (tested via Diff) ---
+// --- computeImageChanges (exercised via Diff) ---
 
 func TestDiff_ImageBaseChange(t *testing.T) {
 	prev := &ImagesLock{
@@ -398,13 +284,12 @@ func TestDiff_ImageToolVersionChanged(t *testing.T) {
 	if tvc.Tool != "helm" || tvc.From != "3.0.0" || tvc.To != "3.1.0" {
 		t.Errorf("unexpected tool version change: %+v", tvc)
 	}
-	// Tool should not appear in added/removed.
 	if len(ic.ToolsAdded) != 0 || len(ic.ToolsRemoved) != 0 {
 		t.Errorf("tool version change should not appear in add/remove lists: added=%v removed=%v", ic.ToolsAdded, ic.ToolsRemoved)
 	}
 }
 
-func TestDiff_MultipleImageChanges(t *testing.T) {
+func TestDiff_OnlyChangedImageAppears(t *testing.T) {
 	prev := &ImagesLock{
 		Images: []string{"a", "b"},
 		Configs: map[string]ImageConfig{

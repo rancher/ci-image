@@ -3,10 +3,10 @@ package changelog
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"slices"
 	"strings"
 
+	"github.com/rancher/ci-image/internal/gitutil"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -27,17 +27,14 @@ func ReadFromGit(ref, path string) (*ImagesLock, error) {
 			return nil, fmt.Errorf("reading %s: %w", path, err)
 		}
 	} else {
-		out, err := exec.Command("git", "show", ref+":"+path).CombinedOutput()
+		var err error
+		data, err = gitutil.ReadFileAtRef(ref, path)
 		if err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 128 {
-				msg := string(out)
-				if strings.Contains(msg, "unknown revision") || strings.Contains(msg, "does not exist") || strings.Contains(msg, "exists on disk, but not in") {
-					return nil, nil // ref or file not present — first-run case
-				}
-			}
-			return nil, fmt.Errorf("git show %s:%s: %w\n%s", ref, path, err, out)
+			return nil, fmt.Errorf("reading lock from git: %w", err)
 		}
-		data = out
+		if data == nil {
+			return nil, nil
+		}
 	}
 
 	var lk ImagesLock

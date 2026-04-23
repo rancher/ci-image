@@ -18,7 +18,9 @@ func Execute(args []string) error {
 		return runValidate(args)
 	case "changed-images":
 		return runChangedImages(args)
+	case "changelog":
+		return runChangelog(args)
 	default:
-		return fmt.Errorf("unknown command %q; valid commands: generate, validate, changed-images", cmd)
+		return fmt.Errorf("unknown command %q; valid commands: generate, validate, changed-images, changelog", cmd)
 	}
 }

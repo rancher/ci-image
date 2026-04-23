@@ -1,0 +1,5 @@
+# Go build artifacts
+/ci-image
+/main
+*.exe
+.idea

@@ -48,6 +48,8 @@ verify: ## Verify no uncommitted changes exist
 		exit 1; \
 	fi
 
+validate: generate verify
+
 define buildx
 	@if [ -z "$(IMAGE)" ]; then \
 		echo "Error: IMAGE is not set. Specify IMAGE=<name> or use build-all/push-all."; \

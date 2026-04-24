@@ -174,16 +174,16 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/charts-build-scripts" "/usr/local/bin/charts-build-scripts" && \
     rm -rf "${TMP_DIR}"
 
-# ob-charts-tool v0.4.0
+# ob-charts-tool v0.4.1
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="db379b6a64045d2017e80cc29b53d8eb5e72c753ca1d9f53a328d52d7a41dc2d" ;; \
-        arm64) CHECKSUM="8407715fb5d49bc3ba7bd11e4bd09436c3c8b9642e514497ea96eb2d8eea5a1c" ;; \
+        amd64) CHECKSUM="79d9d6f724d9859b144d898e7b82932dbedc148778ab30a7631a19b37d62a9b6" ;; \
+        arm64) CHECKSUM="ff04bfc01be74466b7f958a507c9ef4fefd36616d2586a0be9b09d7a8da8e8ff" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/rancher/ob-charts-tool/releases/download/v0.4.0/ob-charts-tool_linux_amd64" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/rancher/ob-charts-tool/releases/download/v0.4.0/ob-charts-tool_linux_arm64" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/rancher/ob-charts-tool/releases/download/v0.4.1/ob-charts-tool_linux_amd64" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/rancher/ob-charts-tool/releases/download/v0.4.1/ob-charts-tool_linux_arm64" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/ob-charts-tool" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/ob-charts-tool" > "${TMP_DIR}/checksum.sha256" && \

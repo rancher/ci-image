@@ -20,7 +20,6 @@ jobs:
       - name: Configure git
         shell: bash
         run: |
-          git config --global safe.directory "$(pwd)"
           git config --global user.name "rancher-security-team[bot]"
           git config --global user.email "202797621+rancher-security-team[bot]@users.noreply.github.com"
 
@@ -83,7 +82,6 @@ jobs:
       - name: Configure git
         shell: bash
         run: |
-          git config --global safe.directory "$(pwd)"
           git config --global user.name "rancher-security-team[bot]"
           git config --global user.email "202797621+rancher-security-team[bot]@users.noreply.github.com"
 

@@ -3,22 +3,26 @@ images:
     description: "CI image with Go 1.25 toolchain"
     base: "registry.suse.com/bci/golang:1.25.9@sha256:6ab7d7eb4a23076273da5e885ea71a1f9c72923da07f41fb53fb02e914123c11"
     packages:
+      - nodejs24
       - skopeo
     tools:
       - golangci-lint
       - goreleaser
       - govulncheck
+      - helm_v3
       - oras
 
   - name: go1.26
     description: "CI image with Go 1.26 toolchain"
     base: "registry.suse.com/bci/golang:1.26.2@sha256:0c1bfe51ea14f3e28b4730c725687331ce6aa24c61acea3b9735286789c873b9"
     packages:
+      - nodejs24
       - skopeo
     tools:
       - golangci-lint
       - goreleaser
       - govulncheck
+      - helm_v3
       - oras
 
   - name: python3.11
@@ -59,12 +63,16 @@ images:
       - oras
 
 packages:
+  - ca-certificates
   - docker
   - gawk
   - git-core
+  - gzip
   - jq
   - make
+  - tar
   - unzip
+  - zstd
   - wget
 
 universal:
@@ -148,6 +156,17 @@ tools:
     install:
       method: go-install
       package: "golang.org/x/vuln/cmd/govulncheck@{version_commit}"
+
+  - name: helm_v3
+    source: "https://get.helm.sh"
+    mode: static
+    version: v3.20.2
+    checksums:
+      linux/amd64: "258e830a9e613c8a7a302d6059b4bb3b9758f2f3e1bb8ea0d707ce10a9a72fea"
+      linux/arm64: "5ea2d6bc2cda3f8edf985e028809f5a9278f404fb8ab24044de9b7cb9b79a691"
+    release:
+      download_template: "{source}/helm-{version}-{os}-{arch}.tar.gz"
+      extract: "{os}-{arch}/helm"
 
   - name: oras
     source: oras-project/oras

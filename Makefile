@@ -26,7 +26,7 @@ _GIT_REMOTE  := $(shell git remote get-url origin 2>/dev/null | sed 's|git@githu
 _BUILD_DATE  := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 _SOURCE_URL   = $(if $(ORG),https://github.com/$(REPO),$(_GIT_REMOTE))
 
-.PHONY: all help test generate verify build push build-all push-all clean setup validate
+.PHONY: all help test generate verify build push build-all push-all clean setup validate changelog-local
 
 # Stamp file so setup only runs once per clone, not on every make invocation.
 .git/hooks/.setup-done: .githooks/pre-push
@@ -102,3 +102,6 @@ clean: _setup ## Remove generated Dockerfiles
 	rm -rf $(DOCKERFILES_DIR)
 
 setup: .git/hooks/.setup-done ## Configure git to use the repo's hooks (.githooks/pre-push runs make validate)
+
+changelog-local: _setup ## Simulate CI changelog generation locally (FROM=, TO=, VERSION= optional)
+	@bash scripts/changelog-local.sh

@@ -136,6 +136,10 @@ func renderEntry(entry Entry) string {
 		}
 	}
 
+	for _, img := range entry.Changes.DockerfileChanges {
+		fmt.Fprintf(&sb, "### Image: %s:%s\n\n- Dockerfile template changes\n\n", img, entry.Version)
+	}
+
 	if len(entry.Changes.ImagesAdded) > 0 {
 		sb.WriteString("### Images Added\n\n")
 		for _, img := range entry.Changes.ImagesAdded {

@@ -19,6 +19,31 @@ var ErrShallowClone = errors.New("shallow clone detected: changelog generation r
 // It is a variable so tests can replace it without needing a real shallow repo.
 var shallowCheck = defaultShallowCheck
 
+// ChangedFiles returns the list of files changed between two git refs.
+// Returns nil if either ref is empty or unknown.
+func ChangedFiles(from, to string) ([]string, error) {
+	if from == "" || to == "" {
+		return nil, nil
+	}
+	if _, err := exec.LookPath("git"); err != nil {
+		return nil, ErrGitNotFound
+	}
+	out, err := exec.Command("git", "diff", "--name-only", from, to).Output()
+	if err != nil {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok && exitErr.ExitCode() == 128 {
+			return nil, nil // unknown ref
+		}
+		return nil, fmt.Errorf("git diff --name-only %s %s: %w", from, to, err)
+	}
+	var files []string
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if line != "" {
+			files = append(files, line)
+		}
+	}
+	return files, nil
+}
+
 func defaultShallowCheck() (bool, error) {
 	out, err := exec.Command("git", "rev-parse", "--is-shallow-repository").Output()
 	if err != nil {

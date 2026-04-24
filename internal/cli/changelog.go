@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/rancher/ci-image/internal/changelog"
+	"github.com/rancher/ci-image/internal/gitutil"
 )
 
 // runChangelog implements the `changelog` command.
@@ -92,6 +93,14 @@ func runChangelogGenerate(args []string) error {
 
 	changes := changelog.Diff(prev, next)
 
+	if changes.IsEmpty() {
+		affected, err := dockerfileOnlyChanges(from, to)
+		if err != nil {
+			return fmt.Errorf("detecting dockerfile changes: %w", err)
+		}
+		changes.DockerfileChanges = affected
+	}
+
 	entry := changelog.Entry{
 		Version: version,
 		Date:    time.Now().UTC(),
@@ -103,4 +112,21 @@ func runChangelogGenerate(args []string) error {
 	}
 
 	return nil
+}
+
+// dockerfileOnlyChanges returns the names of images whose Dockerfiles changed
+// between from and to, but only when every changed file is under
+// internal/dockerfile/ or dockerfiles/. Returns nil if any other files changed
+// or if there are no changes.
+func dockerfileOnlyChanges(from, to string) ([]string, error) {
+	all, err := gitutil.ChangedFiles(from, to)
+	if err != nil || len(all) == 0 {
+		return nil, err
+	}
+	for _, f := range all {
+		if !strings.HasPrefix(f, "internal/dockerfile/") && !strings.HasPrefix(f, "dockerfiles/") {
+			return nil, nil
+		}
+	}
+	return changedDockerfileImages(from, to)
 }

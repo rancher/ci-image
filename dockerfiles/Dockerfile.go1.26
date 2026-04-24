@@ -9,13 +9,18 @@ ENV ARCH=$TARGETARCH
 
 RUN zypper -n refresh && \
     zypper -n install \
+        ca-certificates \
         docker \
         gawk \
         git-core \
+        gzip \
         jq \
         make \
+        tar \
         unzip \
+        zstd \
         wget \
+        nodejs24 \
         skopeo \
     && \
     zypper -n clean -a && \
@@ -154,6 +159,25 @@ RUN case "${ARCH}" in \
 
 # govulncheck v1.2.0
 RUN go install golang.org/x/vuln/cmd/govulncheck@a8075323febce35764797d66a61fa9e19a8d9797
+
+# helm_v3 v3.20.2
+RUN case "${ARCH}" in \
+        amd64) CHECKSUM="258e830a9e613c8a7a302d6059b4bb3b9758f2f3e1bb8ea0d707ce10a9a72fea" ;; \
+        arm64) CHECKSUM="5ea2d6bc2cda3f8edf985e028809f5a9278f404fb8ab24044de9b7cb9b79a691" ;; \
+        *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
+    esac && \
+    export TMP_DIR=$(mktemp -d) && \
+    export TMP_FILE="${TMP_DIR}/helm_v3.tar.gz" && \
+    case "${ARCH}" in \
+        amd64) DOWNLOAD_URL="https://get.helm.sh/helm-v3.20.2-linux-amd64.tar.gz"; EXTRACT="linux-amd64/helm" ;; \
+        arm64) DOWNLOAD_URL="https://get.helm.sh/helm-v3.20.2-linux-arm64.tar.gz"; EXTRACT="linux-arm64/helm" ;; \
+    esac && \
+    curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
+    printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
+    sha256sum -c "${TMP_DIR}/checksum.sha256" && \
+    tar xzf "${TMP_FILE}" -C "${TMP_DIR}" && \
+    install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/helm_v3" && \
+    rm -rf "${TMP_DIR}"
 
 # oras v1.3.1
 RUN case "${ARCH}" in \

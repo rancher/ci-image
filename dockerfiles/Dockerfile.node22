@@ -9,12 +9,16 @@ ENV ARCH=$TARGETARCH
 
 RUN zypper -n refresh && \
     zypper -n install \
+        ca-certificates \
         docker \
         gawk \
         git-core \
+        gzip \
         jq \
         make \
+        tar \
         unzip \
+        zstd \
         wget \
     && \
     zypper -n clean -a && \

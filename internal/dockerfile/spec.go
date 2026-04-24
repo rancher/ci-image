@@ -2,6 +2,8 @@ package dockerfile
 
 import (
 	"embed"
+	"fmt"
+	"slices"
 	"strings"
 	"text/template"
 )
@@ -96,6 +98,15 @@ func (v DockerfileVars) HasGoInstall() bool {
 		if t.Install.Method() == "go-install" {
 			return true
 		}
+	}
+	return false
+}
+
+// HasAnyOfPackages reports whether any of the given packages are in the image.
+func (v DockerfileVars) HasAnyOfPackages(pkgs ...string) bool {
+	for _, p := range pkgs {
+		fmt.Printf("checking package %s - result %t\n", p, slices.Contains(pkgs, p))
+		return slices.Contains(pkgs, p)
 	}
 	return false
 }

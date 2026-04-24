@@ -111,7 +111,7 @@ func TestDiff_ImagesRemoved(t *testing.T) {
 
 func TestDiff_UniversalPackagesAddedRemoved(t *testing.T) {
 	prev := &ImagesLock{Packages: []string{"curl", "wget"}, Configs: map[string]ImageConfig{}}
-	next := &ImagesLock{Packages: []string{"curl", "jq"}, Configs: map[string]ImageConfig{}}
+	next := &ImagesLock{Images: []string{"img1", "img2"}, Packages: []string{"curl", "jq"}, Configs: map[string]ImageConfig{}}
 
 	c := Diff(prev, next)
 	if len(c.PackagesAdded) != 1 || c.PackagesAdded[0] != "jq" {
@@ -119,6 +119,9 @@ func TestDiff_UniversalPackagesAddedRemoved(t *testing.T) {
 	}
 	if len(c.PackagesRemoved) != 1 || c.PackagesRemoved[0] != "wget" {
 		t.Errorf("expected [wget] removed, got %v", c.PackagesRemoved)
+	}
+	if len(c.AllImages) != 2 || c.AllImages[0] != "img1" || c.AllImages[1] != "img2" {
+		t.Errorf("expected AllImages=[img1 img2], got %v", c.AllImages)
 	}
 }
 

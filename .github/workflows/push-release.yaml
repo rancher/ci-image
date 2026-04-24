@@ -24,7 +24,7 @@ env:
 jobs:
   setup:
     runs-on: ubuntu-latest
-    container: ghcr.io/rancher/ci-image/go1.26:20260423-1@sha256:04d51139d05041cb32ef7616f2edd55ee4150c175219ae92c8f91d44530196a3
+    container: ghcr.io/rancher/ci-image/go1.26:20260424-8@sha256:9a82b824c9b32c5652d86b2a3d058e35a89ada6d84ee1b356200e2052c0f522d
     outputs:
       images: ${{ steps.list.outputs.images }}
       version: ${{ steps.version.outputs.value }}
@@ -32,7 +32,6 @@ jobs:
       - name: Configure git
         shell: bash
         run: |
-          git config --global safe.directory "$(pwd)"
           git config --global user.name "rancher-security-team[bot]"
           git config --global user.email "202797621+rancher-security-team[bot]@users.noreply.github.com"
 
@@ -72,7 +71,7 @@ jobs:
   build-ci-image:
     needs: [setup]
     runs-on: ubuntu-latest
-    container: ghcr.io/rancher/ci-image/go1.26:20260423-1@sha256:04d51139d05041cb32ef7616f2edd55ee4150c175219ae92c8f91d44530196a3
+    container: ghcr.io/rancher/ci-image/go1.26:20260424-8@sha256:9a82b824c9b32c5652d86b2a3d058e35a89ada6d84ee1b356200e2052c0f522d
     strategy:
       fail-fast: false
       matrix:
@@ -81,7 +80,6 @@ jobs:
       - name: Configure git
         shell: bash
         run: |
-          git config --global safe.directory "$(pwd)"
           git config --global user.name "rancher-security-team[bot]"
           git config --global user.email "202797621+rancher-security-team[bot]@users.noreply.github.com"
 
@@ -107,3 +105,66 @@ jobs:
         env:
           IMAGE: ${{ matrix.image }}
           VERSION: ${{ needs.setup.outputs.version }}
+
+  update-changelog:
+    # Runs after all images are built. The top-level concurrency group
+    # (cancel-in-progress: false) serializes workflow runs so concurrent merges
+    # queue up and write changelog entries in order without racing.
+    #
+    # CHANGELOG.md lives on the orphan `changelog` branch, not on main, so
+    # this commit never re-triggers the push-release workflow.
+    needs: [setup, build-ci-image]
+    runs-on: ubuntu-latest
+    container: ghcr.io/rancher/ci-image/go1.26:20260424-8@sha256:9a82b824c9b32c5652d86b2a3d058e35a89ada6d84ee1b356200e2052c0f522d
+    permissions:
+      contents: write
+      id-token: none
+      packages: none
+    steps:
+      - name: Configure git
+        shell: bash
+        run: |
+          git config --global user.name "rancher-security-team[bot]"
+          git config --global user.email "202797621+rancher-security-team[bot]@users.noreply.github.com"
+
+      - name: Checkout main
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Set up changelog worktree
+        shell: bash
+        run: |
+          # The orphan branch won't exist on forks or a brand-new repo on first run.
+          if git ls-remote --exit-code origin changelog; then
+            git fetch origin changelog
+            git worktree add ./changelog-dir origin/changelog
+          else
+            git worktree add --orphan ./changelog-dir changelog
+          fi
+
+      - name: Generate changelog entry
+        shell: bash
+        run: |
+          go run main.go changelog generate \
+            --version="${{ needs.setup.outputs.version }}" \
+            --from="${{ github.event.before }}" \
+            --to="${{ github.sha }}" \
+            --changelog="./changelog-dir/CHANGELOG.md"
+
+      - name: Publish to changelog branch
+        shell: bash
+        env:
+          VERSION: ${{ needs.setup.outputs.version }}
+        run: |
+          git -C ./changelog-dir add CHANGELOG.md
+
+          if git -C ./changelog-dir diff --cached --quiet; then
+            echo "CHANGELOG.md unchanged, skipping commit"
+            exit 0
+          fi
+
+          git -C ./changelog-dir commit -m "chore: update CHANGELOG.md for ${VERSION}"
+          git -C ./changelog-dir push origin HEAD:changelog

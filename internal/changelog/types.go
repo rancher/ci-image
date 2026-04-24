@@ -31,6 +31,13 @@ type Changes struct {
 	// ImagesAdded and ImagesRemoved track images that appeared or disappeared.
 	ImagesAdded   []string
 	ImagesRemoved []string
+	// AllImages is the full list of images in the "to" state. Used by the
+	// changelog renderer to list images that were rebuilt due to universal
+	// package changes but have no per-image diff of their own.
+	AllImages []string
+	// DockerfileChanges lists images rebuilt solely due to Dockerfile template
+	// changes (internal/dockerfile/ or dockerfiles/) with no images-lock.yaml diff.
+	DockerfileChanges []string
 }
 
 // IsEmpty returns true when there are no changes at all.
@@ -39,7 +46,8 @@ func (c *Changes) IsEmpty() bool {
 		return true
 	}
 	return len(c.PackagesAdded) == 0 && len(c.PackagesRemoved) == 0 &&
-		len(c.ImageChanges) == 0 && len(c.ImagesAdded) == 0 && len(c.ImagesRemoved) == 0
+		len(c.ImageChanges) == 0 && len(c.ImagesAdded) == 0 && len(c.ImagesRemoved) == 0 &&
+		len(c.DockerfileChanges) == 0
 }
 
 // AffectedImages returns the names of images that have per-image changes.

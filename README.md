@@ -20,6 +20,12 @@ Images are published to `ghcr.io/rancher/ci-image/<name>`, each tagged independe
 | `charts` | none | Rancher charts build environment |
 <!-- END IMAGES TABLE -->
 
+## Changelog
+
+Per-build changes are tracked in [the `CHANGELOG.md` file](https://github.com/rancher/ci-image/blob/changelog/CHANGELOG.md) on the `changelog` branch.
+
+Each entry is generated automatically after a successful push to `main` and records what changed in `images-lock.yaml` — tool version bumps, base image updates, packages added or removed, and images added or removed.
+
 ## Usage
 
 Use an image as the container for a job in your GitHub Actions workflow. The job's steps run inside the container, so all bundled tools are available without any install step.

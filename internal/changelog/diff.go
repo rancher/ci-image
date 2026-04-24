@@ -60,7 +60,9 @@ func Diff(prev, next *ImagesLock) *Changes {
 		}
 	}
 
-	c := &Changes{}
+	c := &Changes{
+		AllImages: append([]string(nil), next.Images...),
+	}
 
 	// Universal package changes.
 	prevPkgs := toSet(prev.Packages)

@@ -26,7 +26,7 @@ _GIT_REMOTE  := $(shell git remote get-url origin 2>/dev/null | sed 's|git@githu
 _BUILD_DATE  := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 _SOURCE_URL   = $(if $(ORG),https://github.com/$(REPO),$(_GIT_REMOTE))
 
-.PHONY: all help test generate verify build push build-all push-all clean setup validate
+.PHONY: all help test generate verify build push build-all push-all clean setup validate changelog-worktree changelog-local
 
 # Stamp file so setup only runs once per clone, not on every make invocation.
 .git/hooks/.setup-done: .githooks/pre-push
@@ -102,3 +102,21 @@ clean: _setup ## Remove generated Dockerfiles
 	rm -rf $(DOCKERFILES_DIR)
 
 setup: .git/hooks/.setup-done ## Configure git to use the repo's hooks (.githooks/pre-push runs make validate)
+
+changelog-worktree: _setup ## Set up (or refresh) ./changelog-dir worktree from origin/changelog
+	@if git ls-remote --exit-code origin changelog &>/dev/null; then \
+		git fetch origin changelog --quiet; \
+		if [ -d changelog-dir ]; then \
+			git -C changelog-dir reset --hard origin/changelog --quiet; \
+			echo "changelog-dir refreshed to origin/changelog"; \
+		else \
+			git worktree add changelog-dir origin/changelog --quiet; \
+			echo "changelog-dir created from origin/changelog"; \
+		fi \
+	else \
+		git worktree add --orphan changelog-dir changelog --quiet; \
+		echo "changelog-dir created as orphan (no remote branch yet)"; \
+	fi
+
+changelog-local: _setup ## Simulate or apply changelog generation locally (FROM=, TO=, VERSION=, APPLY=1 to commit, PUSH=1 to also push)
+	@bash scripts/changelog-local.sh

@@ -1,3 +1,5 @@
+# Changelog worktree
+/changelog-dir
 # Go build artifacts
 /ci-image
 /main

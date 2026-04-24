@@ -115,3 +115,49 @@ func TestReadFileAtRef_GitNotFound(t *testing.T) {
 		t.Errorf("expected ErrGitNotFound, got: %v", err)
 	}
 }
+
+func TestReadFileAtRef_ShallowClone(t *testing.T) {
+	dir, sha := newTempGitRepo(t, map[string]string{"lock.yaml": "hello"})
+	chdir(t, dir)
+
+	// Simulate a shallow clone by replacing shallowCheck for the duration of the test.
+	orig := shallowCheck
+	shallowCheck = func() (bool, error) { return true, nil }
+	t.Cleanup(func() { shallowCheck = orig })
+
+	_, err := ReadFileAtRef(sha, "lock.yaml")
+	if !errors.Is(err, ErrShallowClone) {
+		t.Errorf("expected ErrShallowClone, got: %v", err)
+	}
+}
+
+func TestReadFileAtRef_NotShallow(t *testing.T) {
+	// A repo created by newTempGitRepo is a full clone — shallowCheck must
+	// return false and the read must succeed normally.
+	dir, sha := newTempGitRepo(t, map[string]string{"lock.yaml": "data"})
+	chdir(t, dir)
+
+	data, err := ReadFileAtRef(sha, "lock.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if string(data) != "data" {
+		t.Errorf("expected %q, got %q", "data", data)
+	}
+}
+
+func TestDefaultShallowCheck_NotShallow(t *testing.T) {
+	// Run inside a temp repo created by newTempGitRepo, which is always a full
+	// clone, so the result is deterministic regardless of how the test suite
+	// itself was checked out.
+	dir, _ := newTempGitRepo(t, map[string]string{"f": "x"})
+	chdir(t, dir)
+
+	shallow, err := defaultShallowCheck()
+	if err != nil {
+		t.Fatalf("defaultShallowCheck error: %v", err)
+	}
+	if shallow {
+		t.Error("expected defaultShallowCheck to return false for a full repo")
+	}
+}

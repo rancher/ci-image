@@ -4,6 +4,36 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20260424-10 (2026-04-24)
+
+### Image: charts:20260424-10
+
+- Dockerfile template changes
+
+### Image: go1.25:20260424-10
+
+- Dockerfile template changes
+
+### Image: go1.26:20260424-10
+
+- Dockerfile template changes
+
+### Image: node22:20260424-10
+
+- Dockerfile template changes
+
+### Image: node24:20260424-10
+
+- Dockerfile template changes
+
+### Image: python3.11:20260424-10
+
+- Dockerfile template changes
+
+### Image: python3.13:20260424-10
+
+- Dockerfile template changes
+
 ## Revision: 20260424-8 (2026-04-24)
 
 ### Image: go1.25:20260424-8

@@ -61,7 +61,7 @@ func Prepend(path string, entry Entry) error {
 func renderEntry(entry Entry) string {
 	var sb strings.Builder
 
-	fmt.Fprintf(&sb, "## %s (%s)\n\n", entry.Version, entry.Date.UTC().Format("2006-01-02"))
+	fmt.Fprintf(&sb, "## Revision: %s (%s)\n\n", entry.Version, entry.Date.UTC().Format("2006-01-02"))
 
 	if entry.Changes.IsEmpty() {
 		sb.WriteString("_No notable changes._\n")
@@ -85,7 +85,7 @@ func renderEntry(entry Entry) string {
 	}
 
 	for _, ic := range entry.Changes.ImageChanges {
-		fmt.Fprintf(&sb, "### %s\n\n", ic.Image)
+		fmt.Fprintf(&sb, "### Image: %s:%s\n\n", ic.Image, entry.Version)
 		if ic.BaseImageUpdated != nil {
 			fmt.Fprintf(&sb, "- Base image: `%s` → `%s`\n",
 				trimDigest(ic.BaseImageUpdated.From),
@@ -112,6 +112,21 @@ func renderEntry(entry Entry) string {
 			fmt.Fprintf(&sb, "- Removed: `%s`\n", tr.Tool)
 		}
 		sb.WriteString("\n")
+	}
+
+	// Images rebuilt solely due to universal package changes have no per-image
+	// diff entry. Render a minimal section for each so the changelog shows
+	// every image that was actually rebuilt.
+	if len(entry.Changes.PackagesAdded) > 0 || len(entry.Changes.PackagesRemoved) > 0 {
+		shown := make(map[string]bool, len(entry.Changes.ImageChanges))
+		for _, ic := range entry.Changes.ImageChanges {
+			shown[ic.Image] = true
+		}
+		for _, img := range entry.Changes.AllImages {
+			if !shown[img] {
+				fmt.Fprintf(&sb, "### Image: %s:%s\n\n- Universal package changes\n\n", img, entry.Version)
+			}
+		}
 	}
 
 	if len(entry.Changes.ImagesAdded) > 0 {

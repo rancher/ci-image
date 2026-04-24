@@ -366,6 +366,148 @@ func TestGenerate_GitConfigWithGitCore(t *testing.T) {
 	}
 }
 
+// --- Alias rendering tests ---
+
+// helmUniversalTool returns a minimal valid universal curl tool for alias tests.
+func helmUniversalTool() config.Tool {
+	return config.Tool{
+		Name:      "helm",
+		Source:    "https://get.helm.sh",
+		Mode:      "static",
+		Version:   "v3.20.0",
+		Universal: true,
+		Checksums: map[string]string{
+			"linux/amd64": strings.Repeat("c", 64),
+			"linux/arm64": strings.Repeat("d", 64),
+		},
+		Release: &config.ReleaseConfig{
+			DownloadTemplate: "https://get.helm.sh/helm-{version}-{os}-{arch}.tar.gz",
+			Extract:          "{os}-{arch}/helm",
+		},
+		Install: config.InstallConfig{Method: "curl"},
+	}
+}
+
+func TestGenerate_SingleAlias(t *testing.T) {
+	cfg := &config.Config{
+		Images: []config.Image{
+			{
+				Name:      "test",
+				Base:      "base@sha256:" + strings.Repeat("a", 64),
+				Platforms: []string{"linux/amd64"},
+				Packages:  []string{"wget"},
+				Aliases:   map[string]string{"helm_v3": "helm"},
+			},
+		},
+		Tools: []config.Tool{helmUniversalTool()},
+	}
+
+	result, err := Generate(cfg, "")
+	if err != nil {
+		t.Fatalf("Generate() unexpected error: %v", err)
+	}
+	content := result["test"]
+
+	if !strings.Contains(content, "# Aliases") {
+		t.Errorf("Generate() missing '# Aliases' comment\n\nFull output:\n%s", content)
+	}
+	if !strings.Contains(content, "ln -sf /usr/local/bin/helm /usr/local/bin/helm_v3") {
+		t.Errorf("Generate() missing expected symlink\n\nFull output:\n%s", content)
+	}
+}
+
+func TestGenerate_MultipleAliasesSortedOrder(t *testing.T) {
+	// Aliases map is unordered; output must always be sorted by alias name.
+	cfg := &config.Config{
+		Images: []config.Image{
+			{
+				Name:      "test",
+				Base:      "base@sha256:" + strings.Repeat("a", 64),
+				Platforms: []string{"linux/amd64"},
+				Packages:  []string{"wget"},
+				Aliases: map[string]string{
+					"z_helm": "helm",
+					"a_helm": "helm",
+				},
+			},
+		},
+		Tools: []config.Tool{helmUniversalTool()},
+	}
+
+	result, err := Generate(cfg, "")
+	if err != nil {
+		t.Fatalf("Generate() unexpected error: %v", err)
+	}
+	content := result["test"]
+
+	aIdx := strings.Index(content, "ln -sf /usr/local/bin/helm /usr/local/bin/a_helm")
+	zIdx := strings.Index(content, "ln -sf /usr/local/bin/helm /usr/local/bin/z_helm")
+	if aIdx == -1 || zIdx == -1 {
+		t.Fatalf("Generate() missing expected symlinks\n\nFull output:\n%s", content)
+	}
+	if aIdx > zIdx {
+		t.Errorf("Generate() aliases not in sorted order: a_helm(%d) should precede z_helm(%d)", aIdx, zIdx)
+	}
+}
+
+func TestGenerate_NoAliasBlockWhenNone(t *testing.T) {
+	cfg := &config.Config{
+		Images: []config.Image{
+			{
+				Name:      "test",
+				Base:      "base@sha256:" + strings.Repeat("a", 64),
+				Platforms: []string{"linux/amd64"},
+				Packages:  []string{"wget"},
+			},
+		},
+		Tools: []config.Tool{helmUniversalTool()},
+	}
+
+	result, err := Generate(cfg, "")
+	if err != nil {
+		t.Fatalf("Generate() unexpected error: %v", err)
+	}
+	content := result["test"]
+
+	if strings.Contains(content, "# Aliases") {
+		t.Errorf("Generate() should not emit aliases block when no aliases defined\n\nFull output:\n%s", content)
+	}
+	if strings.Contains(content, "ln -sf") {
+		t.Errorf("Generate() should not emit ln -sf when no aliases defined\n\nFull output:\n%s", content)
+	}
+}
+
+func TestGenerate_AliasAppearsAfterTools(t *testing.T) {
+	// The aliases block must come after all tool install blocks.
+	cfg := &config.Config{
+		Images: []config.Image{
+			{
+				Name:      "test",
+				Base:      "base@sha256:" + strings.Repeat("a", 64),
+				Platforms: []string{"linux/amd64"},
+				Packages:  []string{"wget"},
+				Aliases:   map[string]string{"helm_v3": "helm"},
+			},
+		},
+		Tools: []config.Tool{helmUniversalTool()},
+	}
+
+	result, err := Generate(cfg, "")
+	if err != nil {
+		t.Fatalf("Generate() unexpected error: %v", err)
+	}
+	content := result["test"]
+
+	helmInstallIdx := strings.Index(content, "# helm v3.20.0")
+	aliasIdx := strings.Index(content, "# Aliases")
+	if helmInstallIdx == -1 || aliasIdx == -1 {
+		t.Fatalf("Generate() missing tool or alias block\n\nFull output:\n%s", content)
+	}
+	if aliasIdx < helmInstallIdx {
+		t.Errorf("Generate() alias block (%d) should appear after tool block (%d)", aliasIdx, helmInstallIdx)
+	}
+}
+
 func TestGenerate_NoGitConfigWithoutGit(t *testing.T) {
 	cfg := &config.Config{
 		Images: []config.Image{

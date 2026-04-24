@@ -52,15 +52,19 @@ func Load(path string) (*Config, error) {
 		for _, t := range img.Tools {
 			toolSet[t] = true
 		}
+		// Collect the set of alias targets that need auto-including.
+		aliasTargets := make(map[string]bool, len(img.Aliases))
 		for _, targetName := range img.Aliases {
-			t, ok := toolsByName[targetName]
-			if !ok || t.Universal {
-				continue // undefined: caught by validation; universal: always present
+			aliasTargets[targetName] = true
+		}
+		// Append missing targets in cfg.Tools order for determinism.
+		// Ranging over img.Aliases directly would be non-deterministic.
+		for _, t := range cfg.Tools {
+			if t.Universal || !aliasTargets[t.Name] || toolSet[t.Name] {
+				continue // universal tools are always present; skip already-included or non-targeted
 			}
-			if !toolSet[targetName] {
-				img.Tools = append(img.Tools, targetName)
-				toolSet[targetName] = true
-			}
+			img.Tools = append(img.Tools, t.Name)
+			toolSet[t.Name] = true
 		}
 	}
 	if err := validateConfig(&cfg); err != nil {

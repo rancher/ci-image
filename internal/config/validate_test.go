@@ -425,6 +425,110 @@ func TestValidateConfig_Errors(t *testing.T) {
 	}
 }
 
+// --- Alias validation ---
+
+// helmTool returns a minimal valid non-universal curl tool for use in alias tests.
+func helmTool() Tool {
+	return Tool{
+		Name:    "helm",
+		Source:  "https://get.helm.sh",
+		Mode:    "static",
+		Version: "v3.20.0",
+		Checksums: map[string]string{
+			"linux/amd64": strings.Repeat("c", 64),
+			"linux/arm64": strings.Repeat("d", 64),
+		},
+		Release: &ReleaseConfig{
+			DownloadTemplate: "https://get.helm.sh/helm-{version}-{os}-{arch}.tar.gz",
+			Extract:          "{os}-{arch}/helm",
+		},
+		Install: InstallConfig{Method: "curl"},
+	}
+}
+
+func TestValidateConfig_ValidAliasTargetingUniversalTool(t *testing.T) {
+	cfg := validConfig()
+	// golangci-lint is universal; aliasing it under a different name is valid.
+	cfg.Images[0].Aliases = map[string]string{"lint2": "golangci-lint"}
+	if err := validateConfig(cfg); err != nil {
+		t.Fatalf("validateConfig() unexpected error: %v", err)
+	}
+}
+
+func TestValidateConfig_ValidAliasTargetingImageTool(t *testing.T) {
+	cfg := validConfig()
+	cfg.Tools = append(cfg.Tools, helmTool())
+	cfg.Images[0].Tools = []string{"helm"}
+	cfg.Images[0].Aliases = map[string]string{"helm_v3": "helm"}
+	if err := validateConfig(cfg); err != nil {
+		t.Fatalf("validateConfig() unexpected error: %v", err)
+	}
+}
+
+func TestValidateConfig_AliasErrors(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     func() *Config
+		wantErr string
+	}{
+		{
+			name: "alias invalid name",
+			cfg: func() *Config {
+				c := validConfig()
+				c.Images[0].Aliases = map[string]string{"bad name!": "golangci-lint"}
+				return c
+			},
+			wantErr: `alias name "bad name!" is invalid`,
+		},
+		{
+			name: "alias targets undefined tool",
+			cfg: func() *Config {
+				c := validConfig()
+				c.Images[0].Aliases = map[string]string{"lint2": "nonexistent"}
+				return c
+			},
+			wantErr: `alias "lint2" targets tool "nonexistent" which is not defined`,
+		},
+		{
+			name: "alias name conflicts with universal tool",
+			cfg: func() *Config {
+				c := validConfig()
+				extra := helmTool()
+				extra.Universal = true
+				c.Tools = append(c.Tools, extra)
+				// Trying to use "golangci-lint" (a universal tool) as an alias name conflicts.
+				c.Images[0].Aliases = map[string]string{"golangci-lint": "helm"}
+				return c
+			},
+			wantErr: `alias name "golangci-lint" conflicts with a tool already installed`,
+		},
+		{
+			name: "alias name conflicts with image tool",
+			cfg: func() *Config {
+				c := validConfig()
+				c.Tools = append(c.Tools, helmTool())
+				c.Images[0].Tools = []string{"helm"}
+				// "helm" is already installed in this image; it can't also be an alias name.
+				c.Images[0].Aliases = map[string]string{"helm": "golangci-lint"}
+				return c
+			},
+			wantErr: `alias name "helm" conflicts with a tool already installed`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateConfig(tt.cfg())
+			if err == nil {
+				t.Fatal("validateConfig() expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("validateConfig() error = %q\nwant substring %q", err.Error(), tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestValidateConfig_MultipleErrorsCollected(t *testing.T) {
 	cfg := validConfig()
 	cfg.Tools[0].Source = ""

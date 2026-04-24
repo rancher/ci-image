@@ -118,6 +118,9 @@ func renderEntry(entry Entry) string {
 		for _, tr := range ic.ToolsRemoved {
 			fmt.Fprintf(&sb, "- Removed: `%s`\n", tr.Tool)
 		}
+		if len(entry.Changes.PackagesAdded) > 0 || len(entry.Changes.PackagesRemoved) > 0 {
+			sb.WriteString("- Universal package changes\n")
+		}
 		sb.WriteString("\n")
 	}
 

@@ -142,12 +142,15 @@ jobs:
           persist-credentials: true
           fetch-depth: 0
 
-      - name: Restore CHANGELOG.md from changelog branch
+      - name: Set up changelog worktree
         shell: bash
         run: |
+          # The orphan branch won't exist on forks or a brand-new repo on first run.
           if git ls-remote --exit-code origin changelog; then
             git fetch origin changelog
-            git checkout origin/changelog -- CHANGELOG.md || true
+            git worktree add ./changelog-dir origin/changelog
+          else
+            git worktree add --orphan ./changelog-dir changelog
           fi
 
       - name: Generate changelog entry
@@ -156,30 +159,20 @@ jobs:
           go run main.go changelog generate \
             --version="${{ needs.setup.outputs.version }}" \
             --from="${{ github.event.before }}" \
-            --to="${{ github.sha }}"
+            --to="${{ github.sha }}" \
+            --changelog="./changelog-dir/CHANGELOG.md"
 
       - name: Publish to changelog branch
         shell: bash
         env:
           VERSION: ${{ needs.setup.outputs.version }}
         run: |
-          cp CHANGELOG.md /tmp/CHANGELOG.md
+          git -C ./changelog-dir add CHANGELOG.md
 
-          # Switch to the changelog branch (create orphan on first run).
-          if git ls-remote --exit-code origin changelog; then
-            git checkout -B _changelog origin/changelog
-          else
-            git checkout --orphan _changelog
-            git rm -rf . --quiet
-          fi
-
-          cp /tmp/CHANGELOG.md CHANGELOG.md
-          git add CHANGELOG.md
-
-          if git diff --cached --quiet; then
+          if git -C ./changelog-dir diff --cached --quiet; then
             echo "CHANGELOG.md unchanged, skipping commit"
             exit 0
           fi
 
-          git commit -m "chore: update CHANGELOG.md for ${VERSION}"
-          git push origin _changelog:changelog
+          git -C ./changelog-dir commit -m "chore: update CHANGELOG.md for ${VERSION}"
+          git -C ./changelog-dir push origin HEAD:changelog

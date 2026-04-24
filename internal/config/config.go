@@ -12,12 +12,13 @@ type Config struct {
 
 // Image defines a Docker image to generate.
 type Image struct {
-	Name        string   `yaml:"name"`
-	Base        string   `yaml:"base"`
-	Platforms   []string `yaml:"platforms"`
-	Packages    []string `yaml:"packages"`
-	Tools       []string `yaml:"tools,omitempty"`       // tool names; must not include universal tools
-	Description string   `yaml:"description,omitempty"` // org.opencontainers.image.description; optional
+	Name        string            `yaml:"name"`
+	Base        string            `yaml:"base"`
+	Platforms   []string          `yaml:"platforms"`
+	Packages    []string          `yaml:"packages"`
+	Tools       []string          `yaml:"tools,omitempty"`       // tool names; must not include universal tools
+	Aliases     map[string]string `yaml:"aliases,omitempty"`     // symlink_name: tool_name; creates /usr/local/bin symlinks
+	Description string            `yaml:"description,omitempty"` // org.opencontainers.image.description; optional
 }
 
 // Tool defines a binary tool available for inclusion in images.

@@ -78,6 +78,22 @@ func validateConfig(cfg *Config) error {
 				errs = append(errs, fmt.Sprintf("image %q: tool %q is in the universal: section and must not be listed in image.tools", img.Name, toolName))
 			}
 		}
+		for aliasName, targetName := range img.Aliases {
+			if !toolNameRe.MatchString(aliasName) {
+				errs = append(errs, fmt.Sprintf("image %q: alias name %q is invalid (must match ^[a-zA-Z0-9][a-zA-Z0-9._-]*$)", img.Name, aliasName))
+			}
+			// Target must be a tool included in this image (universal or in tools list).
+			target, ok := toolsByName[targetName]
+			if !ok {
+				errs = append(errs, fmt.Sprintf("image %q: alias %q targets tool %q which is not defined", img.Name, aliasName, targetName))
+			} else if !target.Universal && !seenTools[targetName] {
+				errs = append(errs, fmt.Sprintf("image %q: alias %q targets tool %q which is not included in this image", img.Name, aliasName, targetName))
+			}
+			// Alias name must not conflict with a tool already installed in this image.
+			if conflict, ok := toolsByName[aliasName]; ok && (conflict.Universal || seenTools[aliasName]) {
+				errs = append(errs, fmt.Sprintf("image %q: alias name %q conflicts with a tool already installed in this image", img.Name, aliasName))
+			}
+		}
 	}
 
 	// Validate each tool.

@@ -12,6 +12,10 @@ ENV ARCH=$TARGETARCH
 {{range .Tools}}# {{.Name}} {{.Version}}
 {{.Install.Render}}
 
+{{end}}{{if .Aliases}}# Aliases
+RUN {{range $i, $a := .Aliases}}{{if $i}} && \
+    {{end}}ln -sf /usr/local/bin/{{$a.Target}} /usr/local/bin/{{$a.Name}}{{end}}
+
 {{end}}{{if .HasGoInstall}}# Cleanup Go caches
 RUN go clean -cache -modcache
 

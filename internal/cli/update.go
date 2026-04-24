@@ -12,6 +12,7 @@ import (
 
 func runUpdate(args []string) error {
 	configPath := defaultConfig
+	dryRun := false
 	for i := 0; i < len(args); i++ {
 		switch {
 		case args[i] == "--config" && i+1 < len(args):
@@ -19,6 +20,8 @@ func runUpdate(args []string) error {
 			configPath = args[i]
 		case strings.HasPrefix(args[i], "--config="):
 			configPath = strings.TrimPrefix(args[i], "--config=")
+		case args[i] == "--dry-run":
+			dryRun = true
 		}
 	}
 
@@ -34,6 +37,11 @@ func runUpdate(args []string) error {
 
 	if err := resolver.Update(cfg, lk); err != nil {
 		return err
+	}
+
+	if dryRun {
+		log.Printf("dry-run: deps.lock not written")
+		return nil
 	}
 
 	changed, err := lock.WriteIfChanged(lockPath(configPath), lk)

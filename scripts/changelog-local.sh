@@ -27,7 +27,8 @@ PUSH="${PUSH:-0}"
 WORKTREE="./changelog-dir"
 
 setup_worktree() {
-  # Always fetch first so both paths below start from the latest remote state.
+  # Always fetch first if the remote branch exists, so both paths below start
+  # from the latest state.
   local branch_exists=false
   if git ls-remote --exit-code origin changelog &>/dev/null; then
     git fetch origin changelog --quiet
@@ -40,8 +41,11 @@ setup_worktree() {
       echo "Error: $WORKTREE has uncommitted changes. Commit or discard them first." >&2
       exit 1
     fi
-    # Reset to the freshly-fetched remote state.
-    git -C "$WORKTREE" reset --hard origin/changelog --quiet
+    # Reset to the latest remote state only if the branch exists on the remote.
+    # If it doesn't (first run / fork), the existing orphan worktree is already correct.
+    if $branch_exists; then
+      git -C "$WORKTREE" reset --hard origin/changelog --quiet
+    fi
   else
     # The orphan branch won't exist on forks or a brand-new repo on first run.
     if $branch_exists; then
@@ -50,10 +54,6 @@ setup_worktree() {
       git worktree add --orphan "$WORKTREE" changelog --quiet
     fi
   fi
-}
-
-cleanup_worktree() {
-  git worktree remove "$WORKTREE" --force 2>/dev/null || true
 }
 
 echo "Changelog generation:"
@@ -65,8 +65,12 @@ echo "  PUSH    = $PUSH"
 echo ""
 
 if [ "$APPLY" = "1" ]; then
-  # Write directly into the changelog worktree, then commit and push — same as CI.
-  trap 'cleanup_worktree' EXIT
+  # Write directly into the changelog worktree, then commit — same as CI.
+  # Track whether we created the worktree so we can clean it up on failure
+  # without removing a pre-existing directory the user set up themselves.
+  worktree_existed=false
+  [ -d "$WORKTREE" ] && worktree_existed=true
+  trap '[[ $? -ne 0 ]] && ! $worktree_existed && git worktree remove "$WORKTREE" --force 2>/dev/null || true' EXIT
   setup_worktree
 
   go run main.go changelog generate \

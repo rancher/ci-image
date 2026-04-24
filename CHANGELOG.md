@@ -4,6 +4,20 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20260424-5 (2026-04-24)
+
+### Image: go1.25:20260424-5
+
+- Added: `oras` `v1.3.1`
+
+### Image: go1.26:20260424-5
+
+- Added: `oras` `v1.3.1`
+
+### Image: charts:20260424-5
+
+- Added: `oras` `v1.3.1`
+
 ## Initial state (2026-04-23)
 
 _Changelog tracking begins here. Earlier changes can be found in git history._

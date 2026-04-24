@@ -14,6 +14,8 @@ func Execute(args []string) error {
 	switch cmd {
 	case "generate":
 		return runGenerate(args)
+	case "update":
+		return runUpdate(args)
 	case "validate":
 		return runValidate(args)
 	case "changed-images":
@@ -21,6 +23,6 @@ func Execute(args []string) error {
 	case "changelog":
 		return runChangelog(args)
 	default:
-		return fmt.Errorf("unknown command %q; valid commands: generate, validate, changed-images, changelog", cmd)
+		return fmt.Errorf("unknown command %q; valid commands: generate, update, validate, changed-images, changelog", cmd)
 	}
 }

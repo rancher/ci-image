@@ -54,6 +54,32 @@ jobs:
         shell: bash
         run: make verify
 
+      - name: Check for dependency updates
+        shell: bash
+        run: |
+          # Run update in dry-run mode to detect new releases without modifying deps.lock.
+          # WARNINGs are logged for any release-checksum tool with a newer version available.
+          output=$(go run main.go update --dry-run 2>&1) || true
+          warnings=$(printf '%s\n' "$output" | grep 'WARNING:' || true)
+
+          if [ -z "$warnings" ]; then
+            exit 0
+          fi
+
+          {
+            echo "## :warning: Dependency Updates Available"
+            echo ""
+            echo "The following release-checksum tools have new versions available:"
+            echo ""
+            printf '%s\n' "$warnings" | while IFS= read -r line; do
+              echo "- ${line#*WARNING: }"
+            done
+            echo ""
+            echo "Run \`go run main.go update\` to refresh \`deps.lock\` and open a PR."
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: List changed images
         id: list
         shell: bash

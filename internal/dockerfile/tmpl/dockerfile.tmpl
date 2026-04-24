@@ -21,5 +21,6 @@ RUN groupadd -g 121 runner && useradd -u 1001 -g 121 -m runner
 
 {{if .HasAnyOfPackages "git" "git-core"}}# We trust our base image and the repos that are pulled in workflows. Otherwise
 # each workflow that uses our base images would have to add the step below.
-RUN git config --system --add safe.directory '*';
-{{end}}ENTRYPOINT ["/bin/bash"]
+RUN git config --system --add safe.directory '*'{{end}}
+
+ENTRYPOINT ["/bin/bash"]

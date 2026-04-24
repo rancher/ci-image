@@ -4,6 +4,47 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20260424-7 (2026-04-24)
+
+### Universal Packages Added
+
+- `ca-certificates`
+- `gzip`
+- `tar`
+- `zstd`
+
+### Image: go1.25:20260424-7
+
+- Added package: `nodejs24`
+- Added: `helm_v3` `v3.20.2`
+- Universal package changes
+
+### Image: go1.26:20260424-7
+
+- Added package: `nodejs24`
+- Added: `helm_v3` `v3.20.2`
+- Universal package changes
+
+### Image: python3.11:20260424-7
+
+- Universal package changes
+
+### Image: python3.13:20260424-7
+
+- Universal package changes
+
+### Image: node22:20260424-7
+
+- Universal package changes
+
+### Image: node24:20260424-7
+
+- Universal package changes
+
+### Image: charts:20260424-7
+
+- Universal package changes
+
 ## Revision: 20260424-6 (2026-04-24)
 
 ### Image: charts:20260424-6

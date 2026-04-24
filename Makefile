@@ -103,5 +103,20 @@ clean: _setup ## Remove generated Dockerfiles
 
 setup: .git/hooks/.setup-done ## Configure git to use the repo's hooks (.githooks/pre-push runs make validate)
 
-changelog-local: _setup ## Simulate CI changelog generation locally (FROM=, TO=, VERSION= optional)
+changelog-worktree: _setup ## Set up (or refresh) ./changelog-dir worktree from origin/changelog
+	@if git ls-remote --exit-code origin changelog &>/dev/null; then \
+		git fetch origin changelog --quiet; \
+		if [ -d changelog-dir ]; then \
+			git -C changelog-dir reset --hard origin/changelog --quiet; \
+			echo "changelog-dir refreshed to origin/changelog"; \
+		else \
+			git worktree add changelog-dir origin/changelog --quiet; \
+			echo "changelog-dir created from origin/changelog"; \
+		fi \
+	else \
+		git worktree add --orphan changelog-dir changelog --quiet; \
+		echo "changelog-dir created as orphan (no remote branch yet)"; \
+	fi
+
+changelog-local: _setup ## Simulate or apply changelog generation locally (FROM=, TO=, VERSION=, APPLY=1 to commit, PUSH=1 to also push)
 	@bash scripts/changelog-local.sh

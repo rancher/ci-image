@@ -9,8 +9,9 @@ images:
       - golangci-lint
       - goreleaser
       - govulncheck
-      - helm_v3
       - oras
+    aliases:
+      helm_v3: helm
 
   - name: go1.26
     description: "CI image with Go 1.26 toolchain"
@@ -22,8 +23,9 @@ images:
       - golangci-lint
       - goreleaser
       - govulncheck
-      - helm_v3
       - oras
+    aliases:
+      helm_v3: helm
 
   - name: python3.11
     description: "CI image with Python 3.11 toolchain"
@@ -156,17 +158,6 @@ tools:
     install:
       method: go-install
       package: "golang.org/x/vuln/cmd/govulncheck@{version_commit}"
-
-  - name: helm_v3
-    source: "https://get.helm.sh"
-    mode: static
-    version: v3.20.2
-    checksums:
-      linux/amd64: "258e830a9e613c8a7a302d6059b4bb3b9758f2f3e1bb8ea0d707ce10a9a72fea"
-      linux/arm64: "5ea2d6bc2cda3f8edf985e028809f5a9278f404fb8ab24044de9b7cb9b79a691"
-    release:
-      download_template: "{source}/helm-{version}-{os}-{arch}.tar.gz"
-      extract: "{os}-{arch}/helm"
 
   - name: oras
     source: oras-project/oras

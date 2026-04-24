@@ -31,7 +31,7 @@ tools:
     govulncheck: v1.2.0
     helm: v3.20.2
     helmv4: v4.1.4
-    ob-charts-tool: v0.4.0
+    ob-charts-tool: v0.4.1
     oras: v1.3.1
     slsactl: v0.1.30
 configs:

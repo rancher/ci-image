@@ -289,6 +289,107 @@ func TestDiff_ImageToolVersionChanged(t *testing.T) {
 	}
 }
 
+// --- Alias diff tests ---
+
+func TestDiff_AliasAdded(t *testing.T) {
+	prev := &ImagesLock{
+		Images:  []string{"img"},
+		Configs: map[string]ImageConfig{"img": {Base: "alpine"}},
+	}
+	next := &ImagesLock{
+		Images:  []string{"img"},
+		Configs: map[string]ImageConfig{"img": {Base: "alpine", Aliases: map[string]string{"helm_v3": "helm"}}},
+	}
+
+	c := Diff(prev, next)
+	if len(c.ImageChanges) != 1 {
+		t.Fatalf("expected 1 image change, got %d", len(c.ImageChanges))
+	}
+	ic := c.ImageChanges[0]
+	if len(ic.AliasesAdded) != 1 || ic.AliasesAdded[0].Name != "helm_v3" || ic.AliasesAdded[0].Target != "helm" {
+		t.Errorf("unexpected AliasesAdded: %+v", ic.AliasesAdded)
+	}
+	if len(ic.AliasesRemoved) != 0 {
+		t.Errorf("unexpected AliasesRemoved: %+v", ic.AliasesRemoved)
+	}
+}
+
+func TestDiff_AliasRemoved(t *testing.T) {
+	prev := &ImagesLock{
+		Images:  []string{"img"},
+		Configs: map[string]ImageConfig{"img": {Base: "alpine", Aliases: map[string]string{"helm_v3": "helm"}}},
+	}
+	next := &ImagesLock{
+		Images:  []string{"img"},
+		Configs: map[string]ImageConfig{"img": {Base: "alpine"}},
+	}
+
+	c := Diff(prev, next)
+	if len(c.ImageChanges) != 1 {
+		t.Fatalf("expected 1 image change, got %d", len(c.ImageChanges))
+	}
+	ic := c.ImageChanges[0]
+	if len(ic.AliasesRemoved) != 1 || ic.AliasesRemoved[0].Name != "helm_v3" || ic.AliasesRemoved[0].Target != "helm" {
+		t.Errorf("unexpected AliasesRemoved: %+v", ic.AliasesRemoved)
+	}
+	if len(ic.AliasesAdded) != 0 {
+		t.Errorf("unexpected AliasesAdded: %+v", ic.AliasesAdded)
+	}
+}
+
+func TestDiff_AliasRetargeted(t *testing.T) {
+	// Same alias name, different target: appears in both removed and added.
+	prev := &ImagesLock{
+		Images:  []string{"img"},
+		Configs: map[string]ImageConfig{"img": {Base: "alpine", Aliases: map[string]string{"helm_v3": "helm"}}},
+	}
+	next := &ImagesLock{
+		Images:  []string{"img"},
+		Configs: map[string]ImageConfig{"img": {Base: "alpine", Aliases: map[string]string{"helm_v3": "helmv4"}}},
+	}
+
+	c := Diff(prev, next)
+	if len(c.ImageChanges) != 1 {
+		t.Fatalf("expected 1 image change, got %d", len(c.ImageChanges))
+	}
+	ic := c.ImageChanges[0]
+	if len(ic.AliasesRemoved) != 1 || ic.AliasesRemoved[0].Name != "helm_v3" || ic.AliasesRemoved[0].Target != "helm" {
+		t.Errorf("unexpected AliasesRemoved: %+v", ic.AliasesRemoved)
+	}
+	if len(ic.AliasesAdded) != 1 || ic.AliasesAdded[0].Name != "helm_v3" || ic.AliasesAdded[0].Target != "helmv4" {
+		t.Errorf("unexpected AliasesAdded: %+v", ic.AliasesAdded)
+	}
+}
+
+func TestDiff_AliasUnchanged_NoImageChange(t *testing.T) {
+	lock := &ImagesLock{
+		Images:  []string{"img"},
+		Configs: map[string]ImageConfig{"img": {Base: "alpine", Aliases: map[string]string{"helm_v3": "helm"}}},
+	}
+	c := Diff(lock, lock)
+	if !c.IsEmpty() {
+		t.Errorf("expected no changes when aliases unchanged, got %+v", c)
+	}
+}
+
+func TestDiff_AliasChangeTriggersHasChanges(t *testing.T) {
+	ic := ImageChanges{
+		Image:        "img",
+		AliasesAdded: []AliasChange{{Name: "helm_v3", Target: "helm"}},
+	}
+	if !ic.HasChanges() {
+		t.Error("HasChanges() should return true when AliasesAdded is set")
+	}
+
+	ic2 := ImageChanges{
+		Image:          "img",
+		AliasesRemoved: []AliasChange{{Name: "helm_v3", Target: "helm"}},
+	}
+	if !ic2.HasChanges() {
+		t.Error("HasChanges() should return true when AliasesRemoved is set")
+	}
+}
+
 func TestDiff_OnlyChangedImageAppears(t *testing.T) {
 	prev := &ImagesLock{
 		Images: []string{"a", "b"},

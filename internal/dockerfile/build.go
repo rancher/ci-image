@@ -58,10 +58,17 @@ func NewDockerfileVars(cfg *config.Config, img config.Image, sourceURL string) (
 		return DockerfileVars{}, fmt.Errorf("%s", strings.Join(errs, "\n"))
 	}
 
+	aliases := make([]AliasInstall, 0, len(img.Aliases))
+	for name, target := range img.Aliases {
+		aliases = append(aliases, AliasInstall{Name: name, Target: target})
+	}
+	slices.SortFunc(aliases, func(a, b AliasInstall) int { return strings.Compare(a.Name, b.Name) })
+
 	return DockerfileVars{
 		Base:        img.Base,
 		Packages:    img.Packages,
 		Tools:       toolInstalls,
+		Aliases:     aliases,
 		SourceURL:   sourceURL,
 		Title:       "Rancher " + img.Name + " CI image",
 		Description: img.Description,

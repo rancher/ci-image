@@ -77,6 +77,12 @@ type ToolInstall struct {
 	Install ItemInstall // CurlInstall or GoInstall
 }
 
+// AliasInstall describes a symlink to create in /usr/local/bin after tools are installed.
+type AliasInstall struct {
+	Name   string // symlink name  (ln -sf /usr/local/bin/Target /usr/local/bin/Name)
+	Target string // target binary name
+}
+
 // DockerfileVars is the fully-resolved spec for one image's Dockerfile.
 // Once constructed, Render() cannot fail — all template rendering and
 // checksum resolution has already been performed.
@@ -85,9 +91,10 @@ type DockerfileVars struct {
 	Base        string
 	Packages    []string
 	Tools       []ToolInstall
-	SourceURL   string // org.opencontainers.image.source
-	Title       string // org.opencontainers.image.title
-	Description string // org.opencontainers.image.description; empty → no label emitted
+	Aliases     []AliasInstall // sorted by Name for determinism
+	SourceURL   string         // org.opencontainers.image.source
+	Title       string         // org.opencontainers.image.title
+	Description string         // org.opencontainers.image.description; empty → no label emitted
 }
 
 // HasGoInstall reports whether any tool in the image uses go-install.

@@ -164,6 +164,22 @@ func computeImageChanges(imgName string, prevTools, nextTools map[string]string,
 	slices.SortFunc(ic.ToolsRemoved, func(a, b ToolChange) int { return strings.Compare(a.Tool, b.Tool) })
 	slices.SortFunc(ic.ToolVersionChanged, func(a, b ToolVersionChange) int { return strings.Compare(a.Tool, b.Tool) })
 
+	// Alias diffs: an alias is "removed" if its name disappears or its target changes.
+	for name, prevTarget := range prev.Aliases {
+		nextTarget, ok := next.Aliases[name]
+		if !ok || nextTarget != prevTarget {
+			ic.AliasesRemoved = append(ic.AliasesRemoved, AliasChange{Name: name, Target: prevTarget})
+		}
+	}
+	for name, nextTarget := range next.Aliases {
+		prevTarget, ok := prev.Aliases[name]
+		if !ok || prevTarget != nextTarget {
+			ic.AliasesAdded = append(ic.AliasesAdded, AliasChange{Name: name, Target: nextTarget})
+		}
+	}
+	slices.SortFunc(ic.AliasesAdded, func(a, b AliasChange) int { return strings.Compare(a.Name, b.Name) })
+	slices.SortFunc(ic.AliasesRemoved, func(a, b AliasChange) int { return strings.Compare(a.Name, b.Name) })
+
 	return ic
 }
 

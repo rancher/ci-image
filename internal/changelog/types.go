@@ -12,12 +12,13 @@ type ImagesLock struct {
 
 // ImageConfig holds the resolved configuration for one image.
 type ImageConfig struct {
-	Base        string   `yaml:"base"`
-	Platforms   []string `yaml:"platforms"`
-	Packages    []string `yaml:"packages,omitempty"` // image-specific packages only (excludes universal)
-	Tools       []string `yaml:"tools,omitempty"`
-	GoVersion   string   `yaml:"go_version,omitempty"`
-	Description string   `yaml:"description,omitempty"`
+	Base        string            `yaml:"base"`
+	Platforms   []string          `yaml:"platforms"`
+	Packages    []string          `yaml:"packages,omitempty"` // image-specific packages only (excludes universal)
+	Tools       []string          `yaml:"tools,omitempty"`
+	Aliases     map[string]string `yaml:"aliases,omitempty"` // symlink_name: tool_name
+	GoVersion   string            `yaml:"go_version,omitempty"`
+	Description string            `yaml:"description,omitempty"`
 }
 
 // Changes summarises what changed between two ImagesLock states.
@@ -65,6 +66,8 @@ type ImageChanges struct {
 	ToolVersionChanged []ToolVersionChange
 	ToolsAdded         []ToolChange
 	ToolsRemoved       []ToolChange
+	AliasesAdded       []AliasChange
+	AliasesRemoved     []AliasChange
 }
 
 // HasChanges returns true if the image has any changes.
@@ -73,7 +76,14 @@ func (ic ImageChanges) HasChanges() bool {
 		ic.PlatformsChanged != nil ||
 		len(ic.PackagesAdded) > 0 || len(ic.PackagesRemoved) > 0 ||
 		len(ic.ToolVersionChanged) > 0 ||
-		len(ic.ToolsAdded) > 0 || len(ic.ToolsRemoved) > 0
+		len(ic.ToolsAdded) > 0 || len(ic.ToolsRemoved) > 0 ||
+		len(ic.AliasesAdded) > 0 || len(ic.AliasesRemoved) > 0
+}
+
+// AliasChange records a symlink alias being added or removed.
+type AliasChange struct {
+	Name   string // symlink name
+	Target string // target tool
 }
 
 // PlatformsChange records a change to the set of target platforms.

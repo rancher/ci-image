@@ -243,3 +243,151 @@ func TestGenerate_MultipleImages(t *testing.T) {
 		}
 	}
 }
+
+func TestHasAnyOfPackages(t *testing.T) {
+	tests := []struct {
+		name     string
+		packages []string
+		check    []string
+		want     bool
+	}{
+		{
+			name:     "empty packages and check",
+			packages: []string{},
+			check:    []string{},
+			want:     false,
+		},
+		{
+			name:     "empty packages with check",
+			packages: []string{},
+			check:    []string{"git"},
+			want:     false,
+		},
+		{
+			name:     "has single package",
+			packages: []string{"git", "wget", "curl"},
+			check:    []string{"git"},
+			want:     true,
+		},
+		{
+			name:     "has one of multiple packages - first match",
+			packages: []string{"git", "wget", "curl"},
+			check:    []string{"git", "git-core"},
+			want:     true,
+		},
+		{
+			name:     "has one of multiple packages - second match",
+			packages: []string{"git-core", "wget", "curl"},
+			check:    []string{"git", "git-core"},
+			want:     true,
+		},
+		{
+			name:     "has both packages",
+			packages: []string{"git", "git-core", "wget"},
+			check:    []string{"git", "git-core"},
+			want:     true,
+		},
+		{
+			name:     "does not have any package",
+			packages: []string{"wget", "curl", "jq"},
+			check:    []string{"git", "git-core"},
+			want:     false,
+		},
+		{
+			name:     "partial name does not match",
+			packages: []string{"git-lfs"},
+			check:    []string{"git"},
+			want:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vars := DockerfileVars{
+				Packages: tt.packages,
+			}
+			got := vars.HasAnyOfPackages(tt.check...)
+			if got != tt.want {
+				t.Errorf("HasAnyOfPackages() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGenerate_GitConfigWithGit(t *testing.T) {
+	cfg := &config.Config{
+		Images: []config.Image{
+			{
+				Name:      "test-git",
+				Base:      "base@sha256:" + strings.Repeat("a", 64),
+				Platforms: []string{"linux/amd64"},
+				Packages:  []string{"git", "wget"},
+			},
+		},
+		Tools: []config.Tool{},
+	}
+
+	defaultSource := ""
+	result, err := Generate(cfg, defaultSource)
+	if err != nil {
+		t.Fatalf("Generate() unexpected error: %v", err)
+	}
+
+	content := result["test-git"]
+	expectedGitConfig := "git config --system --add safe.directory '*'"
+	if !strings.Contains(content, expectedGitConfig) {
+		t.Errorf("Generate() should emit git config when 'git' package is present\n\nFull output:\n%s", content)
+	}
+}
+
+func TestGenerate_GitConfigWithGitCore(t *testing.T) {
+	cfg := &config.Config{
+		Images: []config.Image{
+			{
+				Name:      "test-git-core",
+				Base:      "base@sha256:" + strings.Repeat("a", 64),
+				Platforms: []string{"linux/amd64"},
+				Packages:  []string{"git-core", "wget"},
+			},
+		},
+		Tools: []config.Tool{},
+	}
+
+	defaultSource := ""
+	result, err := Generate(cfg, defaultSource)
+	if err != nil {
+		t.Fatalf("Generate() unexpected error: %v", err)
+	}
+
+	content := result["test-git-core"]
+	expectedGitConfig := "git config --system --add safe.directory '*'"
+	if !strings.Contains(content, expectedGitConfig) {
+		t.Errorf("Generate() should emit git config when 'git-core' package is present\n\nFull output:\n%s", content)
+	}
+}
+
+func TestGenerate_NoGitConfigWithoutGit(t *testing.T) {
+	cfg := &config.Config{
+		Images: []config.Image{
+			{
+				Name:      "test-no-git",
+				Base:      "base@sha256:" + strings.Repeat("a", 64),
+				Platforms: []string{"linux/amd64"},
+				Packages:  []string{"wget", "curl"},
+			},
+		},
+		Tools: []config.Tool{},
+	}
+
+	defaultSource := ""
+	result, err := Generate(cfg, defaultSource)
+	if err != nil {
+		t.Fatalf("Generate() unexpected error: %v", err)
+	}
+
+	content := result["test-no-git"]
+	unexpectedGitConfig := "git config --system --add safe.directory"
+	if strings.Contains(content, unexpectedGitConfig) {
+		t.Errorf("Generate() should not emit git config when neither 'git' nor 'git-core' packages are present\n\nFull output:\n%s", content)
+	}
+}

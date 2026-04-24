@@ -28,6 +28,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Set image version
         id: version
@@ -45,6 +46,23 @@ jobs:
       - name: Verify
         shell: bash
         run: make verify
+
+      - name: Show changed images
+        shell: bash
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          base=$(git merge-base origin/${{ github.base_ref }} ${{ github.event.pull_request.head.sha }})
+          if [ "$base" != "$(git rev-parse origin/${{ github.base_ref }})" ]; then
+            echo "Warning: branch is behind origin/${{ github.base_ref }} — consider rebasing before merge"
+          fi
+          changed=$(go run main.go changed-images \
+            --from="${base}" \
+            --to=${{ github.event.pull_request.head.sha }})
+          if [ -z "${changed}" ]; then
+            echo "No image-specific changes detected against ${{ github.base_ref }}"
+          else
+            echo "Images that will be rebuilt on merge: ${changed}"
+          fi
 
       - name: List images
         id: list

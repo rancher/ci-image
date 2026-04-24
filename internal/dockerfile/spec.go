@@ -2,6 +2,7 @@ package dockerfile
 
 import (
 	"embed"
+	"slices"
 	"strings"
 	"text/template"
 )
@@ -94,6 +95,16 @@ type DockerfileVars struct {
 func (v DockerfileVars) HasGoInstall() bool {
 	for _, t := range v.Tools {
 		if t.Install.Method() == "go-install" {
+			return true
+		}
+	}
+	return false
+}
+
+// HasAnyOfPackages reports whether any of the given packages are in the image.
+func (v DockerfileVars) HasAnyOfPackages(pkgs ...string) bool {
+	for _, p := range pkgs {
+		if slices.Contains(v.Packages, p) {
 			return true
 		}
 	}

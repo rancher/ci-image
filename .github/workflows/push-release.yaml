@@ -24,7 +24,7 @@ env:
 jobs:
   setup:
     runs-on: ubuntu-latest
-    container: ghcr.io/rancher/ci-image/go1.26:20260423-1@sha256:04d51139d05041cb32ef7616f2edd55ee4150c175219ae92c8f91d44530196a3
+    container: ghcr.io/rancher/ci-image/go1.26:20260424-8@sha256:9a82b824c9b32c5652d86b2a3d058e35a89ada6d84ee1b356200e2052c0f522d
     outputs:
       images: ${{ steps.list.outputs.images }}
       version: ${{ steps.version.outputs.value }}
@@ -71,7 +71,7 @@ jobs:
   build-ci-image:
     needs: [setup]
     runs-on: ubuntu-latest
-    container: ghcr.io/rancher/ci-image/go1.26:20260423-1@sha256:04d51139d05041cb32ef7616f2edd55ee4150c175219ae92c8f91d44530196a3
+    container: ghcr.io/rancher/ci-image/go1.26:20260424-8@sha256:9a82b824c9b32c5652d86b2a3d058e35a89ada6d84ee1b356200e2052c0f522d
     strategy:
       fail-fast: false
       matrix:
@@ -115,17 +115,12 @@ jobs:
     # this commit never re-triggers the push-release workflow.
     needs: [setup, build-ci-image]
     runs-on: ubuntu-latest
-    container: registry.suse.com/bci/golang:1.26.2@sha256:0c1bfe51ea14f3e28b4730c725687331ce6aa24c61acea3b9735286789c873b9
+    container: ghcr.io/rancher/ci-image/go1.26:20260424-8@sha256:9a82b824c9b32c5652d86b2a3d058e35a89ada6d84ee1b356200e2052c0f522d
     permissions:
       contents: write
       id-token: none
       packages: none
     steps:
-      - name: Install needed packages
-        shell: bash
-        run: |
-          zypper -n in git-core make
-
       - name: Configure git
         shell: bash
         run: |

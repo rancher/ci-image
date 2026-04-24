@@ -147,15 +147,17 @@ func TestReadFileAtRef_NotShallow(t *testing.T) {
 }
 
 func TestDefaultShallowCheck_NotShallow(t *testing.T) {
-	// The current repository (ci-image itself) is not a shallow clone.
-	// This verifies that defaultShallowCheck correctly returns false for a
-	// full repo, and that the --is-shallow-repository flag is supported by
-	// the installed git version.
+	// Run inside a temp repo created by newTempGitRepo, which is always a full
+	// clone, so the result is deterministic regardless of how the test suite
+	// itself was checked out.
+	dir, _ := newTempGitRepo(t, map[string]string{"f": "x"})
+	chdir(t, dir)
+
 	shallow, err := defaultShallowCheck()
 	if err != nil {
 		t.Fatalf("defaultShallowCheck error: %v", err)
 	}
 	if shallow {
-		t.Error("expected defaultShallowCheck to return false for this repo")
+		t.Error("expected defaultShallowCheck to return false for a full repo")
 	}
 }

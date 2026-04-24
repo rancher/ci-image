@@ -11,12 +11,16 @@ images:
     - node24
     - charts
 packages:
+    - ca-certificates
     - docker
     - gawk
     - git-core
+    - gzip
     - jq
     - make
+    - tar
     - unzip
+    - zstd
     - wget
 tools:
     charts-build-scripts: v1.9.18
@@ -26,6 +30,7 @@ tools:
     goreleaser: v2.15.2
     govulncheck: v1.2.0
     helm: v3.20.2
+    helm_v3: v3.20.2
     helmv4: v4.1.4
     ob-charts-tool: v0.4.0
     oras: v1.3.1
@@ -57,6 +62,7 @@ configs:
             - linux/amd64
             - linux/arm64
         packages:
+            - nodejs24
             - skopeo
         tools:
             - cosign
@@ -65,6 +71,7 @@ configs:
             - goreleaser
             - govulncheck
             - helm
+            - helm_v3
             - helmv4
             - oras
             - slsactl
@@ -76,6 +83,7 @@ configs:
             - linux/amd64
             - linux/arm64
         packages:
+            - nodejs24
             - skopeo
         tools:
             - cosign
@@ -84,6 +92,7 @@ configs:
             - goreleaser
             - govulncheck
             - helm
+            - helm_v3
             - helmv4
             - oras
             - slsactl

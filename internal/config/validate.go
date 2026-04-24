@@ -82,12 +82,10 @@ func validateConfig(cfg *Config) error {
 			if !toolNameRe.MatchString(aliasName) {
 				errs = append(errs, fmt.Sprintf("image %q: alias name %q is invalid (must match ^[a-zA-Z0-9][a-zA-Z0-9._-]*$)", img.Name, aliasName))
 			}
-			// Target must be a tool included in this image (universal or in tools list).
-			target, ok := toolsByName[targetName]
-			if !ok {
+			// Target must be a defined tool. Non-universal targets are auto-included
+			// into image.Tools by the loader, so no "not included" check is needed here.
+			if _, ok := toolsByName[targetName]; !ok {
 				errs = append(errs, fmt.Sprintf("image %q: alias %q targets tool %q which is not defined", img.Name, aliasName, targetName))
-			} else if !target.Universal && !seenTools[targetName] {
-				errs = append(errs, fmt.Sprintf("image %q: alias %q targets tool %q which is not included in this image", img.Name, aliasName, targetName))
 			}
 			// Alias name must not conflict with a tool already installed in this image.
 			if conflict, ok := toolsByName[aliasName]; ok && (conflict.Universal || seenTools[aliasName]) {

@@ -38,6 +38,31 @@ func Load(path string) (*Config, error) {
 	}
 	cfg.Tools = append(cfg.Universal, cfg.Tools...)
 	cfg.Universal = nil
+	// Auto-include alias targets into image.Tools.
+	// If an alias references a non-universal tool that isn't already listed in
+	// image.tools, add it implicitly so the user doesn't have to repeat it.
+	// Undefined targets are left alone and will be caught by validation.
+	toolsByName := make(map[string]*Tool, len(cfg.Tools))
+	for i := range cfg.Tools {
+		toolsByName[cfg.Tools[i].Name] = &cfg.Tools[i]
+	}
+	for i := range cfg.Images {
+		img := &cfg.Images[i]
+		toolSet := make(map[string]bool, len(img.Tools))
+		for _, t := range img.Tools {
+			toolSet[t] = true
+		}
+		for _, targetName := range img.Aliases {
+			t, ok := toolsByName[targetName]
+			if !ok || t.Universal {
+				continue // undefined: caught by validation; universal: always present
+			}
+			if !toolSet[targetName] {
+				img.Tools = append(img.Tools, targetName)
+				toolSet[targetName] = true
+			}
+		}
+	}
 	if err := validateConfig(&cfg); err != nil {
 		return nil, err
 	}

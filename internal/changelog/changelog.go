@@ -38,6 +38,13 @@ func Prepend(path string, entry Entry) error {
 		return fmt.Errorf("reading %s: %w", path, err)
 	}
 
+	// Idempotency: if this version is already recorded, do nothing.
+	// This prevents duplicate entries if the same build is re-run.
+	versionHeader := "## Revision: " + entry.Version
+	if strings.Contains(string(raw), versionHeader) {
+		return nil
+	}
+
 	var newContent string
 	if os.IsNotExist(err) || len(raw) == 0 {
 		newContent = fileHeader + beginMarker + rendered + endMarker + "\n"

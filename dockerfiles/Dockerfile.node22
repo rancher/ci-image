@@ -113,7 +113,8 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/slsactl" && \
     rm -rf "${TMP_DIR}"
 
-# Set up runner user with UID 1001 to match GitHub Actions expectations
+# Create a new group with GID 121 and a new user with UID 1001, add the user
+# to the group, create a home directory for the user.
 RUN groupadd -g 121 runner && useradd -u 1001 -g 121 -m runner
 
 # We trust our base image and the repos that are pulled in workflows. Otherwise

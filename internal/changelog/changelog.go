@@ -118,6 +118,12 @@ func renderEntry(entry Entry) string {
 		for _, tr := range ic.ToolsRemoved {
 			fmt.Fprintf(&sb, "- Removed: `%s`\n", tr.Tool)
 		}
+		for _, aa := range ic.AliasesAdded {
+			fmt.Fprintf(&sb, "- Added alias: `%s` → `%s`\n", aa.Name, aa.Target)
+		}
+		for _, ar := range ic.AliasesRemoved {
+			fmt.Fprintf(&sb, "- Removed alias: `%s`\n", ar.Name)
+		}
 		if len(entry.Changes.PackagesAdded) > 0 || len(entry.Changes.PackagesRemoved) > 0 {
 			sb.WriteString("- Universal package changes\n")
 		}

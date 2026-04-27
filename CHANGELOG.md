@@ -4,6 +4,12 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20260427-11 (2026-04-27)
+
+### Image: charts:20260427-11
+
+- Added package: `gettext-runtime`
+
 ## Revision: 20260424-10 (2026-04-24)
 
 ### Image: charts:20260424-10

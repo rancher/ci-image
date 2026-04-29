@@ -8,7 +8,7 @@ ARG TARGETARCH
 ENV ARCH=$TARGETARCH
 ENV GH_TELEMETRY=false
 ENV DO_NOT_TRACK=true
-ENV PATH=/var/ci-tools/active:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV PATH="/var/ci-tools/active:${PATH}"
 
 RUN zypper -n refresh && \
     zypper -n install \

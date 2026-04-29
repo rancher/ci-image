@@ -35,6 +35,34 @@ func validateConfig(cfg *Config) error {
 		toolsByName[t.Name] = t
 	}
 
+	// Pre-compute family → tools mapping. Used both for family validation and
+	// for detecting alias/selector conflicts during image validation below.
+	type familyInfo struct {
+		tools    []string
+		defaults []string
+	}
+	families := make(map[string]*familyInfo)
+	for _, t := range cfg.Tools {
+		if t.Family == "" {
+			if t.FamilyDefault {
+				errs = append(errs, fmt.Sprintf("tool %q: family_default: true requires family to be set", t.Name))
+			}
+			continue
+		}
+		if !toolNameRe.MatchString(t.Family) {
+			errs = append(errs, fmt.Sprintf("tool %q: family %q is invalid (must match ^[a-zA-Z0-9][a-zA-Z0-9._-]*$)", t.Name, t.Family))
+			continue
+		}
+		if _, ok := families[t.Family]; !ok {
+			families[t.Family] = &familyInfo{}
+		}
+		fi := families[t.Family]
+		fi.tools = append(fi.tools, t.Name)
+		if t.FamilyDefault {
+			fi.defaults = append(fi.defaults, t.Name)
+		}
+	}
+
 	// Validate images; track which tool names are explicitly listed.
 	referencedByImage := make(map[string]bool)
 	for i, img := range cfg.Images {
@@ -91,6 +119,30 @@ func validateConfig(cfg *Config) error {
 			if conflict, ok := toolsByName[aliasName]; ok && (conflict.Universal || seenTools[aliasName]) {
 				errs = append(errs, fmt.Sprintf("image %q: alias name %q conflicts with a tool already installed in this image", img.Name, aliasName))
 			}
+			// Alias name must not shadow a family selector — the selector occupies
+			// /usr/local/bin/{family} in every image that includes the family's tools.
+			if _, ok := families[aliasName]; ok {
+				errs = append(errs, fmt.Sprintf("image %q: alias %q shadows the %q family selector; remove the alias and use 'ci-select %s <tool>' instead", img.Name, aliasName, aliasName, aliasName))
+			}
+		}
+	}
+
+	// Validate family constraints: ≥2 tools per family, exactly one default,
+	// and no family name that collides with a defined tool name.
+	for family, fi := range families {
+		if len(fi.tools) < 2 {
+			errs = append(errs, fmt.Sprintf("family %q: must have at least 2 tools (found: %s)", family, strings.Join(fi.tools, ", ")))
+		}
+		switch len(fi.defaults) {
+		case 0:
+			errs = append(errs, fmt.Sprintf("family %q: no tool has family_default: true; exactly one is required", family))
+		case 1:
+			// valid
+		default:
+			errs = append(errs, fmt.Sprintf("family %q: multiple tools have family_default: true (%s); exactly one is required", family, strings.Join(fi.defaults, ", ")))
+		}
+		if _, ok := toolsByName[family]; ok {
+			errs = append(errs, fmt.Sprintf("family %q: name conflicts with a defined tool name", family))
 		}
 	}
 

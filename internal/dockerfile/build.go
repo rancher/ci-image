@@ -58,6 +58,36 @@ func NewDockerfileVars(cfg *config.Config, img config.Image, sourceURL string) (
 		return DockerfileVars{}, fmt.Errorf("%s", strings.Join(errs, "\n"))
 	}
 
+	// Collect family selectors: one per unique family across all tools in this image.
+	type familySel struct {
+		defaultTool string
+		validTools  []string
+	}
+	familyMap := make(map[string]*familySel)
+	for _, t := range tools {
+		if t.Family == "" {
+			continue
+		}
+		if _, ok := familyMap[t.Family]; !ok {
+			familyMap[t.Family] = &familySel{}
+		}
+		fs := familyMap[t.Family]
+		fs.validTools = append(fs.validTools, t.Name)
+		if t.FamilyDefault {
+			fs.defaultTool = t.Name
+		}
+	}
+	selectors := make([]SelectorInstall, 0, len(familyMap))
+	for family, fs := range familyMap {
+		slices.Sort(fs.validTools)
+		selectors = append(selectors, SelectorInstall{
+			Family:      family,
+			DefaultTool: fs.defaultTool,
+			ValidTools:  fs.validTools,
+		})
+	}
+	slices.SortFunc(selectors, func(a, b SelectorInstall) int { return strings.Compare(a.Family, b.Family) })
+
 	aliases := make([]AliasInstall, 0, len(img.Aliases))
 	for name, target := range img.Aliases {
 		aliases = append(aliases, AliasInstall{Name: name, Target: target})
@@ -68,6 +98,7 @@ func NewDockerfileVars(cfg *config.Config, img config.Image, sourceURL string) (
 		Base:        img.Base,
 		Packages:    img.Packages,
 		Tools:       toolInstalls,
+		Selectors:   selectors,
 		Aliases:     aliases,
 		SourceURL:   sourceURL,
 		Title:       "Rancher " + img.Name + " CI image",

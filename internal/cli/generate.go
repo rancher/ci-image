@@ -72,6 +72,9 @@ func runGenerate(args []string) error {
 		return err
 	}
 
+	// Generate selector scripts (one per family + the generic ci-select).
+	selectors := dockerfile.GenerateSelectors(cfg)
+
 	if err := os.MkdirAll(dockerfilesDir, 0o755); err != nil {
 		return fmt.Errorf("creating output dir %s: %w", dockerfilesDir, err)
 	}
@@ -87,9 +90,25 @@ func runGenerate(args []string) error {
 		}
 	}
 
+	for name, content := range selectors {
+		outputPath := filepath.Join(dockerfilesDir, name)
+		changed, err := fileutil.WriteIfChanged(outputPath, []byte(content), 0o755)
+		if err != nil {
+			return fmt.Errorf("writing %s: %w", outputPath, err)
+		}
+		if changed {
+			log.Printf("Updated %s", outputPath)
+		}
+	}
+
 	// Archive any Dockerfiles for images no longer in config.
 	if err := archiveRemovedDockerfiles(files); err != nil {
 		return fmt.Errorf("archiving removed dockerfiles: %w", err)
+	}
+
+	// Remove any stale selector scripts for families no longer in config.
+	if err := cleanupRemovedSelectors(selectors); err != nil {
+		return fmt.Errorf("cleaning up removed selectors: %w", err)
 	}
 
 	// Write the compiled images lock.
@@ -113,6 +132,35 @@ func runGenerate(args []string) error {
 		return fmt.Errorf("updating %s: %w", readmeFile, err)
 	}
 
+	return nil
+}
+
+// cleanupRemovedSelectors deletes select-*.sh and ci-select.sh files from
+// dockerfilesDir that are no longer produced by the current config.
+func cleanupRemovedSelectors(generated map[string]string) error {
+	entries, err := os.ReadDir(dockerfilesDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		isSelectorScript := name == "ci-select.sh" ||
+			(strings.HasPrefix(name, "select-") && strings.HasSuffix(name, ".sh"))
+		if !isSelectorScript {
+			continue
+		}
+		if _, active := generated[name]; active {
+			continue
+		}
+		path := filepath.Join(dockerfilesDir, name)
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		log.Printf("Removed stale selector %s", path)
+	}
 	return nil
 }
 
@@ -155,20 +203,22 @@ func archiveRemovedDockerfiles(generated map[string]string) error {
 
 // imagesLock is the structure written to images-lock.yaml.
 type imagesLock struct {
-	Images   []string                   `yaml:"images"`
-	Packages []string                   `yaml:"packages,omitempty"` // universal packages installed in every image
-	Tools    map[string]string          `yaml:"tools,omitempty"`    // name → version, all tools across all images
-	Configs  map[string]imageLockConfig `yaml:"configs"`
+	Images    []string                   `yaml:"images"`
+	Packages  []string                   `yaml:"packages,omitempty"`  // universal packages installed in every image
+	Tools     map[string]string          `yaml:"tools,omitempty"`     // name → version, all tools across all images
+	Selectors []string                   `yaml:"selectors,omitempty"` // active family selector names, e.g. ["helm"]
+	Configs   map[string]imageLockConfig `yaml:"configs"`
 }
 
 type imageLockConfig struct {
-	Base        string            `yaml:"base"`
-	Platforms   []string          `yaml:"platforms"`
-	Packages    []string          `yaml:"packages,omitempty"` // image-specific packages only (excludes universal)
-	Tools       []string          `yaml:"tools,omitempty"`    // tool names only; versions in top-level tools map
-	Aliases     map[string]string `yaml:"aliases,omitempty"`  // symlink_name: tool_name
-	GoVersion   string            `yaml:"go_version,omitempty"`
-	Description string            `yaml:"description,omitempty"`
+	Base            string            `yaml:"base"`
+	Platforms       []string          `yaml:"platforms"`
+	Packages        []string          `yaml:"packages,omitempty"`         // image-specific packages only (excludes universal)
+	Tools           []string          `yaml:"tools,omitempty"`            // tool names only; versions in top-level tools map
+	Aliases         map[string]string `yaml:"aliases,omitempty"`          // symlink_name: tool_name
+	FamilySelectors map[string]string `yaml:"family_selectors,omitempty"` // family → default tool
+	GoVersion       string            `yaml:"go_version,omitempty"`
+	Description     string            `yaml:"description,omitempty"`
 }
 
 // extractGoVersion returns the Go version from a SUSE BCI golang base image
@@ -197,9 +247,10 @@ const imagesLockHeader = "# images-lock.yaml — compiled image index generated 
 // optional metadata such as Go version and description.
 func writeImagesLock(cfg *config.Config, path string) error {
 	lk := imagesLock{
-		Packages: cfg.Packages,
-		Tools:    make(map[string]string),
-		Configs:  make(map[string]imageLockConfig, len(cfg.Images)),
+		Packages:  cfg.Packages,
+		Tools:     make(map[string]string),
+		Selectors: dockerfile.FamilySelectorNames(cfg),
+		Configs:   make(map[string]imageLockConfig, len(cfg.Images)),
 	}
 
 	// Build a set of universal packages so we can store only image-specific
@@ -236,14 +287,33 @@ func writeImagesLock(cfg *config.Config, path string) error {
 		if len(img.Aliases) > 0 {
 			aliases = img.Aliases
 		}
+
+		// Record which family selectors are active for this image and their defaults.
+		var familySelectors map[string]string
+		for i := range cfg.Tools {
+			t := &cfg.Tools[i]
+			if t.Family == "" || !t.FamilyDefault {
+				continue
+			}
+			// Only include families where at least one family tool is in this image.
+			if !config.ImageIncludesTool(img, t) {
+				continue
+			}
+			if familySelectors == nil {
+				familySelectors = make(map[string]string)
+			}
+			familySelectors[t.Family] = t.Name
+		}
+
 		lk.Configs[img.Name] = imageLockConfig{
-			Base:        img.Base,
-			Platforms:   img.Platforms,
-			Packages:    specificPkgs,
-			Tools:       toolNames,
-			Aliases:     aliases,
-			GoVersion:   extractGoVersion(img.Base),
-			Description: img.Description,
+			Base:            img.Base,
+			Platforms:       img.Platforms,
+			Packages:        specificPkgs,
+			Tools:           toolNames,
+			Aliases:         aliases,
+			FamilySelectors: familySelectors,
+			GoVersion:       extractGoVersion(img.Base),
+			Description:     img.Description,
 		}
 	}
 

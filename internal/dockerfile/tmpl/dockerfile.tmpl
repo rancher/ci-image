@@ -8,11 +8,20 @@ ARG TARGETARCH
 ENV ARCH=$TARGETARCH
 ENV GH_TELEMETRY=false
 ENV DO_NOT_TRACK=true
+{{if .Selectors}}ENV PATH=/var/ci-tools/active:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
+{{end}}
 {{template "zypper.tmpl" .Packages}}
 
 {{range .Tools}}# {{.Name}} {{.Version}}
 {{.Install.Render}}
+
+{{end}}{{if .Selectors}}# Family selectors — copy scripts and set up manifest + active symlinks.
+# /var/ci-tools/active is on PATH ahead of /usr/local/bin; runner can update
+# the active symlink with: ci-select <family> <tool>  or  select-<family> <tool>
+{{range .Selectors}}COPY select-{{.Family}}.sh /usr/local/bin/select-{{.Family}}
+{{end}}COPY ci-select.sh /usr/local/bin/ci-select
+RUN {{range .Selectors}}chmod +x /usr/local/bin/select-{{.Family}} && {{end}}chmod +x /usr/local/bin/ci-select
 
 {{end}}{{if .Aliases}}# Aliases
 RUN {{range $i, $a := .Aliases}}{{if $i}} && \
@@ -23,7 +32,13 @@ RUN go clean -cache -modcache
 
 {{end}}# Create a new group with GID 121 and a new user with UID 1001, add the user
 # to the group, create a home directory for the user.
+{{- if .Selectors}}
+# Also set up CI tool family infrastructure (requires runner group to exist).
+RUN groupadd -g 121 runner && useradd -u 1001 -g 121 -m runner \
+    && {{.SelectorSetupCmd}}
+{{- else}}
 RUN groupadd -g 121 runner && useradd -u 1001 -g 121 -m runner
+{{- end}}
 
 {{if .HasAnyOfPackages "git" "git-core"}}# We trust our base image and the repos that are pulled in workflows. Otherwise
 # each workflow that uses our base images would have to add the step below.

@@ -4,21 +4,23 @@ package changelog
 // It is intentionally separate from the unexported types in internal/cli to
 // avoid an import cycle.
 type ImagesLock struct {
-	Images   []string               `yaml:"images"`
-	Packages []string               `yaml:"packages,omitempty"` // universal packages installed in every image
-	Tools    map[string]string      `yaml:"tools,omitempty"`
-	Configs  map[string]ImageConfig `yaml:"configs"`
+	Images    []string               `yaml:"images"`
+	Packages  []string               `yaml:"packages,omitempty"` // universal packages installed in every image
+	Tools     map[string]string      `yaml:"tools,omitempty"`
+	Selectors []string               `yaml:"selectors,omitempty"` // active family selector names, e.g. ["helm"]
+	Configs   map[string]ImageConfig `yaml:"configs"`
 }
 
 // ImageConfig holds the resolved configuration for one image.
 type ImageConfig struct {
-	Base        string            `yaml:"base"`
-	Platforms   []string          `yaml:"platforms"`
-	Packages    []string          `yaml:"packages,omitempty"` // image-specific packages only (excludes universal)
-	Tools       []string          `yaml:"tools,omitempty"`
-	Aliases     map[string]string `yaml:"aliases,omitempty"` // symlink_name: tool_name
-	GoVersion   string            `yaml:"go_version,omitempty"`
-	Description string            `yaml:"description,omitempty"`
+	Base            string            `yaml:"base"`
+	Platforms       []string          `yaml:"platforms"`
+	Packages        []string          `yaml:"packages,omitempty"`         // image-specific packages only (excludes universal)
+	Tools           []string          `yaml:"tools,omitempty"`
+	Aliases         map[string]string `yaml:"aliases,omitempty"`          // symlink_name: tool_name
+	FamilySelectors map[string]string `yaml:"family_selectors,omitempty"` // family → default tool
+	GoVersion       string            `yaml:"go_version,omitempty"`
+	Description     string            `yaml:"description,omitempty"`
 }
 
 // Changes summarises what changed between two ImagesLock states.
@@ -26,6 +28,9 @@ type Changes struct {
 	// Universal package changes affect every image.
 	PackagesAdded   []string
 	PackagesRemoved []string
+	// Family selector changes (global — a selector was introduced or removed).
+	SelectorsAdded   []SelectorChange
+	SelectorsRemoved []SelectorChange
 	// ImageChanges holds per-image diffs (only images with at least one change).
 	ImageChanges []ImageChanges
 	// ImagesAdded and ImagesRemoved track images that appeared or disappeared.
@@ -46,6 +51,7 @@ func (c *Changes) IsEmpty() bool {
 		return true
 	}
 	return len(c.PackagesAdded) == 0 && len(c.PackagesRemoved) == 0 &&
+		len(c.SelectorsAdded) == 0 && len(c.SelectorsRemoved) == 0 &&
 		len(c.ImageChanges) == 0 && len(c.ImagesAdded) == 0 && len(c.ImagesRemoved) == 0 &&
 		len(c.DockerfileChanges) == 0
 }
@@ -66,16 +72,17 @@ func (c *Changes) AffectedImages() []string {
 
 // ImageChanges holds all the changes for a single image.
 type ImageChanges struct {
-	Image              string
-	BaseImageUpdated   *BaseImageChange
-	PlatformsChanged   *PlatformsChange
-	PackagesAdded      []string
-	PackagesRemoved    []string
-	ToolVersionChanged []ToolVersionChange
-	ToolsAdded         []ToolChange
-	ToolsRemoved       []ToolChange
-	AliasesAdded       []AliasChange
-	AliasesRemoved     []AliasChange
+	Image                 string
+	BaseImageUpdated      *BaseImageChange
+	PlatformsChanged      *PlatformsChange
+	PackagesAdded         []string
+	PackagesRemoved       []string
+	ToolVersionChanged    []ToolVersionChange
+	ToolsAdded            []ToolChange
+	ToolsRemoved          []ToolChange
+	AliasesAdded          []AliasChange
+	AliasesRemoved        []AliasChange
+	SelectorDefaultChanged []SelectorDefaultChange // family selector default tool changed
 }
 
 // HasChanges returns true if the image has any changes.
@@ -85,7 +92,22 @@ func (ic ImageChanges) HasChanges() bool {
 		len(ic.PackagesAdded) > 0 || len(ic.PackagesRemoved) > 0 ||
 		len(ic.ToolVersionChanged) > 0 ||
 		len(ic.ToolsAdded) > 0 || len(ic.ToolsRemoved) > 0 ||
-		len(ic.AliasesAdded) > 0 || len(ic.AliasesRemoved) > 0
+		len(ic.AliasesAdded) > 0 || len(ic.AliasesRemoved) > 0 ||
+		len(ic.SelectorDefaultChanged) > 0
+}
+
+// SelectorChange records a family selector being introduced or removed globally.
+type SelectorChange struct {
+	Family      string
+	DefaultTool string // populated for additions; empty for removals
+}
+
+// SelectorDefaultChange records the default tool for a family selector changing
+// in a specific image.
+type SelectorDefaultChange struct {
+	Family string
+	From   string
+	To     string
 }
 
 // AliasChange records a symlink alias being added or removed.

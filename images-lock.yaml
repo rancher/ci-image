@@ -29,11 +29,13 @@ tools:
     golangci-lint: v2.11.4
     goreleaser: v2.15.2
     govulncheck: v1.2.0
-    helm: v3.20.2
+    helmv3: v3.20.2
     helmv4: v4.1.4
     ob-charts-tool: v0.4.1
     oras: v1.3.1
     slsactl: v0.1.30
+selectors:
+    - helm
 configs:
     charts:
         base: registry.suse.com/bci/bci-base:15.7@sha256:3292c81fb9e40b60903e6c88fac34e955b6d5b3acd3eb055d02d5c1538a72aea
@@ -50,11 +52,13 @@ configs:
             - gh
             - golangci-lint
             - goreleaser
-            - helm
+            - helmv3
             - helmv4
             - ob-charts-tool
             - oras
             - slsactl
+        family_selectors:
+            helm: helmv4
         description: Rancher charts build environment
     go1.25:
         base: registry.suse.com/bci/golang:1.25.9@sha256:6ab7d7eb4a23076273da5e885ea71a1f9c72923da07f41fb53fb02e914123c11
@@ -70,12 +74,14 @@ configs:
             - golangci-lint
             - goreleaser
             - govulncheck
-            - helm
+            - helmv3
             - helmv4
             - oras
             - slsactl
         aliases:
-            helm_v3: helm
+            helm_v3: helmv3
+        family_selectors:
+            helm: helmv4
         go_version: 1.25.9
         description: CI image with Go 1.25 toolchain
     go1.26:
@@ -92,12 +98,14 @@ configs:
             - golangci-lint
             - goreleaser
             - govulncheck
-            - helm
+            - helmv3
             - helmv4
             - oras
             - slsactl
         aliases:
-            helm_v3: helm
+            helm_v3: helmv3
+        family_selectors:
+            helm: helmv4
         go_version: 1.26.2
         description: CI image with Go 1.26 toolchain
     node22:
@@ -108,9 +116,11 @@ configs:
         tools:
             - cosign
             - gh
-            - helm
+            - helmv3
             - helmv4
             - slsactl
+        family_selectors:
+            helm: helmv4
         description: CI image with Node 22 toolchain
     node24:
         base: registry.suse.com/bci/nodejs:24.14.1@sha256:30f4ce0caa9f329dd6c59578f771b14bdd2cd2fb9cea18bd46bbd6222ddc66a5
@@ -120,9 +130,11 @@ configs:
         tools:
             - cosign
             - gh
-            - helm
+            - helmv3
             - helmv4
             - slsactl
+        family_selectors:
+            helm: helmv4
         description: CI image with Node 24 toolchain
     python3.11:
         base: registry.suse.com/bci/python:3.11.15@sha256:ae46b495c9413de83e4f9b2c8090b2369bbc519df460c66516c5cd8a1f32daed
@@ -132,9 +144,11 @@ configs:
         tools:
             - cosign
             - gh
-            - helm
+            - helmv3
             - helmv4
             - slsactl
+        family_selectors:
+            helm: helmv4
         description: CI image with Python 3.11 toolchain
     python3.13:
         base: registry.suse.com/bci/python:3.13.13@sha256:ddc0eb2860df249e2054599e4df0e8452d25254508e05f3af1787359ad757963
@@ -144,7 +158,9 @@ configs:
         tools:
             - cosign
             - gh
-            - helm
+            - helmv3
             - helmv4
             - slsactl
+        family_selectors:
+            helm: helmv4
         description: CI image with Python 3.13 toolchain

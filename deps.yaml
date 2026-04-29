@@ -11,7 +11,8 @@ images:
       - govulncheck
       - oras
     aliases:
-      helm_v3: helm
+      helm_v3: helmv3
+      helm: helmv4
 
   - name: go1.26
     description: "CI image with Go 1.26 toolchain"
@@ -25,7 +26,8 @@ images:
       - govulncheck
       - oras
     aliases:
-      helm_v3: helm
+      helm_v3: helmv3
+      helm: helmv4
 
   - name: python3.11
     description: "CI image with Python 3.11 toolchain"
@@ -99,7 +101,7 @@ universal:
       extract: "gh_{version|trimprefix:v}_{os}_{arch}/bin/gh"
       checksum_template: "gh_{version|trimprefix:v}_checksums.txt"
 
-  - name: helm
+  - name: helmv3
     source: "https://get.helm.sh"
     mode: static
     version: v3.20.2

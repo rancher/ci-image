@@ -25,7 +25,7 @@ func Generate(cfg *config.Config, sourceURL string) (map[string]string, error) {
 
 // GenerateSelectors returns the generated selector script files that must be
 // written alongside the Dockerfiles. The map key is the filename
-// (e.g. "select-helm.sh", "ci-select.sh") and the value is the script content.
+// (e.g. "ci-select.sh") and the value is the script content.
 // Returns an empty map if no families are defined in cfg.
 func GenerateSelectors(cfg *config.Config) map[string]string {
 	// Collect unique families across all tools.

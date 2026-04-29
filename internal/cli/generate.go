@@ -25,10 +25,11 @@ func lockPath(configPath string) string {
 }
 
 const (
-	dockerfilesDir = "dockerfiles"
-	archiveDir     = "archive"
-	defaultConfig  = "deps.yaml"
-	readmePath     = "README.md"
+	dockerfilesDir   = "dockerfiles"
+	dockerScriptsDir = "dockerfiles/scripts"
+	archiveDir       = "archive"
+	defaultConfig    = "deps.yaml"
+	readmePath       = "README.md"
 )
 
 func runGenerate(args []string) error {
@@ -90,8 +91,12 @@ func runGenerate(args []string) error {
 		}
 	}
 
+	if err := os.MkdirAll(dockerScriptsDir, 0o755); err != nil {
+		return fmt.Errorf("creating output dir %s: %w", dockerScriptsDir, err)
+	}
+
 	for name, content := range selectors {
-		outputPath := filepath.Join(dockerfilesDir, name)
+		outputPath := filepath.Join(dockerScriptsDir, name)
 		changed, err := fileutil.WriteIfChanged(outputPath, []byte(content), 0o755)
 		if err != nil {
 			return fmt.Errorf("writing %s: %w", outputPath, err)
@@ -138,7 +143,7 @@ func runGenerate(args []string) error {
 // cleanupRemovedSelectors deletes select-*.sh and ci-select.sh files from
 // dockerfilesDir that are no longer produced by the current config.
 func cleanupRemovedSelectors(generated map[string]string) error {
-	entries, err := os.ReadDir(dockerfilesDir)
+	entries, err := os.ReadDir(dockerScriptsDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -155,7 +160,7 @@ func cleanupRemovedSelectors(generated map[string]string) error {
 		if _, active := generated[name]; active {
 			continue
 		}
-		path := filepath.Join(dockerfilesDir, name)
+		path := filepath.Join(dockerScriptsDir, name)
 		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 			return err
 		}

@@ -1,0 +1,74 @@
+#!/bin/sh
+# ci-select — activate a tool from a CI tool family for this job.
+#
+# The manifest at /usr/local/share/ci-tools/families/ records which tools
+# are available per family. The active selection is a symlink in
+# /var/ci-tools/active/ which is on PATH ahead of /usr/local/bin.
+#
+# Usage:
+#   ci-select                   list available families
+#   ci-select FAMILY            show tools in FAMILY and the current selection
+#   ci-select FAMILY TOOL       activate TOOL as the default FAMILY command
+
+set -e
+
+FAMILIES_DIR=/usr/local/share/ci-tools/families
+ACTIVE_DIR=/var/ci-tools/active
+
+_list_families() {
+    for _d in "${FAMILIES_DIR}"/*/; do
+        [ -d "$_d" ] && basename "$_d"
+    done
+}
+
+_list_tools() {
+    _fam="$1"
+    for _f in "${FAMILIES_DIR}/${_fam}"/*; do
+        _name=$(basename "$_f")
+        [ "$_name" = "default" ] && continue
+        printf '  %s\n' "$_name"
+    done
+}
+
+_current() {
+    _link="${ACTIVE_DIR}/$1"
+    if [ -L "$_link" ]; then
+        basename "$(readlink "$_link")"
+    else
+        printf '(none)\n'
+    fi
+}
+
+FAMILY="${1:-}"
+TOOL="${2:-}"
+
+if [ -z "$FAMILY" ]; then
+    printf 'Available CI tool families:\n'
+    _list_families
+    printf '\nUsage: ci-select FAMILY [TOOL]\n'
+    exit 0
+fi
+
+if [ ! -d "${FAMILIES_DIR}/${FAMILY}" ]; then
+    printf 'ci-select: unknown family "%s"\n' "$FAMILY" >&2
+    printf 'Available families:\n' >&2
+    _list_families >&2
+    exit 1
+fi
+
+if [ -z "$TOOL" ]; then
+    printf 'Available %s tools:\n' "$FAMILY"
+    _list_tools "$FAMILY"
+    printf 'Current: %s\n' "$(_current "$FAMILY")"
+    exit 0
+fi
+
+if [ ! -f "${FAMILIES_DIR}/${FAMILY}/${TOOL}" ]; then
+    printf 'ci-select: "%s" is not a valid %s tool\n' "$TOOL" "$FAMILY" >&2
+    printf 'Available:\n' >&2
+    _list_tools "$FAMILY" >&2
+    exit 1
+fi
+
+ln -sf "/usr/local/bin/${TOOL}" "${ACTIVE_DIR}/${FAMILY}"
+printf '%s is now: %s\n' "$FAMILY" "$TOOL"

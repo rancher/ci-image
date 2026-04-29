@@ -9,7 +9,6 @@ ENV ARCH=$TARGETARCH
 ENV GH_TELEMETRY=false
 ENV DO_NOT_TRACK=true
 {{if .Selectors}}ENV PATH=/var/ci-tools/active:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-
 {{end}}
 {{template "zypper.tmpl" .Packages}}
 
@@ -19,8 +18,8 @@ ENV DO_NOT_TRACK=true
 {{end}}{{if .Selectors}}# Family selectors — copy scripts and set up manifest + active symlinks.
 # /var/ci-tools/active is on PATH ahead of /usr/local/bin; runner can update
 # the active symlink with: ci-select <family> <tool>  or  select-<family> <tool>
-{{range .Selectors}}COPY select-{{.Family}}.sh /usr/local/bin/select-{{.Family}}
-{{end}}COPY ci-select.sh /usr/local/bin/ci-select
+{{range .Selectors}}COPY scripts/select-{{.Family}}.sh /usr/local/bin/select-{{.Family}}
+{{end}}COPY scripts/ci-select.sh /usr/local/bin/ci-select
 RUN {{range .Selectors}}chmod +x /usr/local/bin/select-{{.Family}} && {{end}}chmod +x /usr/local/bin/ci-select
 
 {{end}}{{if .Aliases}}# Aliases

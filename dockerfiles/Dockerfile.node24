@@ -123,8 +123,8 @@ RUN case "${ARCH}" in \
 # Family selectors — copy scripts and set up manifest + active symlinks.
 # /var/ci-tools/active is on PATH ahead of /usr/local/bin; runner can update
 # the active symlink with: ci-select <family> <tool>  or  select-<family> <tool>
-COPY scripts/select-helm.sh /usr/local/bin/select-helm
-COPY scripts/ci-select.sh /usr/local/bin/ci-select
+COPY dockerfiles/scripts/select-helm.sh /usr/local/bin/select-helm
+COPY dockerfiles/scripts/ci-select.sh /usr/local/bin/ci-select
 RUN chmod +x /usr/local/bin/select-helm && chmod +x /usr/local/bin/ci-select
 
 # Create a new group with GID 121 and a new user with UID 1001, add the user

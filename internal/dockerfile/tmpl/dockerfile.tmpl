@@ -18,8 +18,8 @@ ENV DO_NOT_TRACK=true
 {{end}}{{if .Selectors}}# Family selectors — copy scripts and set up manifest + active symlinks.
 # /var/ci-tools/active is on PATH ahead of /usr/local/bin; runner can update
 # the active symlink with: ci-select <family> <tool>  or  select-<family> <tool>
-{{range .Selectors}}COPY scripts/select-{{.Family}}.sh /usr/local/bin/select-{{.Family}}
-{{end}}COPY scripts/ci-select.sh /usr/local/bin/ci-select
+{{range .Selectors}}COPY dockerfiles/scripts/select-{{.Family}}.sh /usr/local/bin/select-{{.Family}}
+{{end}}COPY dockerfiles/scripts/ci-select.sh /usr/local/bin/ci-select
 RUN {{range .Selectors}}chmod +x /usr/local/bin/select-{{.Family}} && {{end}}chmod +x /usr/local/bin/ci-select
 
 {{end}}{{if .Aliases}}# Aliases

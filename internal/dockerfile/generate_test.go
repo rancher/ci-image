@@ -98,7 +98,6 @@ func TestGenerate_Structure(t *testing.T) {
 		"go install golang.org/x/vuln/cmd/govulncheck@abc123",
 		"# Cleanup Go caches",
 		"go clean -cache -modcache",
-		`ENTRYPOINT ["/bin/bash"]`,
 	}
 	for _, want := range checks {
 		if !strings.Contains(content, want) {

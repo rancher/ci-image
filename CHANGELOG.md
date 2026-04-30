@@ -4,6 +4,51 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20260430-13 (2026-04-30)
+
+### Family Selectors Added
+
+- `helm` (default: `helmv4`) — use `ci-select helm <tool>` or `select-helm <tool>`
+
+### Image: go1.25:20260430-13
+
+- Added: `helmv3` `v3.20.2`
+- Removed: `helm`
+- Added alias: `helm_v3` → `helmv3`
+- Removed alias: `helm_v3`
+
+### Image: go1.26:20260430-13
+
+- Added: `helmv3` `v3.20.2`
+- Removed: `helm`
+- Added alias: `helm_v3` → `helmv3`
+- Removed alias: `helm_v3`
+
+### Image: python3.11:20260430-13
+
+- Added: `helmv3` `v3.20.2`
+- Removed: `helm`
+
+### Image: python3.13:20260430-13
+
+- Added: `helmv3` `v3.20.2`
+- Removed: `helm`
+
+### Image: node22:20260430-13
+
+- Added: `helmv3` `v3.20.2`
+- Removed: `helm`
+
+### Image: node24:20260430-13
+
+- Added: `helmv3` `v3.20.2`
+- Removed: `helm`
+
+### Image: charts:20260430-13
+
+- Added: `helmv3` `v3.20.2`
+- Removed: `helm`
+
 ## Revision: 20260429-12 (2026-04-29)
 
 ### Image: charts:20260429-12

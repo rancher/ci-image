@@ -78,6 +78,30 @@ func Diff(prev, next *ImagesLock) *Changes {
 		}
 	}
 
+	// Global family selector changes.
+	prevSels := toSet(prev.Selectors)
+	nextSels := toSet(next.Selectors)
+	for _, s := range prev.Selectors {
+		if !nextSels[s] {
+			c.SelectorsRemoved = append(c.SelectorsRemoved, SelectorChange{Family: s})
+		}
+	}
+	for _, s := range next.Selectors {
+		if !prevSels[s] {
+			// Derive the default tool from the first image config that has it.
+			defaultTool := ""
+			for _, cfg := range next.Configs {
+				if d, ok := cfg.FamilySelectors[s]; ok {
+					defaultTool = d
+					break
+				}
+			}
+			c.SelectorsAdded = append(c.SelectorsAdded, SelectorChange{Family: s, DefaultTool: defaultTool})
+		}
+	}
+	slices.SortFunc(c.SelectorsAdded, func(a, b SelectorChange) int { return strings.Compare(a.Family, b.Family) })
+	slices.SortFunc(c.SelectorsRemoved, func(a, b SelectorChange) int { return strings.Compare(a.Family, b.Family) })
+
 	prevImages := toSet(prev.Images)
 	nextImages := toSet(next.Images)
 
@@ -181,6 +205,21 @@ func computeImageChanges(imgName string, prevTools, nextTools map[string]string,
 	}
 	slices.SortFunc(ic.AliasesAdded, func(a, b AliasChange) int { return strings.Compare(a.Name, b.Name) })
 	slices.SortFunc(ic.AliasesRemoved, func(a, b AliasChange) int { return strings.Compare(a.Name, b.Name) })
+
+	// Family selector default changes: detect when the active default tool changes.
+	// Selector additions/removals are tracked at the global level (Changes.SelectorsAdded/Removed).
+	for family, nextDefault := range next.FamilySelectors {
+		if prevDefault, ok := prev.FamilySelectors[family]; ok && prevDefault != nextDefault {
+			ic.SelectorDefaultChanged = append(ic.SelectorDefaultChanged, SelectorDefaultChange{
+				Family: family,
+				From:   prevDefault,
+				To:     nextDefault,
+			})
+		}
+	}
+	slices.SortFunc(ic.SelectorDefaultChanged, func(a, b SelectorDefaultChange) int {
+		return strings.Compare(a.Family, b.Family)
+	})
 
 	return ic
 }

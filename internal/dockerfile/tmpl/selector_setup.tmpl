@@ -1,0 +1,8 @@
+{{- /* selector_setup.tmpl — rendered with []SelectorInstall */ -}}
+mkdir -p /var/ci-tools/active{{range .}}{{$sel := .}} \
+    && mkdir -p /usr/local/share/ci-tools/families/{{$sel.Family}}{{range $sel.ValidTools}} \
+    && touch /usr/local/share/ci-tools/families/{{$sel.Family}}/{{.}}{{end}} \
+    && ln -sf {{$sel.DefaultTool}} /usr/local/share/ci-tools/families/{{$sel.Family}}/default \
+    && ln -sf /usr/local/bin/{{$sel.DefaultTool}} /var/ci-tools/active/{{$sel.Family}}{{end}} \
+    && chown -R root:runner /var/ci-tools \
+    && chmod 2775 /var/ci-tools/active

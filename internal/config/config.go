@@ -21,17 +21,22 @@ type Image struct {
 	Description string            `yaml:"description,omitempty"` // org.opencontainers.image.description; optional
 }
 
+// ChecksumList is a map of checksums for tools - where key is platform and value is checksum
+type ChecksumList map[string]string
+
 // Tool defines a binary tool available for inclusion in images.
 type Tool struct {
-	Name          string            `yaml:"name"`
-	Source        string            `yaml:"source"`
-	Version       string            `yaml:"version"`
-	VersionCommit string            `yaml:"version_commit,omitempty"`
-	Mode          string            `yaml:"mode,omitempty"` // default: "pinned"
-	Universal     bool              `yaml:"-"`              // set by loader; use universal: section in deps.yaml
-	Checksums     map[string]string `yaml:"checksums,omitempty"`
-	Release       *ReleaseConfig    `yaml:"release,omitempty"`
-	Install       InstallConfig     `yaml:"install"`
+	Name          string         `yaml:"name"`
+	Family        string         `yaml:"family,omitempty"`         // for grouping tools (e.g. "helm"); tools sharing a family get a runtime selector script
+	FamilyDefault bool           `yaml:"family_default,omitempty"` // this tool is used when the selector env var is not set; requires family to be set
+	Source        string         `yaml:"source"`
+	Version       string         `yaml:"version"`
+	VersionCommit string         `yaml:"version_commit,omitempty"`
+	Mode          string         `yaml:"mode,omitempty"` // default: "pinned"
+	Universal     bool           `yaml:"-"`              // set by loader; use universal: section in deps.yaml
+	Checksums     ChecksumList   `yaml:"checksums,omitempty"`
+	Release       *ReleaseConfig `yaml:"release,omitempty"`
+	Install       InstallConfig  `yaml:"install"`
 }
 
 // EffectiveMode returns the tool's mode, defaulting to "pinned".

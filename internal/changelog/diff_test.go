@@ -393,6 +393,118 @@ func TestDiff_AliasChangeTriggersHasChanges(t *testing.T) {
 	}
 }
 
+// --- Family selector diff tests ---
+
+func TestDiff_SelectorAdded(t *testing.T) {
+	prev := &ImagesLock{
+		Images:  []string{"img"},
+		Configs: map[string]ImageConfig{"img": {Base: "alpine"}},
+	}
+	next := &ImagesLock{
+		Images:    []string{"img"},
+		Selectors: []string{"helm"},
+		Configs: map[string]ImageConfig{
+			"img": {Base: "alpine", FamilySelectors: map[string]string{"helm": "helmv4"}},
+		},
+	}
+
+	c := Diff(prev, next)
+	if len(c.SelectorsAdded) != 1 {
+		t.Fatalf("expected 1 selector added, got %d", len(c.SelectorsAdded))
+	}
+	s := c.SelectorsAdded[0]
+	if s.Family != "helm" || s.DefaultTool != "helmv4" {
+		t.Errorf("unexpected SelectorChange: %+v", s)
+	}
+	if len(c.SelectorsRemoved) != 0 {
+		t.Errorf("unexpected SelectorsRemoved: %+v", c.SelectorsRemoved)
+	}
+}
+
+func TestDiff_SelectorRemoved(t *testing.T) {
+	prev := &ImagesLock{
+		Images:    []string{"img"},
+		Selectors: []string{"helm"},
+		Configs: map[string]ImageConfig{
+			"img": {Base: "alpine", FamilySelectors: map[string]string{"helm": "helmv4"}},
+		},
+	}
+	next := &ImagesLock{
+		Images:  []string{"img"},
+		Configs: map[string]ImageConfig{"img": {Base: "alpine"}},
+	}
+
+	c := Diff(prev, next)
+	if len(c.SelectorsRemoved) != 1 {
+		t.Fatalf("expected 1 selector removed, got %d", len(c.SelectorsRemoved))
+	}
+	if c.SelectorsRemoved[0].Family != "helm" {
+		t.Errorf("unexpected family: %q", c.SelectorsRemoved[0].Family)
+	}
+	if len(c.SelectorsAdded) != 0 {
+		t.Errorf("unexpected SelectorsAdded: %+v", c.SelectorsAdded)
+	}
+}
+
+func TestDiff_SelectorDefaultChanged(t *testing.T) {
+	prev := &ImagesLock{
+		Images:    []string{"img"},
+		Selectors: []string{"helm"},
+		Configs: map[string]ImageConfig{
+			"img": {Base: "alpine", FamilySelectors: map[string]string{"helm": "helmv3"}},
+		},
+	}
+	next := &ImagesLock{
+		Images:    []string{"img"},
+		Selectors: []string{"helm"},
+		Configs: map[string]ImageConfig{
+			"img": {Base: "alpine", FamilySelectors: map[string]string{"helm": "helmv4"}},
+		},
+	}
+
+	c := Diff(prev, next)
+	if len(c.SelectorsAdded) != 0 || len(c.SelectorsRemoved) != 0 {
+		t.Errorf("global selector lists should not change; added=%v removed=%v", c.SelectorsAdded, c.SelectorsRemoved)
+	}
+	if len(c.ImageChanges) != 1 {
+		t.Fatalf("expected 1 image change, got %d", len(c.ImageChanges))
+	}
+	ic := c.ImageChanges[0]
+	if len(ic.SelectorDefaultChanged) != 1 {
+		t.Fatalf("expected 1 SelectorDefaultChanged, got %d", len(ic.SelectorDefaultChanged))
+	}
+	sc := ic.SelectorDefaultChanged[0]
+	if sc.Family != "helm" || sc.From != "helmv3" || sc.To != "helmv4" {
+		t.Errorf("unexpected SelectorDefaultChange: %+v", sc)
+	}
+}
+
+func TestDiff_SelectorDefaultUnchanged_NoImageChange(t *testing.T) {
+	lock := &ImagesLock{
+		Images:    []string{"img"},
+		Selectors: []string{"helm"},
+		Configs: map[string]ImageConfig{
+			"img": {Base: "alpine", FamilySelectors: map[string]string{"helm": "helmv4"}},
+		},
+	}
+	c := Diff(lock, lock)
+	if !c.IsEmpty() {
+		t.Errorf("expected no changes when selectors unchanged, got %+v", c)
+	}
+}
+
+func TestDiff_SelectorDefaultChangedTriggersHasChanges(t *testing.T) {
+	ic := ImageChanges{
+		Image: "img",
+		SelectorDefaultChanged: []SelectorDefaultChange{
+			{Family: "helm", From: "helmv3", To: "helmv4"},
+		},
+	}
+	if !ic.HasChanges() {
+		t.Error("HasChanges() should return true when SelectorDefaultChanged is set")
+	}
+}
+
 func TestDiff_OnlyChangedImageAppears(t *testing.T) {
 	prev := &ImagesLock{
 		Images: []string{"a", "b"},

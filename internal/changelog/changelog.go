@@ -91,6 +91,23 @@ func renderEntry(entry Entry) string {
 		sb.WriteString("\n")
 	}
 
+	// Family selector additions/removals affect all images that carry those tools.
+	if len(entry.Changes.SelectorsAdded) > 0 {
+		sb.WriteString("### Family Selectors Added\n\n")
+		for _, s := range entry.Changes.SelectorsAdded {
+			fmt.Fprintf(&sb, "- `%s` (default: `%s`) — use `ci-select %s <tool>` or `select-%s <tool>`\n",
+				s.Family, s.DefaultTool, s.Family, s.Family)
+		}
+		sb.WriteString("\n")
+	}
+	if len(entry.Changes.SelectorsRemoved) > 0 {
+		sb.WriteString("### Family Selectors Removed\n\n")
+		for _, s := range entry.Changes.SelectorsRemoved {
+			fmt.Fprintf(&sb, "- `%s`\n", s.Family)
+		}
+		sb.WriteString("\n")
+	}
+
 	for _, ic := range entry.Changes.ImageChanges {
 		fmt.Fprintf(&sb, "### Image: %s:%s\n\n", ic.Image, entry.Version)
 		if ic.BaseImageUpdated != nil {
@@ -123,6 +140,9 @@ func renderEntry(entry Entry) string {
 		}
 		for _, ar := range ic.AliasesRemoved {
 			fmt.Fprintf(&sb, "- Removed alias: `%s`\n", ar.Name)
+		}
+		for _, sc := range ic.SelectorDefaultChanged {
+			fmt.Fprintf(&sb, "- `%s` selector default: `%s` → `%s`\n", sc.Family, sc.From, sc.To)
 		}
 		if len(entry.Changes.PackagesAdded) > 0 || len(entry.Changes.PackagesRemoved) > 0 {
 			sb.WriteString("- Universal package changes\n")

@@ -8,6 +8,7 @@ ARG TARGETARCH
 ENV ARCH=$TARGETARCH
 ENV GH_TELEMETRY=false
 ENV DO_NOT_TRACK=true
+ENV PATH="/var/ci-tools/active:${PATH}"
 
 RUN zypper -n refresh && \
     zypper -n install \
@@ -65,14 +66,14 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/gh" && \
     rm -rf "${TMP_DIR}"
 
-# helm v3.20.2
+# helmv3 v3.20.2
 RUN case "${ARCH}" in \
         amd64) CHECKSUM="258e830a9e613c8a7a302d6059b4bb3b9758f2f3e1bb8ea0d707ce10a9a72fea" ;; \
         arm64) CHECKSUM="5ea2d6bc2cda3f8edf985e028809f5a9278f404fb8ab24044de9b7cb9b79a691" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
-    export TMP_FILE="${TMP_DIR}/helm.tar.gz" && \
+    export TMP_FILE="${TMP_DIR}/helmv3.tar.gz" && \
     case "${ARCH}" in \
         amd64) DOWNLOAD_URL="https://get.helm.sh/helm-v3.20.2-linux-amd64.tar.gz"; EXTRACT="linux-amd64/helm" ;; \
         arm64) DOWNLOAD_URL="https://get.helm.sh/helm-v3.20.2-linux-arm64.tar.gz"; EXTRACT="linux-arm64/helm" ;; \
@@ -81,7 +82,7 @@ RUN case "${ARCH}" in \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
     sha256sum -c "${TMP_DIR}/checksum.sha256" && \
     tar xzf "${TMP_FILE}" -C "${TMP_DIR}" && \
-    install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/helm" && \
+    install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/helmv3" && \
     rm -rf "${TMP_DIR}"
 
 # helmv4 v4.1.4
@@ -213,9 +214,25 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/oras" && \
     rm -rf "${TMP_DIR}"
 
+# Family selectors — copy scripts and set up manifest + active symlinks.
+# /var/ci-tools/active is on PATH ahead of /usr/local/bin; runner can update
+# the active symlink with: ci-select <family> <tool>  or  select-<family> <tool>
+COPY dockerfiles/scripts/select-helm.sh /usr/local/bin/select-helm
+COPY dockerfiles/scripts/ci-select.sh /usr/local/bin/ci-select
+RUN chmod +x /usr/local/bin/select-helm && chmod +x /usr/local/bin/ci-select
+
 # Create a new group with GID 121 and a new user with UID 1001, add the user
 # to the group, create a home directory for the user.
-RUN groupadd -g 121 runner && useradd -u 1001 -g 121 -m runner
+# Also set up CI tool family infrastructure (requires runner group to exist).
+RUN groupadd -g 121 runner && useradd -u 1001 -g 121 -m runner \
+    && mkdir -p /var/ci-tools/active \
+    && mkdir -p /usr/local/share/ci-tools/families/helm \
+    && touch /usr/local/share/ci-tools/families/helm/helmv3 \
+    && touch /usr/local/share/ci-tools/families/helm/helmv4 \
+    && ln -sf helmv4 /usr/local/share/ci-tools/families/helm/default \
+    && ln -sf /usr/local/bin/helmv4 /var/ci-tools/active/helm \
+    && chown -R root:runner /var/ci-tools \
+    && chmod 2775 /var/ci-tools/active
 
 # We trust our base image and the repos that are pulled in workflows. Otherwise
 # each workflow that uses our base images would have to add the step below.

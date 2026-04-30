@@ -83,6 +83,15 @@ type AliasInstall struct {
 	Target string // target binary name
 }
 
+// SelectorInstall describes a family selector that is active for an image.
+// At image build time this creates the manifest and default active symlink;
+// the runner can later call 'ci-select {Family} <tool>' to change it.
+type SelectorInstall struct {
+	Family      string   // family name, e.g. "helm"
+	DefaultTool string   // tool name that is active by default, e.g. "helmv4"
+	ValidTools  []string // all tool names in the family, sorted
+}
+
 // DockerfileVars is the fully-resolved spec for one image's Dockerfile.
 // Once constructed, Render() cannot fail — all template rendering and
 // checksum resolution has already been performed.
@@ -91,10 +100,21 @@ type DockerfileVars struct {
 	Base        string
 	Packages    []string
 	Tools       []ToolInstall
-	Aliases     []AliasInstall // sorted by Name for determinism
-	SourceURL   string         // org.opencontainers.image.source
-	Title       string         // org.opencontainers.image.title
-	Description string         // org.opencontainers.image.description; empty → no label emitted
+	Selectors   []SelectorInstall // family selectors active in this image; sorted by Family
+	Aliases     []AliasInstall    // sorted by Name for determinism
+	SourceURL   string            // org.opencontainers.image.source
+	Title       string            // org.opencontainers.image.title
+	Description string            // org.opencontainers.image.description; empty → no label emitted
+}
+
+// SelectorSetupCmd renders the shell command string for the family selector
+// infrastructure RUN block. Returns "" if there are no selectors.
+// Called by dockerfile.tmpl.
+func (v DockerfileVars) SelectorSetupCmd() string {
+	if len(v.Selectors) == 0 {
+		return ""
+	}
+	return executeTemplate("selector_setup.tmpl", v.Selectors)
 }
 
 // HasGoInstall reports whether any tool in the image uses go-install.

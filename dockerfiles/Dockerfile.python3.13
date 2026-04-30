@@ -12,6 +12,7 @@ ENV PATH="/var/ci-tools/active:${PATH}"
 
 RUN zypper -n refresh && \
     zypper -n install \
+        gettext-runtime \
         ca-certificates \
         docker \
         gawk \

@@ -12,6 +12,7 @@ ENV PATH="/var/ci-tools/active:${PATH}"
 
 RUN zypper -n refresh && \
     zypper -n install \
+        gettext-runtime \
         ca-certificates \
         docker \
         gawk \
@@ -23,7 +24,6 @@ RUN zypper -n refresh && \
         unzip \
         zstd \
         wget \
-        gettext-runtime \
         git \
         patch \
     && \

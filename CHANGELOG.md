@@ -4,6 +4,41 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20260430-14 (2026-04-30)
+
+### Universal Packages Added
+
+- `gettext-runtime`
+
+### Image: charts:20260430-14
+
+- Removed package: `gettext-runtime`
+- Universal package changes
+
+### Image: go1.25:20260430-14
+
+- Universal package changes
+
+### Image: go1.26:20260430-14
+
+- Universal package changes
+
+### Image: python3.11:20260430-14
+
+- Universal package changes
+
+### Image: python3.13:20260430-14
+
+- Universal package changes
+
+### Image: node22:20260430-14
+
+- Universal package changes
+
+### Image: node24:20260430-14
+
+- Universal package changes
+
 ## Revision: 20260430-13 (2026-04-30)
 
 ### Family Selectors Added

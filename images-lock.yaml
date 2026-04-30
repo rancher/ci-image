@@ -11,6 +11,7 @@ images:
     - node24
     - charts
 packages:
+    - gettext-runtime
     - ca-certificates
     - docker
     - gawk
@@ -43,7 +44,6 @@ configs:
             - linux/amd64
             - linux/arm64
         packages:
-            - gettext-runtime
             - git
             - patch
         tools:

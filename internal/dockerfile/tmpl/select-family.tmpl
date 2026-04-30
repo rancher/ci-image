@@ -1,0 +1,8 @@
+#!/bin/sh
+# select-{{.Family}} — activate a {{.Family}} version for this CI job.
+# Equivalent to: ci-select {{.Family}} [TOOL]
+#
+# Usage:
+#   select-{{.Family}}              show available tools and current selection
+#   select-{{.Family}} TOOL         activate TOOL as the default '{{.Family}}' command
+exec ci-select {{.Family}} "$@"

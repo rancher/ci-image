@@ -119,10 +119,44 @@ func validateConfig(cfg *Config) error {
 			if conflict, ok := toolsByName[aliasName]; ok && (conflict.Universal || seenTools[aliasName]) {
 				errs = append(errs, fmt.Sprintf("image %q: alias name %q conflicts with a tool already installed in this image", img.Name, aliasName))
 			}
-			// Alias name must not shadow a family selector — the selector occupies
-			// /usr/local/bin/{family} in every image that includes the family's tools.
-			if _, ok := families[aliasName]; ok {
-				errs = append(errs, fmt.Sprintf("image %q: alias %q shadows the %q family selector; remove the alias and use 'ci-select %s <tool>' instead", img.Name, aliasName, aliasName, aliasName))
+			// Alias name must not shadow a family selector — /var/ci-tools/active/{family}
+			// is on PATH ahead of /usr/local/bin in any image that includes the family's tools.
+			if fi, ok := families[aliasName]; ok {
+				familyActiveInImage := false
+				for _, toolName := range fi.tools {
+					if t, exists := toolsByName[toolName]; exists && (t.Universal || seenTools[toolName]) {
+						familyActiveInImage = true
+						break
+					}
+				}
+				if familyActiveInImage {
+					errs = append(errs, fmt.Sprintf("image %q: alias %q shadows the %q family selector; remove the alias and use 'ci-select %s <tool>' instead", img.Name, aliasName, aliasName, aliasName))
+				}
+			}
+		}
+
+		// If any tool from a family is included in this image, the family's default
+		// tool must also be included; otherwise selector_setup.tmpl renders an
+		// ln -sf with an empty target and the Docker build fails.
+		for family, fi := range families {
+			if len(fi.defaults) != 1 {
+				continue // misconfigured family; already reported elsewhere
+			}
+			defaultTool := fi.defaults[0]
+			dt, dtOk := toolsByName[defaultTool]
+			defaultInImage := dtOk && (dt.Universal || seenTools[defaultTool])
+			if defaultInImage {
+				continue
+			}
+			for _, toolName := range fi.tools {
+				t, ok := toolsByName[toolName]
+				if !ok {
+					continue
+				}
+				if t.Universal || seenTools[toolName] {
+					errs = append(errs, fmt.Sprintf("image %q: includes tool(s) from family %q but not the default tool %q; add it to image.tools or mark a different tool as family_default", img.Name, family, defaultTool))
+					break
+				}
 			}
 		}
 	}

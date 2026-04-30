@@ -141,7 +141,7 @@ func runGenerate(args []string) error {
 }
 
 // cleanupRemovedSelectors deletes select-*.sh and ci-select.sh files from
-// dockerfilesDir that are no longer produced by the current config.
+// dockerScriptsDir that are no longer produced by the current config.
 func cleanupRemovedSelectors(generated map[string]string) error {
 	entries, err := os.ReadDir(dockerScriptsDir)
 	if err != nil {

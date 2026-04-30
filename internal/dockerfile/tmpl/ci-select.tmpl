@@ -17,23 +17,23 @@ ACTIVE_DIR=/var/ci-tools/active
 
 _list_families() {
     for _d in "${FAMILIES_DIR}"/*/; do
-        [ -d "$_d" ] && basename "$_d"
+        [ -d "${_d}" ] && basename "${_d}"
     done
 }
 
 _list_tools() {
-    _fam="$1"
+    _fam="${1}"
     for _f in "${FAMILIES_DIR}/${_fam}"/*; do
-        _name=$(basename "$_f")
-        [ "$_name" = "default" ] && continue
-        printf '  %s\n' "$_name"
+        _name=$(basename "${_f}")
+        [ "${_name}" = "default" ] && continue
+        printf '  %s\n' "${_name}"
     done
 }
 
 _current() {
-    _link="${ACTIVE_DIR}/$1"
-    if [ -L "$_link" ]; then
-        basename "$(readlink "$_link")"
+    _link="${ACTIVE_DIR}/${1}"
+    if [ -L "${_link}" ]; then
+        basename "$(readlink "${_link}")"
     else
         printf '(none)\n'
     fi
@@ -42,7 +42,7 @@ _current() {
 FAMILY="${1:-}"
 TOOL="${2:-}"
 
-if [ -z "$FAMILY" ]; then
+if [ -z "${FAMILY}" ]; then
     printf 'Available CI tool families:\n'
     _list_families
     printf '\nUsage: ci-select FAMILY [TOOL]\n'
@@ -50,25 +50,25 @@ if [ -z "$FAMILY" ]; then
 fi
 
 if [ ! -d "${FAMILIES_DIR}/${FAMILY}" ]; then
-    printf 'ci-select: unknown family "%s"\n' "$FAMILY" >&2
+    printf 'ci-select: unknown family "%s"\n' "${FAMILY}" >&2
     printf 'Available families:\n' >&2
     _list_families >&2
     exit 1
 fi
 
-if [ -z "$TOOL" ]; then
-    printf 'Available %s tools:\n' "$FAMILY"
-    _list_tools "$FAMILY"
-    printf 'Current: %s\n' "$(_current "$FAMILY")"
+if [ -z "${TOOL}" ]; then
+    printf 'Available %s tools:\n' "${FAMILY}"
+    _list_tools "${FAMILY}"
+    printf 'Current: %s\n' "$(_current "${FAMILY}")"
     exit 0
 fi
 
 if [ ! -f "${FAMILIES_DIR}/${FAMILY}/${TOOL}" ]; then
-    printf 'ci-select: "%s" is not a valid %s tool\n' "$TOOL" "$FAMILY" >&2
+    printf 'ci-select: "%s" is not a valid %s tool\n' "${TOOL}" "${FAMILY}" >&2
     printf 'Available:\n' >&2
-    _list_tools "$FAMILY" >&2
+    _list_tools "${FAMILY}" >&2
     exit 1
 fi
 
 ln -sf "/usr/local/bin/${TOOL}" "${ACTIVE_DIR}/${FAMILY}"
-printf '%s is now: %s\n' "$FAMILY" "$TOOL"
+printf '%s is now: %s\n' "${FAMILY}" "${TOOL}"

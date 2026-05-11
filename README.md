@@ -18,6 +18,7 @@ Images are published to `ghcr.io/rancher/ci-image/<name>`, each tagged independe
 | `node22` | none | CI image with Node 22 toolchain |
 | `node24` | none | CI image with Node 24 toolchain |
 | `charts` | none | Rancher charts build environment |
+| `nix` | none | Nix environment |
 <!-- END IMAGES TABLE -->
 
 ## Changelog

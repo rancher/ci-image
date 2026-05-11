@@ -10,6 +10,7 @@ images:
     - node22
     - node24
     - charts
+    - nix
 packages:
     - gettext-runtime
     - ca-certificates
@@ -32,6 +33,7 @@ tools:
     govulncheck: v1.2.0
     helmv3: v3.20.2
     helmv4: v4.1.4
+    nix: 2.34.5
     ob-charts-tool: v0.4.1
     oras: v1.3.1
     slsactl: v0.1.30
@@ -108,6 +110,24 @@ configs:
             helm: helmv4
         go_version: 1.26.2
         description: CI image with Go 1.26 toolchain
+    nix:
+        base: registry.suse.com/bci/bci-base:15.7@sha256:3292c81fb9e40b60903e6c88fac34e955b6d5b3acd3eb055d02d5c1538a72aea
+        platforms:
+            - linux/amd64
+            - linux/arm64
+        packages:
+            - sudo
+        tools:
+            - cosign
+            - gh
+            - goreleaser
+            - helmv3
+            - helmv4
+            - nix
+            - slsactl
+        family_selectors:
+            helm: helmv4
+        description: Nix environment
     node22:
         base: registry.suse.com/bci/nodejs:22.22.2@sha256:b81c6b8ffd79f8007c621b6ad21d8aa195fb3c6c8024ac6a04923227d9a18a81
         platforms:

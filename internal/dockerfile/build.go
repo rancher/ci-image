@@ -166,7 +166,7 @@ func buildCurlInstall(t config.Tool, imgPlatforms map[string]bool) (CurlInstall,
 	}
 
 	// Format is uniform across platforms — derive from the first rendered URL.
-	format, ext := detectFormat(platforms[0].DownloadURL)
+	format, ext := detectFormat(platforms[0].DownloadURL, platforms[0].Extract)
 
 	return CurlInstall{
 		Name:       t.Name,
@@ -190,14 +190,20 @@ func buildGoInstall(t config.Tool) (GoInstall, error) {
 	return GoInstall{Package: pkg}, nil
 }
 
-// detectFormat classifies a rendered download URL as "archive", "gzip", or "binary",
+// detectFormat classifies a rendered download URL as "archive", "archive_script", "gzip", "script", or "binary",
 // and returns the archive extension (non-empty only for "archive").
-func detectFormat(url string) (format, ext string) {
+func detectFormat(url, extract string) (format, ext string) {
 	if ext = archiveExt(url); ext != "" {
+		if strings.HasSuffix(extract, "install") || strings.HasSuffix(extract, ".sh") {
+			return "archive_script", ext
+		}
 		return "archive", ext
 	}
 	if isGzipBinaryURL(url) {
 		return "gzip", ""
+	}
+	if isScriptURL(url) {
+		return "script", ""
 	}
 	return "binary", ""
 }

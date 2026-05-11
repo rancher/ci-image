@@ -64,6 +64,15 @@ images:
       - ob-charts-tool
       - oras
 
+  - name: nix
+    description: "Nix environment"
+    base: "registry.suse.com/bci/bci-base:15.7@sha256:3292c81fb9e40b60903e6c88fac34e955b6d5b3acd3eb055d02d5c1538a72aea"
+    packages:
+      - sudo
+    tools:
+      - nix
+      - goreleaser
+
 packages:
   - gettext-runtime
   - ca-certificates
@@ -191,3 +200,16 @@ tools:
     release:
       download_template: "ob-charts-tool_{os}_{arch}"
       checksum_template: "ob-charts-tool_{version|trimprefix:v}_checksums.txt"
+
+  - name: nix
+    source: "https://releases.nixos.org/nix"
+    mode: static
+    version: 2.34.5
+    checksums:
+      linux/amd64: "0a0462692a10ff1eb8a608f713f38d1f25a208ad55963a9c00b239da398de5a1"
+      linux/arm64: "771e4b6f719243b9481f19eaedfbbbacc2f4a0282d6e043df4f33bb449ea3c57"
+    release:
+      download_template: "{source}/nix-{version}/nix-{version}-{arch|replace:amd64=x86_64|replace:arm64=aarch64}-{os}.tar.xz"
+      extract: "nix-{version}-{arch|replace:amd64=x86_64|replace:arm64=aarch64}-{os}/install"
+    install:
+      method: curl

@@ -22,6 +22,7 @@ RUN groupadd -g 121 runner && \
     chmod 2755 /var/ci-tools
 
 {{range .Tools}}# {{.Name}} {{.Version}}
+ENV {{.Name}}_version="{{.Version}}"
 {{.Setup.RenderPre}}{{.Install.Render}}{{.Setup.RenderPost}}
 
 {{end}}{{if .Selectors}}# Family selectors — copy scripts and set up manifest + active symlinks.

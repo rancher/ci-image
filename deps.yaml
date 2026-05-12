@@ -205,10 +205,10 @@ tools:
   - name: nix
     source: "https://releases.nixos.org/nix"
     mode: static
-    version: 2.34.5
+    version: 2.34.7
     checksums:
-      linux/amd64: "0a0462692a10ff1eb8a608f713f38d1f25a208ad55963a9c00b239da398de5a1"
-      linux/arm64: "771e4b6f719243b9481f19eaedfbbbacc2f4a0282d6e043df4f33bb449ea3c57"
+      linux/amd64: "eafe5042404e818505e28c5ca3d0885f3ec45c31f955489a25bb38258f87560e"
+      linux/arm64: "f1cee64ae7a02330c6421924c28f597c41813f2214ff108622087d8056378b08"
     release:
       download_template: "{source}/nix-{version}/nix-{version}-{arch|replace:amd64=x86_64|replace:arm64=aarch64}-{os}.tar.xz"
       extract: "nix-{version}-{arch|replace:amd64=x86_64|replace:arm64=aarch64}-{os}/install"

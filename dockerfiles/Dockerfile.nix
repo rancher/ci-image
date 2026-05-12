@@ -40,6 +40,7 @@ RUN groupadd -g 121 runner && \
     chmod 2755 /var/ci-tools
 
 # cosign v3.0.6
+ENV cosign_version="v3.0.6"
 RUN case "${ARCH}" in \
         amd64) CHECKSUM="c956e5dfcac53d52bcf058360d579472f0c1d2d9b69f55209e256fe7783f4c74" ;; \
         arm64) CHECKSUM="bedac92e8c3729864e13d4a17048007cfafa79d5deca993a43a90ffe018ef2b8" ;; \
@@ -57,6 +58,7 @@ RUN case "${ARCH}" in \
     rm -rf "${TMP_DIR}"
 
 # gh v2.89.0
+ENV gh_version="v2.89.0"
 RUN case "${ARCH}" in \
         amd64) CHECKSUM="d0422caade520530e76c1c558da47daebaa8e1203d6b7ff10ad7d6faba3490d8" ;; \
         arm64) CHECKSUM="9e64a623dfc242990aa5d9b3f507111149c4282f66b68eaad1dc79eeb13b9ce5" ;; \
@@ -76,6 +78,7 @@ RUN case "${ARCH}" in \
     rm -rf "${TMP_DIR}"
 
 # helmv3 v3.20.2
+ENV helmv3_version="v3.20.2"
 RUN case "${ARCH}" in \
         amd64) CHECKSUM="258e830a9e613c8a7a302d6059b4bb3b9758f2f3e1bb8ea0d707ce10a9a72fea" ;; \
         arm64) CHECKSUM="5ea2d6bc2cda3f8edf985e028809f5a9278f404fb8ab24044de9b7cb9b79a691" ;; \
@@ -95,6 +98,7 @@ RUN case "${ARCH}" in \
     rm -rf "${TMP_DIR}"
 
 # helmv4 v4.1.4
+ENV helmv4_version="v4.1.4"
 RUN case "${ARCH}" in \
         amd64) CHECKSUM="70b2c30a19da4db264dfd68c8a3664e05093a361cefd89572ffb36f8abfa3d09" ;; \
         arm64) CHECKSUM="13d03672be289045d2ff00e4e345d61de1c6f21c1257a45955a30e8ae036d8f1" ;; \
@@ -114,6 +118,7 @@ RUN case "${ARCH}" in \
     rm -rf "${TMP_DIR}"
 
 # slsactl v0.1.30
+ENV slsactl_version="v0.1.30"
 RUN case "${ARCH}" in \
         amd64) CHECKSUM="7ed4750766c135ddcae788d194d7ff59a57c6debdc722fd1e52c06460218f10a" ;; \
         arm64) CHECKSUM="bbbe66089135c82526677177c080f5ca4911ad1989712596338c5acdae4bb383" ;; \
@@ -132,7 +137,8 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/slsactl" && \
     rm -rf "${TMP_DIR}"
 
-# nix 2.34.5
+# nix 2.34.7
+ENV nix_version="2.34.7"
 
 # Pre-install setup for nix
 # Create unprivileged user for Nix installation
@@ -151,16 +157,16 @@ RUN usermod -a -G runner suse && \
     echo 'source /home/suse/.nix-profile/etc/profile.d/nix.sh' > /etc/bash.bashrc.local
 
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="0a0462692a10ff1eb8a608f713f38d1f25a208ad55963a9c00b239da398de5a1" ;; \
-        arm64) CHECKSUM="771e4b6f719243b9481f19eaedfbbbacc2f4a0282d6e043df4f33bb449ea3c57" ;; \
+        amd64) CHECKSUM="eafe5042404e818505e28c5ca3d0885f3ec45c31f955489a25bb38258f87560e" ;; \
+        arm64) CHECKSUM="f1cee64ae7a02330c6421924c28f597c41813f2214ff108622087d8056378b08" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export INSTALL_DIR="/var/ci-tools/nix" && \
     mkdir -p "${INSTALL_DIR}" && \
     export TMP_FILE="${INSTALL_DIR}/nix.tar.xz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://releases.nixos.org/nix/nix-2.34.5/nix-2.34.5-x86_64-linux.tar.xz"; EXTRACT="nix-2.34.5-x86_64-linux/install" ;; \
-        arm64) DOWNLOAD_URL="https://releases.nixos.org/nix/nix-2.34.5/nix-2.34.5-aarch64-linux.tar.xz"; EXTRACT="nix-2.34.5-aarch64-linux/install" ;; \
+        amd64) DOWNLOAD_URL="https://releases.nixos.org/nix/nix-2.34.7/nix-2.34.7-x86_64-linux.tar.xz"; EXTRACT="nix-2.34.7-x86_64-linux/install" ;; \
+        arm64) DOWNLOAD_URL="https://releases.nixos.org/nix/nix-2.34.7/nix-2.34.7-aarch64-linux.tar.xz"; EXTRACT="nix-2.34.7-aarch64-linux/install" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${INSTALL_DIR}/checksum.sha256" && \
@@ -182,8 +188,8 @@ ENV USER=suse
 
 RUN set -e; \
     case "${ARCH}" in \
-        amd64) extract="nix-2.34.5-x86_64-linux/install" ;; \
-        arm64) extract="nix-2.34.5-aarch64-linux/install" ;; \
+        amd64) extract="nix-${nix_version}-x86_64-linux/install" ;; \
+        arm64) extract="nix-${nix_version}-aarch64-linux/install" ;; \
         *) echo "unsupported architecture: ${ARCH}" >&2; exit 1 ;; \
     esac; \
     cd /var/ci-tools/nix && \
@@ -194,6 +200,7 @@ USER root
 ENV USER=root
 
 # goreleaser v2.15.2
+ENV goreleaser_version="v2.15.2"
 RUN case "${ARCH}" in \
         amd64) CHECKSUM="0ebdbf0353aba566b969dde746cc4e4806f96c27aa2f3971b229a9df7611fedc" ;; \
         arm64) CHECKSUM="5db66761a98f6693161e49e1a95d28d2673a892ba60cb4a5e16736cafd41c4c9" ;; \

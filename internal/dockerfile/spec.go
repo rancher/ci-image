@@ -2,9 +2,13 @@ package dockerfile
 
 import (
 	"embed"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"text/template"
+
+	"github.com/rancher/ci-image/internal/config"
 )
 
 //go:embed tmpl
@@ -15,6 +19,44 @@ var templates = template.Must(
 		"extractCmd": archiveExtractCmd,
 	}).ParseFS(templateFS, "tmpl/*.tmpl"),
 )
+
+// loadHookTemplates loads optional tool hook templates from the hooks/ directory.
+// Called during Dockerfile generation; returns a new template set with hooks added.
+// If hooks/ directory doesn't exist, returns the base template set unchanged.
+func loadHookTemplates() (*template.Template, error) {
+	// Clone base templates so we don't modify the global set
+	t := template.Must(templates.Clone())
+
+	hooksDir := "hooks"
+	if _, err := os.Stat(hooksDir); os.IsNotExist(err) {
+		return t, nil // No hooks directory - return base templates
+	}
+
+	// Find all pre-hook templates
+	preMatches, err := filepath.Glob(filepath.Join(hooksDir, "*-pre.tmpl"))
+	if err != nil {
+		return nil, err
+	}
+
+	// Find all post-hook templates
+	postMatches, err := filepath.Glob(filepath.Join(hooksDir, "*-post.tmpl"))
+	if err != nil {
+		return nil, err
+	}
+
+	// Combine all hook templates
+	matches := append(preMatches, postMatches...)
+
+	// If we found hook templates, parse them
+	if len(matches) > 0 {
+		t, err = t.ParseFiles(matches...)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return t, nil
+}
 
 // executeTemplate renders a named template against data and returns the result.
 // Panics on error: templates are static and data is validated; any failure is a programmer bug.
@@ -49,16 +91,17 @@ type PlatformInstall struct {
 // CurlInstall is the resolved spec for a curl-installed tool.
 // Implements ItemInstall.
 type CurlInstall struct {
-	Name       string            // tool name; used in shell commands
-	Format     string            // "archive" | "gzip" | "binary"
-	ArchiveExt string            // ".tar.gz", ".zip", etc.; empty unless Format == "archive"
-	Platforms  []PlatformInstall // one entry per platform, sorted by Arch
+	Name          string            // tool name; used in shell commands
+	Format        Format            // "archive" | "gzip" | "binary"
+	ArchiveExt    string            // ".tar.gz", ".zip", etc.; empty unless Format == "archive"
+	Platforms     []PlatformInstall // one entry per platform, sorted by Arch
+	InstallToPath bool              // if true, install to /usr/local/bin; if false, extract to /var/ci-tools/{name} for hooks
 }
 
 func (c CurlInstall) Method() string { return "curl" }
 
 func (c CurlInstall) Render() string {
-	return executeTemplate("curl_"+c.Format+".tmpl", c)
+	return executeTemplate("curl_"+c.Format.String()+".tmpl", c)
 }
 
 // GoInstall is the resolved spec for a go-install tool.
@@ -70,11 +113,49 @@ type GoInstall struct {
 func (g GoInstall) Method() string { return "go-install" }
 func (g GoInstall) Render() string { return "RUN go install " + g.Package }
 
+// ToolSetup describes optional setup steps that run before/after the main install.
+// If template names are set, those templates are rendered; otherwise the phase is skipped.
+type ToolSetup struct {
+	Name         string             // tool name for comment generation
+	PreTemplate  string             // optional template name for pre-install steps (e.g., "nix-pre.tmpl")
+	PostTemplate string             // optional template name for post-install steps (e.g., "nix-post.tmpl")
+	templates    *template.Template // template set with hooks loaded
+}
+
+// RenderPre renders the pre-install template if present.
+// Returns the hook content with a blank line, comment header, and trailing blank line.
+func (s *ToolSetup) RenderPre() string {
+	if s == nil || s.PreTemplate == "" {
+		return ""
+	}
+	var b strings.Builder
+	if err := s.templates.ExecuteTemplate(&b, s.PreTemplate, nil); err != nil {
+		panic("dockerfile: executing " + s.PreTemplate + ": " + err.Error())
+	}
+	content := strings.TrimRight(b.String(), "\n")
+	return "\n# Pre-install setup for " + s.Name + "\n" + content + "\n\n"
+}
+
+// RenderPost renders the post-install template if present.
+// Returns the hook content with leading blank line and comment header.
+func (s *ToolSetup) RenderPost() string {
+	if s == nil || s.PostTemplate == "" {
+		return ""
+	}
+	var b strings.Builder
+	if err := s.templates.ExecuteTemplate(&b, s.PostTemplate, nil); err != nil {
+		panic("dockerfile: executing " + s.PostTemplate + ": " + err.Error())
+	}
+	content := strings.TrimRight(b.String(), "\n")
+	return "\n\n# Post-install setup for " + s.Name + "\n" + content
+}
+
 // ToolInstall is one resolved tool entry in a Dockerfile.
 type ToolInstall struct {
 	Name    string
 	Version string
 	Install ItemInstall // CurlInstall or GoInstall
+	Setup   *ToolSetup  // optional pre/post hooks; nil if no hooks
 }
 
 // AliasInstall describes a symlink to create in /usr/local/bin after tools are installed.
@@ -121,7 +202,7 @@ func (v DockerfileVars) SelectorSetupCmd() string {
 // Called by dockerfile.tmpl to conditionally emit the Go cache cleanup block.
 func (v DockerfileVars) HasGoInstall() bool {
 	for _, t := range v.Tools {
-		if t.Install.Method() == "go-install" {
+		if t.Install.Method() == string(config.MethodGoInstall) {
 			return true
 		}
 	}

@@ -28,6 +28,15 @@ RUN zypper -n refresh && \
     zypper -n clean -a && \
     rm -rf /var/log/{lastlog,tallylog,zypper.log,zypp/history,YaST2}
 
+# Create runner group (GID 121) and user (UID 1001) early for use in tool installations.
+# /var/ci-tools/ is set up with setgid (2755) so subdirectories inherit the runner group.
+# This allows any user added to the runner group to access tools extracted to /var/ci-tools/.
+RUN groupadd -g 121 runner && \
+    useradd -u 1001 -g 121 -m runner && \
+    mkdir -p /var/ci-tools && \
+    chown root:runner /var/ci-tools && \
+    chmod 2755 /var/ci-tools
+
 # cosign v3.0.6
 RUN case "${ARCH}" in \
         amd64) CHECKSUM="c956e5dfcac53d52bcf058360d579472f0c1d2d9b69f55209e256fe7783f4c74" ;; \
@@ -128,11 +137,9 @@ COPY dockerfiles/scripts/select-helm.sh /usr/local/bin/select-helm
 COPY dockerfiles/scripts/ci-select.sh /usr/local/bin/ci-select
 RUN chmod +x /usr/local/bin/select-helm && chmod +x /usr/local/bin/ci-select
 
-# Create a new group with GID 121 and a new user with UID 1001, add the user
-# to the group, create a home directory for the user.
-# Also set up CI tool family infrastructure (requires runner group to exist).
-RUN groupadd -g 121 runner && useradd -u 1001 -g 121 -m runner \
-    && mkdir -p /var/ci-tools/active \
+
+# Set up CI tool family infrastructure (runner user and group created earlier).
+RUN mkdir -p /var/ci-tools/active \
     && mkdir -p /usr/local/share/ci-tools/families/helm \
     && touch /usr/local/share/ci-tools/families/helm/helmv3 \
     && touch /usr/local/share/ci-tools/families/helm/helmv4 \

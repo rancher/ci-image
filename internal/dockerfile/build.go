@@ -198,7 +198,7 @@ func buildCurlInstall(t config.Tool, imgPlatforms map[string]bool) (CurlInstall,
 	}
 
 	// Format is uniform across platforms — derive from the first rendered URL.
-	format, ext := detectFormat(platforms[0].DownloadURL, platforms[0].Extract)
+	format, ext := detectFormat(platforms[0].DownloadURL)
 
 	return CurlInstall{
 		Name:          t.Name,

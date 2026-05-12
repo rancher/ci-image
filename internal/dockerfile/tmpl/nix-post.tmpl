@@ -1,0 +1,21 @@
+# Fix ownership and run Nix installer from the extracted archive
+RUN set -e; \
+    sudo chown -R suse:runner /var/ci-tools/nix
+
+# Switch to unprivileged user for installation
+USER suse
+WORKDIR /home/suse
+ENV USER=suse
+
+RUN set -e; \
+    case "${ARCH}" in \
+        amd64) extract="nix-2.34.5-x86_64-linux/install" ;; \
+        arm64) extract="nix-2.34.5-aarch64-linux/install" ;; \
+        *) echo "unsupported architecture: ${ARCH}" >&2; exit 1 ;; \
+    esac; \
+    cd /var/ci-tools/nix && \
+    ./${extract} --no-daemon
+
+# Restore root user for remaining Dockerfile operations
+USER root
+ENV USER=root

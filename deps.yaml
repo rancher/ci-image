@@ -69,6 +69,7 @@ images:
     base: "registry.suse.com/bci/bci-base:15.7@sha256:3292c81fb9e40b60903e6c88fac34e955b6d5b3acd3eb055d02d5c1538a72aea"
     packages:
       - sudo
+      - vim
     tools:
       - nix
       - goreleaser
@@ -211,5 +212,4 @@ tools:
     release:
       download_template: "{source}/nix-{version}/nix-{version}-{arch|replace:amd64=x86_64|replace:arm64=aarch64}-{os}.tar.xz"
       extract: "nix-{version}-{arch|replace:amd64=x86_64|replace:arm64=aarch64}-{os}/install"
-    install:
-      method: curl
+      install_to_path: false

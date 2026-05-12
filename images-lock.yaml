@@ -33,6 +33,7 @@ tools:
     govulncheck: v1.2.0
     helmv3: v3.20.2
     helmv4: v4.1.4
+    nix: 2.34.5
     ob-charts-tool: v0.5.0
     oras: v1.3.1
     slsactl: v0.1.30
@@ -116,6 +117,7 @@ configs:
             - linux/arm64
         packages:
             - sudo
+            - vim
         tools:
             - cosign
             - gh

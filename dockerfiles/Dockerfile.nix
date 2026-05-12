@@ -25,9 +25,19 @@ RUN zypper -n refresh && \
         zstd \
         wget \
         sudo \
+        vim \
     && \
     zypper -n clean -a && \
     rm -rf /var/log/{lastlog,tallylog,zypper.log,zypp/history,YaST2}
+
+# Create runner group (GID 121) and user (UID 1001) early for use in tool installations.
+# /var/ci-tools/ is set up with setgid (2755) so subdirectories inherit the runner group.
+# This allows any user added to the runner group to access tools extracted to /var/ci-tools/.
+RUN groupadd -g 121 runner && \
+    useradd -u 1001 -g 121 -m runner && \
+    mkdir -p /var/ci-tools && \
+    chown root:runner /var/ci-tools && \
+    chmod 2755 /var/ci-tools
 
 # cosign v3.0.6
 RUN case "${ARCH}" in \
@@ -123,66 +133,63 @@ RUN case "${ARCH}" in \
     rm -rf "${TMP_DIR}"
 
 # nix 2.34.5
-RUN set -e; \
+
+# Pre-install setup for nix
+# Create unprivileged user for Nix installation
+RUN useradd -m suse && \
+    if [ ! -f /etc/sudoers ]; then touch /etc/sudoers; fi && \
+    echo "suse ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Add suse user to runner group and create /etc/nix directory and configuration
+RUN usermod -a -G runner suse && \
+    sudo mkdir -p /etc/nix && \
+    printf "build-users-group =\nsandbox = false\nfilter-syscalls = false\n" > /etc/nix/nix.conf && \
+    sudo chown -R suse:runner /etc/nix && \
+    sudo mkdir -p /nix && \
+    sudo chown -R suse:runner /nix && \
+    echo 'source /home/suse/.nix-profile/etc/profile.d/nix.sh' > /etc/profile.d/nix.sh && \
+    echo 'source /home/suse/.nix-profile/etc/profile.d/nix.sh' > /etc/bash.bashrc.local
+
+RUN case "${ARCH}" in \
+        amd64) CHECKSUM="0a0462692a10ff1eb8a608f713f38d1f25a208ad55963a9c00b239da398de5a1" ;; \
+        arm64) CHECKSUM="771e4b6f719243b9481f19eaedfbbbacc2f4a0282d6e043df4f33bb449ea3c57" ;; \
+        *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
+    esac && \
+    export INSTALL_DIR="/var/ci-tools/nix" && \
+    mkdir -p "${INSTALL_DIR}" && \
+    export TMP_FILE="${INSTALL_DIR}/nix.tar.xz" && \
     case "${ARCH}" in \
-        amd64) \
-            url="https://releases.nixos.org/nix/nix-2.34.5/nix-2.34.5-x86_64-linux.tar.xz"; \
-            sha256="0a0462692a10ff1eb8a608f713f38d1f25a208ad55963a9c00b239da398de5a1"; \
-            extract="nix-2.34.5-x86_64-linux/install" \
-            ;; \
-        arm64) \
-            url="https://releases.nixos.org/nix/nix-2.34.5/nix-2.34.5-aarch64-linux.tar.xz"; \
-            sha256="771e4b6f719243b9481f19eaedfbbbacc2f4a0282d6e043df4f33bb449ea3c57"; \
-            extract="nix-2.34.5-aarch64-linux/install" \
-            ;; \
-        *) echo "unsupported architecture: ${ARCH}" >&2; exit 1 ;; \
-    esac; \
-    export TMP_DIR="/tmp/extract_nix"; \
-    export TMP_FILE="${TMP_DIR}/nix.tar.xz"; \
-    mkdir -p "${TMP_DIR}"; \
-    echo "Downloading nix archive from ${url}..."; \
-    curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${url}" > "${TMP_FILE}"; \
-    printf "%s  %s\n" "${sha256}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256"; \
-    sha256sum -c "${TMP_DIR}/checksum.sha256"; \
-    tar xJf "${TMP_FILE}" -C "${TMP_DIR}";
-RUN useradd -m suse; \
-    if [ ! -f /etc/sudoers ]; then touch /etc/sudoers; fi; \
-    echo "suse ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers;
-RUN if [ "nix" = "nix" ]; then \
-        TMP_DIR="/tmp/extract_nix"; \
-        sudo mkdir -p /etc/nix && \
-        printf "build-users-group =\nsandbox = false\nfilter-syscalls = false\n" > /etc/nix/nix.conf && \
-        sudo chown -R suse:users /etc/nix; \
-        sudo chown -R suse:users "${TMP_DIR}"; \
-        sudo mkdir -p /nix && \
-        sudo chown -R suse:users /nix; \
-        echo 'source /home/suse/.nix-profile/etc/profile.d/nix.sh' > /etc/profile.d/nix.sh; \
-        echo 'source /home/suse/.nix-profile/etc/profile.d/nix.sh' > /etc/bash.bashrc.local; \
-    fi;
+        amd64) DOWNLOAD_URL="https://releases.nixos.org/nix/nix-2.34.5/nix-2.34.5-x86_64-linux.tar.xz"; EXTRACT="nix-2.34.5-x86_64-linux/install" ;; \
+        arm64) DOWNLOAD_URL="https://releases.nixos.org/nix/nix-2.34.5/nix-2.34.5-aarch64-linux.tar.xz"; EXTRACT="nix-2.34.5-aarch64-linux/install" ;; \
+    esac && \
+    curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
+    printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${INSTALL_DIR}/checksum.sha256" && \
+    sha256sum -c "${INSTALL_DIR}/checksum.sha256" && \
+    cd "${INSTALL_DIR}" && \
+    tar xf "${TMP_FILE}" && \
+    chmod -R a+rX . && \
+    rm "${TMP_FILE}" "${INSTALL_DIR}/checksum.sha256"
+
+# Post-install setup for nix
+# Fix ownership and run Nix installer from the extracted archive
+RUN set -e; \
+    sudo chown -R suse:runner /var/ci-tools/nix
+
+# Switch to unprivileged user for installation
 USER suse
 WORKDIR /home/suse
 ENV USER=suse
+
 RUN set -e; \
     case "${ARCH}" in \
-        amd64) \
-            url="https://releases.nixos.org/nix/nix-2.34.5/nix-2.34.5-x86_64-linux.tar.xz"; \
-            sha256="0a0462692a10ff1eb8a608f713f38d1f25a208ad55963a9c00b239da398de5a1"; \
-            extract="nix-2.34.5-x86_64-linux/install" \
-            ;; \
-        arm64) \
-            url="https://releases.nixos.org/nix/nix-2.34.5/nix-2.34.5-aarch64-linux.tar.xz"; \
-            sha256="771e4b6f719243b9481f19eaedfbbbacc2f4a0282d6e043df4f33bb449ea3c57"; \
-            extract="nix-2.34.5-aarch64-linux/install" \
-            ;; \
+        amd64) extract="nix-2.34.5-x86_64-linux/install" ;; \
+        arm64) extract="nix-2.34.5-aarch64-linux/install" ;; \
         *) echo "unsupported architecture: ${ARCH}" >&2; exit 1 ;; \
     esac; \
-  if [ "nix" = "nix" ]; then \
-      TMP_DIR="/tmp/extract_nix"; \
-      ${TMP_DIR}/${extract} --no-daemon; \
-    else \
-      TMP_DIR="/tmp/extract_nix"; \
-      ${TMP_DIR}/${extract}; \
-    fi;
+    cd /var/ci-tools/nix && \
+    ./${extract} --no-daemon
+
+# Restore root user for remaining Dockerfile operations
 USER root
 ENV USER=root
 
@@ -212,11 +219,9 @@ COPY dockerfiles/scripts/select-helm.sh /usr/local/bin/select-helm
 COPY dockerfiles/scripts/ci-select.sh /usr/local/bin/ci-select
 RUN chmod +x /usr/local/bin/select-helm && chmod +x /usr/local/bin/ci-select
 
-# Create a new group with GID 121 and a new user with UID 1001, add the user
-# to the group, create a home directory for the user.
-# Also set up CI tool family infrastructure (requires runner group to exist).
-RUN groupadd -g 121 runner && useradd -u 1001 -g 121 -m runner \
-    && mkdir -p /var/ci-tools/active \
+
+# Set up CI tool family infrastructure (runner user and group created earlier).
+RUN mkdir -p /var/ci-tools/active \
     && mkdir -p /usr/local/share/ci-tools/families/helm \
     && touch /usr/local/share/ci-tools/families/helm/helmv3 \
     && touch /usr/local/share/ci-tools/families/helm/helmv4 \

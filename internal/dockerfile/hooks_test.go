@@ -340,12 +340,13 @@ func TestToolSetup_RenderPost_EmptyTemplate(t *testing.T) {
 func TestToolSetup_RenderPre_ValidTemplate(t *testing.T) {
 	tmpl := template.Must(template.New("test-pre.tmpl").Parse("RUN echo 'pre-install setup'"))
 	setup := &ToolSetup{
+		Name:        "testtool",
 		PreTemplate: "test-pre.tmpl",
 		templates:   tmpl,
 	}
 
 	result := setup.RenderPre()
-	expected := "RUN echo 'pre-install setup'"
+	expected := "\n# Pre-install setup for testtool\nRUN echo 'pre-install setup'\n\n"
 	if result != expected {
 		t.Errorf("RenderPre() = %q, want %q", result, expected)
 	}
@@ -354,12 +355,13 @@ func TestToolSetup_RenderPre_ValidTemplate(t *testing.T) {
 func TestToolSetup_RenderPost_ValidTemplate(t *testing.T) {
 	tmpl := template.Must(template.New("test-post.tmpl").Parse("RUN echo 'post-install cleanup'"))
 	setup := &ToolSetup{
+		Name:         "testtool",
 		PostTemplate: "test-post.tmpl",
 		templates:    tmpl,
 	}
 
 	result := setup.RenderPost()
-	expected := "RUN echo 'post-install cleanup'"
+	expected := "\n\n# Post-install setup for testtool\nRUN echo 'post-install cleanup'"
 	if result != expected {
 		t.Errorf("RenderPost() = %q, want %q", result, expected)
 	}
@@ -372,27 +374,30 @@ func TestToolSetup_RenderPre_MultilineTemplate(t *testing.T) {
 
 	tmpl := template.Must(template.New("multi-pre.tmpl").Parse(content))
 	setup := &ToolSetup{
+		Name:        "testtool",
 		PreTemplate: "multi-pre.tmpl",
 		templates:   tmpl,
 	}
 
 	result := setup.RenderPre()
-	if result != content {
-		t.Errorf("RenderPre() did not preserve multiline content")
+	expected := "\n# Pre-install setup for testtool\n" + content + "\n\n"
+	if result != expected {
+		t.Errorf("RenderPre() = %q, want %q", result, expected)
 	}
 }
 
 func TestToolSetup_RenderPost_TrimsTrailingNewline(t *testing.T) {
 	content := "RUN echo 'test'\n\n"
-	expected := "RUN echo 'test'"
 
 	tmpl := template.Must(template.New("test-post.tmpl").Parse(content))
 	setup := &ToolSetup{
+		Name:         "testtool",
 		PostTemplate: "test-post.tmpl",
 		templates:    tmpl,
 	}
 
 	result := setup.RenderPost()
+	expected := "\n\n# Post-install setup for testtool\nRUN echo 'test'"
 	if result != expected {
 		t.Errorf("RenderPost() = %q, want %q (should trim trailing newlines)", result, expected)
 	}
@@ -435,6 +440,7 @@ func TestToolSetup_BothPreAndPost(t *testing.T) {
 	tmpl = template.Must(tmpl.New("tool-post.tmpl").Parse("RUN echo post"))
 
 	setup := &ToolSetup{
+		Name:         "testtool",
 		PreTemplate:  "tool-pre.tmpl",
 		PostTemplate: "tool-post.tmpl",
 		templates:    tmpl,
@@ -443,17 +449,20 @@ func TestToolSetup_BothPreAndPost(t *testing.T) {
 	pre := setup.RenderPre()
 	post := setup.RenderPost()
 
-	if pre != "RUN echo pre" {
-		t.Errorf("RenderPre() = %q, want %q", pre, "RUN echo pre")
+	expectedPre := "\n# Pre-install setup for testtool\nRUN echo pre\n\n"
+	expectedPost := "\n\n# Post-install setup for testtool\nRUN echo post"
+	if pre != expectedPre {
+		t.Errorf("RenderPre() = %q, want %q", pre, expectedPre)
 	}
-	if post != "RUN echo post" {
-		t.Errorf("RenderPost() = %q, want %q", post, "RUN echo post")
+	if post != expectedPost {
+		t.Errorf("RenderPost() = %q, want %q", post, expectedPost)
 	}
 }
 
 func TestToolSetup_OnlyPre(t *testing.T) {
 	tmpl := template.Must(template.New("tool-pre.tmpl").Parse("RUN echo pre"))
 	setup := &ToolSetup{
+		Name:         "testtool",
 		PreTemplate:  "tool-pre.tmpl",
 		PostTemplate: "", // No post template
 		templates:    tmpl,
@@ -462,8 +471,9 @@ func TestToolSetup_OnlyPre(t *testing.T) {
 	pre := setup.RenderPre()
 	post := setup.RenderPost()
 
-	if pre != "RUN echo pre" {
-		t.Errorf("RenderPre() = %q, want %q", pre, "RUN echo pre")
+	expectedPre := "\n# Pre-install setup for testtool\nRUN echo pre\n\n"
+	if pre != expectedPre {
+		t.Errorf("RenderPre() = %q, want %q", pre, expectedPre)
 	}
 	if post != "" {
 		t.Errorf("RenderPost() = %q, want empty string", post)
@@ -473,6 +483,7 @@ func TestToolSetup_OnlyPre(t *testing.T) {
 func TestToolSetup_OnlyPost(t *testing.T) {
 	tmpl := template.Must(template.New("tool-post.tmpl").Parse("RUN echo post"))
 	setup := &ToolSetup{
+		Name:         "testtool",
 		PreTemplate:  "", // No pre template
 		PostTemplate: "tool-post.tmpl",
 		templates:    tmpl,
@@ -484,8 +495,9 @@ func TestToolSetup_OnlyPost(t *testing.T) {
 	if pre != "" {
 		t.Errorf("RenderPre() = %q, want empty string", pre)
 	}
-	if post != "RUN echo post" {
-		t.Errorf("RenderPost() = %q, want %q", post, "RUN echo post")
+	expectedPost := "\n\n# Post-install setup for testtool\nRUN echo post"
+	if post != expectedPost {
+		t.Errorf("RenderPost() = %q, want %q", post, expectedPost)
 	}
 }
 
@@ -511,6 +523,9 @@ func TestBuildToolSetup_OnlyPre(t *testing.T) {
 	if result == nil {
 		t.Fatal("buildToolSetup() returned nil, want ToolSetup")
 	}
+	if result.Name != "helm" {
+		t.Errorf("buildToolSetup() Name = %q, want %q", result.Name, "helm")
+	}
 	if result.PreTemplate != "helm-pre.tmpl" {
 		t.Errorf("buildToolSetup() PreTemplate = %q, want %q", result.PreTemplate, "helm-pre.tmpl")
 	}
@@ -530,6 +545,9 @@ func TestBuildToolSetup_OnlyPost(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("buildToolSetup() returned nil, want ToolSetup")
+	}
+	if result.Name != "nix" {
+		t.Errorf("buildToolSetup() Name = %q, want %q", result.Name, "nix")
 	}
 	if result.PreTemplate != "" {
 		t.Errorf("buildToolSetup() PreTemplate = %q, want empty string", result.PreTemplate)
@@ -551,6 +569,9 @@ func TestBuildToolSetup_BothHooks(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("buildToolSetup() returned nil, want ToolSetup")
+	}
+	if result.Name != "terraform" {
+		t.Errorf("buildToolSetup() Name = %q, want %q", result.Name, "terraform")
 	}
 	if result.PreTemplate != "terraform-pre.tmpl" {
 		t.Errorf("buildToolSetup() PreTemplate = %q, want %q", result.PreTemplate, "terraform-pre.tmpl")

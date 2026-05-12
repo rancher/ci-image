@@ -13,13 +13,7 @@ ENV DO_NOT_TRACK=true
 {{template "zypper.tmpl" .Packages}}
 
 {{range .Tools}}# {{.Name}} {{.Version}}
-{{- if .Setup}}
-{{.Setup.RenderPre}}
-{{end -}}
-{{.Install.Render}}
-{{- if .Setup}}
-{{.Setup.RenderPost}}
-{{end}}
+{{.Setup.RenderPre}}{{.Install.Render}}{{.Setup.RenderPost}}
 
 {{end}}{{if .Selectors}}# Family selectors — copy scripts and set up manifest + active symlinks.
 # /var/ci-tools/active is on PATH ahead of /usr/local/bin; runner can update

@@ -116,12 +116,14 @@ func (g GoInstall) Render() string { return "RUN go install " + g.Package }
 // ToolSetup describes optional setup steps that run before/after the main install.
 // If template names are set, those templates are rendered; otherwise the phase is skipped.
 type ToolSetup struct {
+	Name         string             // tool name for comment generation
 	PreTemplate  string             // optional template name for pre-install steps (e.g., "nix-pre.tmpl")
 	PostTemplate string             // optional template name for post-install steps (e.g., "nix-post.tmpl")
 	templates    *template.Template // template set with hooks loaded
 }
 
 // RenderPre renders the pre-install template if present.
+// Returns the hook content with a blank line, comment header, and trailing blank line.
 func (s *ToolSetup) RenderPre() string {
 	if s == nil || s.PreTemplate == "" {
 		return ""
@@ -130,10 +132,12 @@ func (s *ToolSetup) RenderPre() string {
 	if err := s.templates.ExecuteTemplate(&b, s.PreTemplate, nil); err != nil {
 		panic("dockerfile: executing " + s.PreTemplate + ": " + err.Error())
 	}
-	return strings.TrimRight(b.String(), "\n")
+	content := strings.TrimRight(b.String(), "\n")
+	return "\n# Pre-install setup for " + s.Name + "\n" + content + "\n\n"
 }
 
 // RenderPost renders the post-install template if present.
+// Returns the hook content with leading blank line and comment header.
 func (s *ToolSetup) RenderPost() string {
 	if s == nil || s.PostTemplate == "" {
 		return ""
@@ -142,7 +146,8 @@ func (s *ToolSetup) RenderPost() string {
 	if err := s.templates.ExecuteTemplate(&b, s.PostTemplate, nil); err != nil {
 		panic("dockerfile: executing " + s.PostTemplate + ": " + err.Error())
 	}
-	return strings.TrimRight(b.String(), "\n")
+	content := strings.TrimRight(b.String(), "\n")
+	return "\n\n# Post-install setup for " + s.Name + "\n" + content
 }
 
 // ToolInstall is one resolved tool entry in a Dockerfile.

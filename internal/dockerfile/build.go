@@ -237,6 +237,7 @@ func buildToolSetup(t config.Tool, tmpl *template.Template) *ToolSetup {
 	}
 
 	setup := &ToolSetup{
+		Name:      t.Name,
 		templates: tmpl,
 	}
 	if hasPre {

@@ -823,7 +823,10 @@ RUN ln -sf /usr/local/bin/testtool /usr/bin/testtool`
 	// Render the Dockerfile
 	output := vars.Render()
 
-	// Verify pre-hook appears in output
+	// Verify pre-hook appears in output with comment
+	if !strings.Contains(output, "# Pre-install setup for testtool") {
+		t.Error("Dockerfile should contain pre-hook comment")
+	}
 	if !strings.Contains(output, "Running pre-install hook for testtool") {
 		t.Error("Dockerfile should contain pre-hook content")
 	}
@@ -831,7 +834,10 @@ RUN ln -sf /usr/local/bin/testtool /usr/bin/testtool`
 		t.Error("Dockerfile should contain pre-hook commands")
 	}
 
-	// Verify post-hook appears in output
+	// Verify post-hook appears in output with comment
+	if !strings.Contains(output, "# Post-install setup for testtool") {
+		t.Error("Dockerfile should contain post-hook comment")
+	}
 	if !strings.Contains(output, "Running post-install hook for testtool") {
 		t.Error("Dockerfile should contain post-hook content")
 	}

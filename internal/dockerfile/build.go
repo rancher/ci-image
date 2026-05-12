@@ -5,6 +5,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"text/template"
 
 	"github.com/rancher/ci-image/internal/config"
 	"github.com/rancher/ci-image/internal/config/renderer"
@@ -42,6 +43,12 @@ func (f Format) Validate() error {
 // cfg.Tools must already have checksums populated for release-checksums tools
 // (call resolveReleaseChecksums before this).
 func NewDockerfileVars(cfg *config.Config, img config.Image, sourceURL string) (DockerfileVars, error) {
+	// Load hook templates from hooks/ directory (if it exists)
+	hookTemplates, err := loadHookTemplates()
+	if err != nil {
+		return DockerfileVars{}, fmt.Errorf("loading hook templates: %w", err)
+	}
+
 	// Collect tools: universal first (in config order), then image-specific.
 	toolsByName := make(map[string]config.Tool, len(cfg.Tools))
 	for _, t := range cfg.Tools {
@@ -76,6 +83,7 @@ func NewDockerfileVars(cfg *config.Config, img config.Image, sourceURL string) (
 			Name:    t.Name,
 			Version: t.Version,
 			Install: install,
+			Setup:   buildToolSetup(t, hookTemplates),
 		})
 	}
 	if len(errs) > 0 {
@@ -213,6 +221,31 @@ func buildGoInstall(t config.Tool) (GoInstall, error) {
 		return GoInstall{}, fmt.Errorf("install.package: %w", err)
 	}
 	return GoInstall{Package: pkg}, nil
+}
+
+// buildToolSetup checks for pre/post hook templates for the given tool.
+// Returns nil if no hooks exist, otherwise returns a ToolSetup with template names set.
+func buildToolSetup(t config.Tool, tmpl *template.Template) *ToolSetup {
+	preTemplate := t.Name + "-pre.tmpl"
+	postTemplate := t.Name + "-post.tmpl"
+
+	hasPre := tmpl.Lookup(preTemplate) != nil
+	hasPost := tmpl.Lookup(postTemplate) != nil
+
+	if !hasPre && !hasPost {
+		return nil // No hooks for this tool
+	}
+
+	setup := &ToolSetup{
+		templates: tmpl,
+	}
+	if hasPre {
+		setup.PreTemplate = preTemplate
+	}
+	if hasPost {
+		setup.PostTemplate = postTemplate
+	}
+	return setup
 }
 
 // detectFormat classifies a download URL into a format based on packaging/compression.

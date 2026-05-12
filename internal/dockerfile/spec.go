@@ -113,11 +113,44 @@ type GoInstall struct {
 func (g GoInstall) Method() string { return "go-install" }
 func (g GoInstall) Render() string { return "RUN go install " + g.Package }
 
+// ToolSetup describes optional setup steps that run before/after the main install.
+// If template names are set, those templates are rendered; otherwise the phase is skipped.
+type ToolSetup struct {
+	PreTemplate  string             // optional template name for pre-install steps (e.g., "nix-pre.tmpl")
+	PostTemplate string             // optional template name for post-install steps (e.g., "nix-post.tmpl")
+	templates    *template.Template // template set with hooks loaded
+}
+
+// RenderPre renders the pre-install template if present.
+func (s *ToolSetup) RenderPre() string {
+	if s == nil || s.PreTemplate == "" {
+		return ""
+	}
+	var b strings.Builder
+	if err := s.templates.ExecuteTemplate(&b, s.PreTemplate, nil); err != nil {
+		panic("dockerfile: executing " + s.PreTemplate + ": " + err.Error())
+	}
+	return strings.TrimRight(b.String(), "\n")
+}
+
+// RenderPost renders the post-install template if present.
+func (s *ToolSetup) RenderPost() string {
+	if s == nil || s.PostTemplate == "" {
+		return ""
+	}
+	var b strings.Builder
+	if err := s.templates.ExecuteTemplate(&b, s.PostTemplate, nil); err != nil {
+		panic("dockerfile: executing " + s.PostTemplate + ": " + err.Error())
+	}
+	return strings.TrimRight(b.String(), "\n")
+}
+
 // ToolInstall is one resolved tool entry in a Dockerfile.
 type ToolInstall struct {
 	Name    string
 	Version string
 	Install ItemInstall // CurlInstall or GoInstall
+	Setup   *ToolSetup  // optional pre/post hooks; nil if no hooks
 }
 
 // AliasInstall describes a symlink to create in /usr/local/bin after tools are installed.

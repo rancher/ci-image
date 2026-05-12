@@ -1,6 +1,7 @@
 package dockerfile
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -747,5 +748,94 @@ func TestDetectFormat(t *testing.T) {
 				t.Errorf("detectFormat() ext = %v, want %v", gotExt, tt.wantExt)
 			}
 		})
+	}
+}
+
+func TestGenerate_WithHooks(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create hooks/ directory with pre and post hooks for test tool
+	if err := os.Mkdir("hooks", 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	preHook := `RUN echo "Running pre-install hook for testtool"
+RUN mkdir -p /opt/testtool-setup`
+	postHook := `RUN echo "Running post-install hook for testtool"
+RUN ln -sf /usr/local/bin/testtool /usr/bin/testtool`
+
+	if err := os.WriteFile("hooks/testtool-pre.tmpl", []byte(preHook), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile("hooks/testtool-post.tmpl", []byte(postHook), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := &config.Config{
+		Tools: []config.Tool{
+			{
+				Name:    "testtool",
+				Version: "1.0.0",
+				Source:  "owner/repo",
+				Release: &config.ReleaseConfig{
+					DownloadTemplate: "https://github.com/owner/repo/releases/download/v{version}/tool-{os}-{arch}.tar.gz",
+					Extract:          "testtool",
+				},
+				Install: config.InstallConfig{
+					Method: config.MethodCurl,
+				},
+				Checksums: map[string]string{
+					"linux/amd64": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+				},
+			},
+		},
+	}
+
+	img := config.Image{
+		Name:      "test",
+		Base:      "alpine:3.18",
+		Platforms: []string{"linux/amd64"},
+		Tools:     []string{"testtool"},
+	}
+
+	vars, err := NewDockerfileVars(cfg, img, "https://github.com/test/repo")
+	if err != nil {
+		t.Fatalf("NewDockerfileVars() error = %v", err)
+	}
+
+	// Verify the tool has setup hooks
+	if len(vars.Tools) != 1 {
+		t.Fatalf("expected 1 tool, got %d", len(vars.Tools))
+	}
+	if vars.Tools[0].Setup == nil {
+		t.Fatal("expected tool to have Setup hooks, got nil")
+	}
+
+	// Render the Dockerfile
+	output := vars.Render()
+
+	// Verify pre-hook appears in output
+	if !strings.Contains(output, "Running pre-install hook for testtool") {
+		t.Error("Dockerfile should contain pre-hook content")
+	}
+	if !strings.Contains(output, "mkdir -p /opt/testtool-setup") {
+		t.Error("Dockerfile should contain pre-hook commands")
+	}
+
+	// Verify post-hook appears in output
+	if !strings.Contains(output, "Running post-install hook for testtool") {
+		t.Error("Dockerfile should contain post-hook content")
+	}
+	if !strings.Contains(output, "ln -sf /usr/local/bin/testtool /usr/bin/testtool") {
+		t.Error("Dockerfile should contain post-hook commands")
 	}
 }

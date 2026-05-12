@@ -11,6 +11,30 @@ import (
 	gh "github.com/rancher/ci-image/internal/github"
 )
 
+// Format describes the packaging/compression type of a download artifact.
+type Format string
+
+const (
+	FormatArchive    Format = "archive" // tar/zip archive
+	FormatGzip       Format = "gzip"    // gzipped file (.gz)
+	FormatExecutable Format = "binary"  // raw executable file (binary or script)
+)
+
+// String returns the format as a string.
+func (f Format) String() string {
+	return string(f)
+}
+
+// Validate checks if the format is a known value.
+func (f Format) Validate() error {
+	switch f {
+	case FormatArchive, FormatGzip, FormatExecutable:
+		return nil
+	default:
+		return fmt.Errorf("invalid format: %q (must be one of: archive, gzip, binary)", f)
+	}
+}
+
 // NewDockerfileVars builds a fully-resolved DockerfileVars for img.
 // All template rendering is performed here; if construction succeeds,
 // Render() is guaranteed to succeed.
@@ -108,9 +132,9 @@ func NewDockerfileVars(cfg *config.Config, img config.Image, sourceURL string) (
 
 func buildItemInstall(t config.Tool, imgPlatforms map[string]bool) (ItemInstall, error) {
 	switch t.Install.EffectiveMethod() {
-	case "curl":
+	case config.MethodCurl:
 		return buildCurlInstall(t, imgPlatforms)
-	case "go-install":
+	case config.MethodGoInstall:
 		return buildGoInstall(t)
 	default:
 		return nil, fmt.Errorf("unknown install method %q", t.Install.EffectiveMethod())
@@ -190,14 +214,28 @@ func buildGoInstall(t config.Tool) (GoInstall, error) {
 	return GoInstall{Package: pkg}, nil
 }
 
-// detectFormat classifies a rendered download URL as "archive", "gzip", or "binary",
-// and returns the archive extension (non-empty only for "archive").
-func detectFormat(url string) (format, ext string) {
-	if ext = archiveExt(url); ext != "" {
-		return "archive", ext
+// detectFormat classifies a download URL into a format based on packaging/compression.
+// Returns one of: FormatArchive, FormatGzip, FormatExecutable.
+// For archives, also returns the archive extension (.tar.gz, .zip, etc).
+//
+// Detection logic:
+// 1. If URL is an archive (.tar.gz, .zip, etc) → FormatArchive
+// 2. If URL ends with .gz (but not .tar.gz) → FormatGzip
+// 3. Otherwise → FormatExecutable
+//
+// Format describes the artifact packaging, NOT what to do with it (copy vs run).
+// That distinction is handled at template selection time based on ScriptArgs.
+func detectFormat(url string) (Format, string) {
+	// Check for archives first
+	if ext := archiveExt(url); ext != "" {
+		return FormatArchive, ext
 	}
+
+	// Gzipped executable
 	if isGzipBinaryURL(url) {
-		return "gzip", ""
+		return FormatGzip, ""
 	}
-	return "binary", ""
+
+	// Default to raw executable (binary or script)
+	return FormatExecutable, ""
 }

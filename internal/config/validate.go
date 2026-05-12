@@ -189,7 +189,7 @@ func validateConfig(cfg *Config) error {
 		mode := t.EffectiveMode()
 
 		switch mode {
-		case "pinned", "static", "release-checksums":
+		case ModePinned, ModeStatic, ModeReleaseChecksums:
 			// valid modes
 		default:
 			errs = append(errs, fmt.Sprintf("tool %q: mode %q is not supported (supported: 'pinned', 'static', 'release-checksums')", t.Name, mode))
@@ -197,7 +197,7 @@ func validateConfig(cfg *Config) error {
 		}
 
 		// release-checksums requires an allowlisted source.
-		if mode == "release-checksums" && !inAllowlist(t.Source) {
+		if mode == ModeReleaseChecksums && !inAllowlist(t.Source) {
 			errs = append(errs, fmt.Sprintf("tool %q: mode 'release-checksums' requires source to be in the allowlist; %q is not listed", t.Name, t.Source))
 		}
 
@@ -206,12 +206,12 @@ func validateConfig(cfg *Config) error {
 		}
 		if t.Version == "" {
 			errs = append(errs, fmt.Sprintf("tool %q: missing required field 'version'", t.Name))
-		} else if t.Version == "latest" && mode != "release-checksums" {
+		} else if t.Version == "latest" && mode != ModeReleaseChecksums {
 			// version: latest is only valid for release-checksums; pinned and static must pin explicitly.
 			errs = append(errs, fmt.Sprintf("tool %q: version 'latest' is not allowed in mode %q", t.Name, mode))
 		}
 		switch t.Install.EffectiveMethod() {
-		case "curl":
+		case MethodCurl:
 			effectiveRelease := t.EffectiveRelease()
 			if effectiveRelease == nil {
 				errs = append(errs, fmt.Sprintf("tool %q: method 'curl' requires a 'release:' block (or a GitHub source so defaults apply)", t.Name))
@@ -219,11 +219,11 @@ func validateConfig(cfg *Config) error {
 				if effectiveRelease.DownloadTemplate == "" {
 					errs = append(errs, fmt.Sprintf("tool %q: release.download_template is required for method 'curl'", t.Name))
 				}
-				if effectiveRelease.Extract == "" && mode != "release-checksums" && isArchiveTemplate(effectiveRelease.DownloadTemplate) {
+				if effectiveRelease.Extract == "" && mode != ModeReleaseChecksums && isArchiveTemplate(effectiveRelease.DownloadTemplate) {
 					errs = append(errs, fmt.Sprintf("tool %q: release.extract is required for method 'curl' when download_template is an archive", t.Name))
 				}
 			}
-			if mode == "release-checksums" {
+			if mode == ModeReleaseChecksums {
 				// Checksums are fetched at generate time; they must not be declared statically.
 				if len(t.Checksums) > 0 {
 					errs = append(errs, fmt.Sprintf("tool %q: checksums must be absent for mode 'release-checksums' (they are fetched at generate time)", t.Name))
@@ -246,7 +246,7 @@ func validateConfig(cfg *Config) error {
 				errs = append(errs, fmt.Sprintf("tool %q: install.package is forbidden for method 'curl'", t.Name))
 			}
 
-		case "go-install":
+		case MethodGoInstall:
 			if t.Install.Package == "" {
 				errs = append(errs, fmt.Sprintf("tool %q: install.package is required for method 'go-install'", t.Name))
 			}
@@ -268,7 +268,7 @@ func validateConfig(cfg *Config) error {
 
 		// Pinned/static curl tools: verify checksum coverage for every image that includes the tool.
 		// release-checksums tools have checksums resolved at generate time.
-		if t.Install.EffectiveMethod() == "curl" && mode != "release-checksums" && len(t.Checksums) > 0 {
+		if t.Install.EffectiveMethod() == MethodCurl && mode != ModeReleaseChecksums && len(t.Checksums) > 0 {
 			for _, img := range cfg.Images {
 				if !imageIncludesTool(img, &t) {
 					continue

@@ -5,6 +5,8 @@ import (
 	"slices"
 	"strings"
 	"text/template"
+
+	"github.com/rancher/ci-image/internal/config"
 )
 
 //go:embed tmpl
@@ -50,7 +52,7 @@ type PlatformInstall struct {
 // Implements ItemInstall.
 type CurlInstall struct {
 	Name       string            // tool name; used in shell commands
-	Format     string            // "archive" | "gzip" | "binary"
+	Format     Format            // "archive" | "gzip" | "binary"
 	ArchiveExt string            // ".tar.gz", ".zip", etc.; empty unless Format == "archive"
 	Platforms  []PlatformInstall // one entry per platform, sorted by Arch
 }
@@ -58,7 +60,7 @@ type CurlInstall struct {
 func (c CurlInstall) Method() string { return "curl" }
 
 func (c CurlInstall) Render() string {
-	return executeTemplate("curl_"+c.Format+".tmpl", c)
+	return executeTemplate("curl_"+c.Format.String()+".tmpl", c)
 }
 
 // GoInstall is the resolved spec for a go-install tool.
@@ -121,7 +123,7 @@ func (v DockerfileVars) SelectorSetupCmd() string {
 // Called by dockerfile.tmpl to conditionally emit the Go cache cleanup block.
 func (v DockerfileVars) HasGoInstall() bool {
 	for _, t := range v.Tools {
-		if t.Install.Method() == "go-install" {
+		if t.Install.Method() == string(config.MethodGoInstall) {
 			return true
 		}
 	}

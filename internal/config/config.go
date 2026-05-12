@@ -1,6 +1,56 @@
 package config
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
+
+// Mode describes how tool versions are managed.
+type Mode string
+
+const (
+	ModePinned           Mode = "pinned"            // version and checksums are static in deps.yaml
+	ModeStatic           Mode = "static"            // version is static, checksums are in deps.yaml
+	ModeReleaseChecksums Mode = "release-checksums" // checksums fetched from release artifacts at generate time
+)
+
+// String returns the mode as a string.
+func (m Mode) String() string {
+	return string(m)
+}
+
+// Validate checks if the mode is a known value.
+func (m Mode) Validate() error {
+	switch m {
+	case ModePinned, ModeStatic, ModeReleaseChecksums:
+		return nil
+	default:
+		return fmt.Errorf("invalid mode: %q (must be one of: pinned, static, release-checksums)", m)
+	}
+}
+
+// Method describes how a tool is installed in the Dockerfile.
+type Method string
+
+const (
+	MethodCurl      Method = "curl"       // download via curl, verify checksums
+	MethodGoInstall Method = "go-install" // install via go install
+)
+
+// String returns the method as a string.
+func (m Method) String() string {
+	return string(m)
+}
+
+// Validate checks if the method is a known value.
+func (m Method) Validate() error {
+	switch m {
+	case MethodCurl, MethodGoInstall:
+		return nil
+	default:
+		return fmt.Errorf("invalid method: %q (must be one of: curl, go-install)", m)
+	}
+}
 
 // Config is the top-level structure of deps.yaml.
 type Config struct {
@@ -32,17 +82,17 @@ type Tool struct {
 	Source        string         `yaml:"source"`
 	Version       string         `yaml:"version"`
 	VersionCommit string         `yaml:"version_commit,omitempty"`
-	Mode          string         `yaml:"mode,omitempty"` // default: "pinned"
+	Mode          Mode           `yaml:"mode,omitempty"` // defaults to ModePinned
 	Universal     bool           `yaml:"-"`              // set by loader; use universal: section in deps.yaml
 	Checksums     ChecksumList   `yaml:"checksums,omitempty"`
 	Release       *ReleaseConfig `yaml:"release,omitempty"`
 	Install       InstallConfig  `yaml:"install"`
 }
 
-// EffectiveMode returns the tool's mode, defaulting to "pinned".
-func (t *Tool) EffectiveMode() string {
+// EffectiveMode returns the tool's mode, defaulting to ModePinned.
+func (t *Tool) EffectiveMode() Mode {
 	if t.Mode == "" {
-		return "pinned"
+		return ModePinned
 	}
 	return t.Mode
 }
@@ -58,7 +108,7 @@ func (t *Tool) EffectiveMode() string {
 // For non-GitHub or non-release-checksums tools, the release block is returned
 // as-is (or nil if absent).
 func (t *Tool) EffectiveRelease() *ReleaseConfig {
-	if t.EffectiveMode() == "release-checksums" && isGitHubSource(t.Source) {
+	if t.EffectiveMode() == ModeReleaseChecksums && isGitHubSource(t.Source) {
 		merged := ReleaseConfig{
 			DownloadTemplate: "{name}_{os}_{arch}",
 			ChecksumTemplate: "checksums.txt",
@@ -73,6 +123,9 @@ func (t *Tool) EffectiveRelease() *ReleaseConfig {
 			}
 			if t.Release.Extract != "" {
 				merged.Extract = t.Release.Extract
+			}
+			if t.Release.InstallToPath != nil {
+				merged.InstallToPath = t.Release.InstallToPath
 			}
 		}
 		return &merged
@@ -102,18 +155,28 @@ type ReleaseConfig struct {
 	DownloadTemplate string `yaml:"download_template"`
 	ChecksumTemplate string `yaml:"checksum_template,omitempty"`
 	Extract          string `yaml:"extract"`
+	InstallToPath    *bool  `yaml:"install_to_path,omitempty"` // if false, extract to /var/ci-tools/{name} and leave for hooks; defaults to true
+}
+
+// ShouldInstallToPath returns whether the tool should be installed to /usr/local/bin after extraction.
+// Defaults to true; set to false for self-installing archives that hooks will handle.
+func (r *ReleaseConfig) ShouldInstallToPath() bool {
+	if r == nil || r.InstallToPath == nil {
+		return true
+	}
+	return *r.InstallToPath
 }
 
 // InstallConfig specifies how to install the tool in a Dockerfile.
 type InstallConfig struct {
-	Method  string `yaml:"method,omitempty"`  // "curl" | "go-install"; defaults to "curl"
-	Package string `yaml:"package,omitempty"` // required for go-install; {var|modifier} template
+	Method  Method `yaml:"method,omitempty"`  // defaults to MethodCurl
+	Package string `yaml:"package,omitempty"` // required for MethodGoInstall; {var|modifier} template
 }
 
-// EffectiveMethod returns the install method, defaulting to "curl".
-func (i InstallConfig) EffectiveMethod() string {
+// EffectiveMethod returns the install method, defaulting to MethodCurl.
+func (i InstallConfig) EffectiveMethod() Method {
 	if i.Method == "" {
-		return "curl"
+		return MethodCurl
 	}
 	return i.Method
 }

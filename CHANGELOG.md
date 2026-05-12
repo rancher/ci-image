@@ -4,6 +4,13 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20260512-15 (2026-05-12)
+
+### Image: charts:20260512-15
+
+- `charts-build-scripts`: `v1.9.18` → `v1.9.20`
+- `ob-charts-tool`: `v0.4.1` → `v0.5.0`
+
 ## Revision: 20260430-14 (2026-04-30)
 
 ### Universal Packages Added

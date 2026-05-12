@@ -193,10 +193,11 @@ func buildCurlInstall(t config.Tool, imgPlatforms map[string]bool) (CurlInstall,
 	format, ext := detectFormat(platforms[0].DownloadURL)
 
 	return CurlInstall{
-		Name:       t.Name,
-		Format:     format,
-		ArchiveExt: ext,
-		Platforms:  platforms,
+		Name:          t.Name,
+		Format:        format,
+		ArchiveExt:    ext,
+		Platforms:     platforms,
+		InstallToPath: rel.ShouldInstallToPath(),
 	}, nil
 }
 

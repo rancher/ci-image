@@ -4,16 +4,30 @@ RUN case "${ARCH}" in \
 {{- end}}
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
+{{- if .InstallToPath}}
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/{{.Name}}{{.ArchiveExt}}" && \
+{{- else}}
+    export INSTALL_DIR="/var/ci-tools/{{.Name}}" && \
+    mkdir -p "${INSTALL_DIR}" && \
+    export TMP_FILE="${INSTALL_DIR}/{{.Name}}{{.ArchiveExt}}" && \
+{{- end}}
     case "${ARCH}" in \
 {{- range .Platforms}}
         {{.Arch}}) DOWNLOAD_URL={{printf "%q" .DownloadURL}}; EXTRACT={{printf "%q" .Extract}} ;; \
 {{- end}}
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
+{{- if .InstallToPath}}
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
     sha256sum -c "${TMP_DIR}/checksum.sha256" && \
     {{extractCmd .ArchiveExt}} && \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/{{.Name}}" && \
     rm -rf "${TMP_DIR}"
+{{- else}}
+    printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${INSTALL_DIR}/checksum.sha256" && \
+    sha256sum -c "${INSTALL_DIR}/checksum.sha256" && \
+    cd "${INSTALL_DIR}" && \
+    {{extractCmd .ArchiveExt}} && \
+    rm "${TMP_FILE}" "${INSTALL_DIR}/checksum.sha256"
+{{- end}}

@@ -532,3 +532,220 @@ func TestGenerate_NoGitConfigWithoutGit(t *testing.T) {
 		t.Errorf("Generate() should not emit git config when neither 'git' nor 'git-core' packages are present\n\nFull output:\n%s", content)
 	}
 }
+
+func TestGenerate_InstallToPath_Default(t *testing.T) {
+	// Default behavior: install_to_path defaults to true, tools are copied to /usr/local/bin
+	cfg := &config.Config{
+		Images: []config.Image{
+			{
+				Name:      "test",
+				Base:      "base@sha256:" + strings.Repeat("a", 64),
+				Platforms: []string{"linux/amd64"},
+				Packages:  []string{"wget"},
+				Tools:     []string{"helm"},
+			},
+		},
+		Tools: []config.Tool{helmUniversalTool()},
+	}
+
+	result, err := Generate(cfg, "")
+	if err != nil {
+		t.Fatalf("Generate() unexpected error: %v", err)
+	}
+	content := result["test"]
+
+	// Should use temporary directory
+	if !strings.Contains(content, "export TMP_DIR=$(mktemp -d)") {
+		t.Errorf("Generate() should use TMP_DIR for install_to_path: true (default)\n\nFull output:\n%s", content)
+	}
+
+	// Should install to /usr/local/bin
+	if !strings.Contains(content, `install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/helm"`) {
+		t.Errorf("Generate() should install to /usr/local/bin when install_to_path: true (default)\n\nFull output:\n%s", content)
+	}
+
+	// Should cleanup temp directory
+	if !strings.Contains(content, "rm -rf \"${TMP_DIR}\"") {
+		t.Errorf("Generate() should cleanup TMP_DIR when install_to_path: true (default)\n\nFull output:\n%s", content)
+	}
+
+	// Should NOT use /var/ci-tools
+	if strings.Contains(content, "/var/ci-tools/helm") {
+		t.Errorf("Generate() should not use /var/ci-tools when install_to_path: true (default)\n\nFull output:\n%s", content)
+	}
+}
+
+func TestGenerate_InstallToPath_False(t *testing.T) {
+	// When install_to_path: false, extract to /var/ci-tools and leave for hooks
+	installToPathFalse := false
+	cfg := &config.Config{
+		Images: []config.Image{
+			{
+				Name:      "test",
+				Base:      "base@sha256:" + strings.Repeat("a", 64),
+				Platforms: []string{"linux/amd64"},
+				Packages:  []string{"wget"},
+				Tools:     []string{"nix"},
+			},
+		},
+		Tools: []config.Tool{
+			{
+				Name:    "nix",
+				Source:  "https://releases.nixos.org/nix",
+				Mode:    config.ModeStatic,
+				Version: "2.34.5",
+				Checksums: map[string]string{
+					"linux/amd64": strings.Repeat("a", 64),
+				},
+				Release: &config.ReleaseConfig{
+					DownloadTemplate: "{source}/nix-{version}/nix-{version}-x86_64-linux.tar.xz",
+					Extract:          "nix-{version}-x86_64-linux/install",
+					InstallToPath:    &installToPathFalse,
+				},
+				Install: config.InstallConfig{Method: config.MethodCurl},
+			},
+		},
+	}
+
+	result, err := Generate(cfg, "")
+	if err != nil {
+		t.Fatalf("Generate() unexpected error: %v", err)
+	}
+	content := result["test"]
+
+	// Should use /var/ci-tools directory
+	if !strings.Contains(content, `export INSTALL_DIR="/var/ci-tools/nix"`) {
+		t.Errorf("Generate() should use /var/ci-tools when install_to_path: false\n\nFull output:\n%s", content)
+	}
+
+	// Should create the directory
+	if !strings.Contains(content, `mkdir -p "${INSTALL_DIR}"`) {
+		t.Errorf("Generate() should create INSTALL_DIR when install_to_path: false\n\nFull output:\n%s", content)
+	}
+
+	// Should extract to INSTALL_DIR
+	if !strings.Contains(content, `cd "${INSTALL_DIR}"`) {
+		t.Errorf("Generate() should cd to INSTALL_DIR when install_to_path: false\n\nFull output:\n%s", content)
+	}
+
+	// Should NOT install to /usr/local/bin
+	if strings.Contains(content, `install "${TMP_DIR}`) || strings.Contains(content, `/usr/local/bin/nix`) {
+		t.Errorf("Generate() should not install to /usr/local/bin when install_to_path: false\n\nFull output:\n%s", content)
+	}
+
+	// Should NOT cleanup the entire directory (only archive and checksum)
+	if strings.Contains(content, `rm -rf "${INSTALL_DIR}"`) {
+		t.Errorf("Generate() should not rm -rf INSTALL_DIR when install_to_path: false\n\nFull output:\n%s", content)
+	}
+
+	// Should cleanup only the archive and checksum file
+	if !strings.Contains(content, `rm "${TMP_FILE}" "${INSTALL_DIR}/checksum.sha256"`) {
+		t.Errorf("Generate() should cleanup archive and checksum when install_to_path: false\n\nFull output:\n%s", content)
+	}
+
+	// Should NOT use mktemp
+	if strings.Contains(content, "mktemp -d") {
+		t.Errorf("Generate() should not use mktemp when install_to_path: false\n\nFull output:\n%s", content)
+	}
+}
+
+func TestFormat_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		format  Format
+		wantErr bool
+	}{
+		{
+			name:    "valid: archive",
+			format:  FormatArchive,
+			wantErr: false,
+		},
+		{
+			name:    "valid: gzip",
+			format:  FormatGzip,
+			wantErr: false,
+		},
+		{
+			name:    "valid: binary",
+			format:  FormatExecutable,
+			wantErr: false,
+		},
+		{
+			name:    "invalid: unknown",
+			format:  Format("unknown"),
+			wantErr: true,
+		},
+		{
+			name:    "invalid: empty",
+			format:  Format(""),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.format.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Format.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestDetectFormat(t *testing.T) {
+	tests := []struct {
+		name       string
+		url        string
+		wantFormat Format
+		wantExt    string
+	}{
+		{
+			name:       "tar.gz archive",
+			url:        "https://example.com/tool-v1.0.0.tar.gz",
+			wantFormat: FormatArchive,
+			wantExt:    ".tar.gz",
+		},
+		{
+			name:       "zip archive",
+			url:        "https://example.com/tool-v1.0.0.zip",
+			wantFormat: FormatArchive,
+			wantExt:    ".zip",
+		},
+		{
+			name:       "tar.xz archive",
+			url:        "https://example.com/tool-v1.0.0.tar.xz",
+			wantFormat: FormatArchive,
+			wantExt:    ".tar.xz",
+		},
+		{
+			name:       "gzipped binary",
+			url:        "https://example.com/tool.gz",
+			wantFormat: FormatGzip,
+			wantExt:    "",
+		},
+		{
+			name:       "raw binary",
+			url:        "https://example.com/tool",
+			wantFormat: FormatExecutable,
+			wantExt:    "",
+		},
+		{
+			name:       "archive with query params",
+			url:        "https://example.com/tool.tar.gz?v=1.0",
+			wantFormat: FormatArchive,
+			wantExt:    ".tar.gz",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotFormat, gotExt := detectFormat(tt.url)
+			if gotFormat != tt.wantFormat {
+				t.Errorf("detectFormat() format = %v, want %v", gotFormat, tt.wantFormat)
+			}
+			if gotExt != tt.wantExt {
+				t.Errorf("detectFormat() ext = %v, want %v", gotExt, tt.wantExt)
+			}
+		})
+	}
+}

@@ -51,10 +51,11 @@ type PlatformInstall struct {
 // CurlInstall is the resolved spec for a curl-installed tool.
 // Implements ItemInstall.
 type CurlInstall struct {
-	Name       string            // tool name; used in shell commands
-	Format     Format            // "archive" | "gzip" | "binary"
-	ArchiveExt string            // ".tar.gz", ".zip", etc.; empty unless Format == "archive"
-	Platforms  []PlatformInstall // one entry per platform, sorted by Arch
+	Name          string            // tool name; used in shell commands
+	Format        Format            // "archive" | "gzip" | "binary"
+	ArchiveExt    string            // ".tar.gz", ".zip", etc.; empty unless Format == "archive"
+	Platforms     []PlatformInstall // one entry per platform, sorted by Arch
+	InstallToPath bool              // if true, install to /usr/local/bin; if false, extract to /var/ci-tools/{name} for hooks
 }
 
 func (c CurlInstall) Method() string { return "curl" }

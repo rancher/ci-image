@@ -4,6 +4,9 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20260512-16 (2026-05-12)
+
+_No notable changes._
 ## Revision: 20260512-15 (2026-05-12)
 
 ### Image: charts:20260512-15

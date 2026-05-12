@@ -8,6 +8,7 @@ type ImagesLock struct {
 	Packages  []string               `yaml:"packages,omitempty"` // universal packages installed in every image
 	Tools     map[string]string      `yaml:"tools,omitempty"`
 	Selectors []string               `yaml:"selectors,omitempty"` // active family selector names, e.g. ["helm"]
+	Hooks     map[string]HookFiles   `yaml:"hooks,omitempty"`     // tool_name → hook files with checksums
 	Configs   map[string]ImageConfig `yaml:"configs"`
 }
 
@@ -15,7 +16,7 @@ type ImagesLock struct {
 type ImageConfig struct {
 	Base            string            `yaml:"base"`
 	Platforms       []string          `yaml:"platforms"`
-	Packages        []string          `yaml:"packages,omitempty"`         // image-specific packages only (excludes universal)
+	Packages        []string          `yaml:"packages,omitempty"` // image-specific packages only (excludes universal)
 	Tools           []string          `yaml:"tools,omitempty"`
 	Aliases         map[string]string `yaml:"aliases,omitempty"`          // symlink_name: tool_name
 	FamilySelectors map[string]string `yaml:"family_selectors,omitempty"` // family → default tool
@@ -72,16 +73,17 @@ func (c *Changes) AffectedImages() []string {
 
 // ImageChanges holds all the changes for a single image.
 type ImageChanges struct {
-	Image                 string
-	BaseImageUpdated      *BaseImageChange
-	PlatformsChanged      *PlatformsChange
-	PackagesAdded         []string
-	PackagesRemoved       []string
-	ToolVersionChanged    []ToolVersionChange
-	ToolsAdded            []ToolChange
-	ToolsRemoved          []ToolChange
-	AliasesAdded          []AliasChange
-	AliasesRemoved        []AliasChange
+	Image                  string
+	BaseImageUpdated       *BaseImageChange
+	PlatformsChanged       *PlatformsChange
+	PackagesAdded          []string
+	PackagesRemoved        []string
+	ToolVersionChanged     []ToolVersionChange
+	ToolsAdded             []ToolChange
+	ToolsRemoved           []ToolChange
+	ToolHooksChanged       []ToolHookChange // hook templates added/removed/modified
+	AliasesAdded           []AliasChange
+	AliasesRemoved         []AliasChange
 	SelectorDefaultChanged []SelectorDefaultChange // family selector default tool changed
 }
 
@@ -92,6 +94,7 @@ func (ic ImageChanges) HasChanges() bool {
 		len(ic.PackagesAdded) > 0 || len(ic.PackagesRemoved) > 0 ||
 		len(ic.ToolVersionChanged) > 0 ||
 		len(ic.ToolsAdded) > 0 || len(ic.ToolsRemoved) > 0 ||
+		len(ic.ToolHooksChanged) > 0 ||
 		len(ic.AliasesAdded) > 0 || len(ic.AliasesRemoved) > 0 ||
 		len(ic.SelectorDefaultChanged) > 0
 }
@@ -139,4 +142,25 @@ type ToolVersionChange struct {
 type ToolChange struct {
 	Tool    string
 	Version string
+}
+
+// HookFile represents a single hook template file with its checksum.
+type HookFile struct {
+	Name     string `yaml:"name"`
+	Checksum string `yaml:"checksum"` // MD5 hex
+}
+
+// HookFiles holds pre and post hook files for a tool.
+type HookFiles struct {
+	Pre  *HookFile `yaml:"pre,omitempty"`
+	Post *HookFile `yaml:"post,omitempty"`
+}
+
+// ToolHookChange records a hook template being added, removed, or modified.
+type ToolHookChange struct {
+	Tool        string
+	HookType    string // "pre" or "post"
+	ChangeType  string // "added", "removed", "modified"
+	OldChecksum string // for "modified" only
+	NewChecksum string // for "added" and "modified"
 }

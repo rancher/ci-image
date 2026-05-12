@@ -123,7 +123,7 @@ func Diff(prev, next *ImagesLock) *Changes {
 		}
 		prevCfg := prev.Configs[imgName]
 		nextCfg := next.Configs[imgName]
-		ic := computeImageChanges(imgName, prev.Tools, next.Tools, prevCfg, nextCfg)
+		ic := computeImageChanges(imgName, prev.Tools, next.Tools, prev.Hooks, next.Hooks, prevCfg, nextCfg)
 		if ic.HasChanges() {
 			c.ImageChanges = append(c.ImageChanges, ic)
 		}
@@ -132,7 +132,7 @@ func Diff(prev, next *ImagesLock) *Changes {
 	return c
 }
 
-func computeImageChanges(imgName string, prevTools, nextTools map[string]string, prev, next ImageConfig) ImageChanges {
+func computeImageChanges(imgName string, prevTools, nextTools map[string]string, prevHooks, nextHooks map[string]HookFiles, prev, next ImageConfig) ImageChanges {
 	ic := ImageChanges{Image: imgName}
 
 	if prev.Base != next.Base {
@@ -189,6 +189,75 @@ func computeImageChanges(imgName string, prevTools, nextTools map[string]string,
 	slices.SortFunc(ic.ToolsAdded, func(a, b ToolChange) int { return strings.Compare(a.Tool, b.Tool) })
 	slices.SortFunc(ic.ToolsRemoved, func(a, b ToolChange) int { return strings.Compare(a.Tool, b.Tool) })
 	slices.SortFunc(ic.ToolVersionChanged, func(a, b ToolVersionChange) int { return strings.Compare(a.Tool, b.Tool) })
+
+	// Hook template changes: detect when hooks are added, removed, or modified.
+	// Only check hooks for tools that are actually in this image.
+	for _, toolName := range next.Tools {
+		prevHook := prevHooks[toolName]
+		nextHook := nextHooks[toolName]
+
+		// Check pre-hook changes
+		if prevHook.Pre == nil && nextHook.Pre != nil {
+			// Pre-hook added
+			ic.ToolHooksChanged = append(ic.ToolHooksChanged, ToolHookChange{
+				Tool:        toolName,
+				HookType:    "pre",
+				ChangeType:  "added",
+				NewChecksum: nextHook.Pre.Checksum,
+			})
+		} else if prevHook.Pre != nil && nextHook.Pre == nil {
+			// Pre-hook removed
+			ic.ToolHooksChanged = append(ic.ToolHooksChanged, ToolHookChange{
+				Tool:        toolName,
+				HookType:    "pre",
+				ChangeType:  "removed",
+				OldChecksum: prevHook.Pre.Checksum,
+			})
+		} else if prevHook.Pre != nil && nextHook.Pre != nil && prevHook.Pre.Checksum != nextHook.Pre.Checksum {
+			// Pre-hook modified
+			ic.ToolHooksChanged = append(ic.ToolHooksChanged, ToolHookChange{
+				Tool:        toolName,
+				HookType:    "pre",
+				ChangeType:  "modified",
+				OldChecksum: prevHook.Pre.Checksum,
+				NewChecksum: nextHook.Pre.Checksum,
+			})
+		}
+
+		// Check post-hook changes
+		if prevHook.Post == nil && nextHook.Post != nil {
+			// Post-hook added
+			ic.ToolHooksChanged = append(ic.ToolHooksChanged, ToolHookChange{
+				Tool:        toolName,
+				HookType:    "post",
+				ChangeType:  "added",
+				NewChecksum: nextHook.Post.Checksum,
+			})
+		} else if prevHook.Post != nil && nextHook.Post == nil {
+			// Post-hook removed
+			ic.ToolHooksChanged = append(ic.ToolHooksChanged, ToolHookChange{
+				Tool:        toolName,
+				HookType:    "post",
+				ChangeType:  "removed",
+				OldChecksum: prevHook.Post.Checksum,
+			})
+		} else if prevHook.Post != nil && nextHook.Post != nil && prevHook.Post.Checksum != nextHook.Post.Checksum {
+			// Post-hook modified
+			ic.ToolHooksChanged = append(ic.ToolHooksChanged, ToolHookChange{
+				Tool:        toolName,
+				HookType:    "post",
+				ChangeType:  "modified",
+				OldChecksum: prevHook.Post.Checksum,
+				NewChecksum: nextHook.Post.Checksum,
+			})
+		}
+	}
+	slices.SortFunc(ic.ToolHooksChanged, func(a, b ToolHookChange) int {
+		if a.Tool != b.Tool {
+			return strings.Compare(a.Tool, b.Tool)
+		}
+		return strings.Compare(a.HookType, b.HookType)
+	})
 
 	// Alias diffs: an alias is "removed" if its name disappears or its target changes.
 	for name, prevTarget := range prev.Aliases {

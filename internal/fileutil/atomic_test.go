@@ -52,3 +52,31 @@ func TestAtomicWrite_Overwrite(t *testing.T) {
 		t.Errorf("AtomicWrite() overwrite got %q, want %q", got, "second\n")
 	}
 }
+
+func TestMD5File(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.txt")
+
+	// Test with known content
+	content := []byte("hello world\n")
+	if err := os.WriteFile(path, content, 0o644); err != nil {
+		t.Fatalf("WriteFile() unexpected error: %v", err)
+	}
+
+	// Expected MD5 of "hello world\n" is 6f5902ac237024bdd0c176cb93063dc4
+	expected := "6f5902ac237024bdd0c176cb93063dc4"
+	got, err := MD5File(path)
+	if err != nil {
+		t.Fatalf("MD5File() unexpected error: %v", err)
+	}
+	if got != expected {
+		t.Errorf("MD5File() = %s, want %s", got, expected)
+	}
+}
+
+func TestMD5File_NonExistent(t *testing.T) {
+	_, err := MD5File("/nonexistent/file")
+	if err == nil {
+		t.Error("MD5File() on nonexistent file should return error")
+	}
+}

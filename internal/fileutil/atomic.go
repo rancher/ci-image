@@ -2,6 +2,8 @@ package fileutil
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 )
@@ -46,4 +48,14 @@ func AtomicWrite(path string, data []byte, perm os.FileMode) error {
 		return err
 	}
 	return nil
+}
+
+// MD5File computes the MD5 checksum of a file and returns it as a hex string.
+func MD5File(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	hash := md5.Sum(data)
+	return hex.EncodeToString(hash[:]), nil
 }

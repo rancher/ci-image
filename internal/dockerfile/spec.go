@@ -2,6 +2,8 @@ package dockerfile
 
 import (
 	"embed"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"text/template"
@@ -17,6 +19,44 @@ var templates = template.Must(
 		"extractCmd": archiveExtractCmd,
 	}).ParseFS(templateFS, "tmpl/*.tmpl"),
 )
+
+// loadHookTemplates loads optional tool hook templates from the hooks/ directory.
+// Called during Dockerfile generation; returns a new template set with hooks added.
+// If hooks/ directory doesn't exist, returns the base template set unchanged.
+func loadHookTemplates() (*template.Template, error) {
+	// Clone base templates so we don't modify the global set
+	t := template.Must(templates.Clone())
+
+	hooksDir := "hooks"
+	if _, err := os.Stat(hooksDir); os.IsNotExist(err) {
+		return t, nil // No hooks directory - return base templates
+	}
+
+	// Find all pre-hook templates
+	preMatches, err := filepath.Glob(filepath.Join(hooksDir, "*-pre.tmpl"))
+	if err != nil {
+		return nil, err
+	}
+
+	// Find all post-hook templates
+	postMatches, err := filepath.Glob(filepath.Join(hooksDir, "*-post.tmpl"))
+	if err != nil {
+		return nil, err
+	}
+
+	// Combine all hook templates
+	matches := append(preMatches, postMatches...)
+
+	// If we found hook templates, parse them
+	if len(matches) > 0 {
+		t, err = t.ParseFiles(matches...)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return t, nil
+}
 
 // executeTemplate renders a named template against data and returns the result.
 // Panics on error: templates are static and data is validated; any failure is a programmer bug.

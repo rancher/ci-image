@@ -144,6 +144,17 @@ func renderEntry(entry Entry) string {
 		for _, sc := range ic.SelectorDefaultChanged {
 			fmt.Fprintf(&sb, "- `%s` selector default: `%s` → `%s`\n", sc.Family, sc.From, sc.To)
 		}
+		for _, hc := range ic.ToolHooksChanged {
+			switch hc.ChangeType {
+			case "added":
+				fmt.Fprintf(&sb, "- `%s`: added %s-install hook (`%s`)\n", hc.Tool, hc.HookType, hc.NewChecksum[:8])
+			case "removed":
+				fmt.Fprintf(&sb, "- `%s`: removed %s-install hook\n", hc.Tool, hc.HookType)
+			case "modified":
+				fmt.Fprintf(&sb, "- `%s`: updated %s-install hook (`%s` → `%s`)\n",
+					hc.Tool, hc.HookType, hc.OldChecksum[:8], hc.NewChecksum[:8])
+			}
+		}
 		if len(entry.Changes.PackagesAdded) > 0 || len(entry.Changes.PackagesRemoved) > 0 {
 			sb.WriteString("- Universal package changes\n")
 		}

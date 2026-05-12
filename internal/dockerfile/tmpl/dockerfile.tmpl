@@ -12,8 +12,17 @@ ENV DO_NOT_TRACK=true
 {{end}}
 {{template "zypper.tmpl" .Packages}}
 
+# Create runner group (GID 121) and user (UID 1001) early for use in tool installations.
+# /var/ci-tools/ is set up with setgid (2755) so subdirectories inherit the runner group.
+# This allows any user added to the runner group to access tools extracted to /var/ci-tools/.
+RUN groupadd -g 121 runner && \
+    useradd -u 1001 -g 121 -m runner && \
+    mkdir -p /var/ci-tools && \
+    chown root:runner /var/ci-tools && \
+    chmod 2755 /var/ci-tools
+
 {{range .Tools}}# {{.Name}} {{.Version}}
-{{.Install.Render}}
+{{.Setup.RenderPre}}{{.Install.Render}}{{.Setup.RenderPost}}
 
 {{end}}{{if .Selectors}}# Family selectors — copy scripts and set up manifest + active symlinks.
 # /var/ci-tools/active is on PATH ahead of /usr/local/bin; runner can update
@@ -29,14 +38,9 @@ RUN {{range $i, $a := .Aliases}}{{if $i}} && \
 {{end}}{{if .HasGoInstall}}# Cleanup Go caches
 RUN go clean -cache -modcache
 
-{{end}}# Create a new group with GID 121 and a new user with UID 1001, add the user
-# to the group, create a home directory for the user.
-{{- if .Selectors}}
-# Also set up CI tool family infrastructure (requires runner group to exist).
-RUN groupadd -g 121 runner && useradd -u 1001 -g 121 -m runner \
-    && {{.SelectorSetupCmd}}
-{{- else}}
-RUN groupadd -g 121 runner && useradd -u 1001 -g 121 -m runner
+{{end}}{{- if .Selectors}}
+# Set up CI tool family infrastructure (runner user and group created earlier).
+RUN {{.SelectorSetupCmd}}
 {{- end}}
 
 {{if .HasAnyOfPackages "git" "git-core"}}# We trust our base image and the repos that are pulled in workflows. Otherwise

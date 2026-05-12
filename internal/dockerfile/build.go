@@ -5,11 +5,36 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"text/template"
 
 	"github.com/rancher/ci-image/internal/config"
 	"github.com/rancher/ci-image/internal/config/renderer"
 	gh "github.com/rancher/ci-image/internal/github"
 )
+
+// Format describes the packaging/compression type of a download artifact.
+type Format string
+
+const (
+	FormatArchive    Format = "archive" // tar/zip archive
+	FormatGzip       Format = "gzip"    // gzipped file (.gz)
+	FormatExecutable Format = "binary"  // raw executable file (binary or script)
+)
+
+// String returns the format as a string.
+func (f Format) String() string {
+	return string(f)
+}
+
+// Validate checks if the format is a known value.
+func (f Format) Validate() error {
+	switch f {
+	case FormatArchive, FormatGzip, FormatExecutable:
+		return nil
+	default:
+		return fmt.Errorf("invalid format: %q (must be one of: archive, gzip, binary)", f)
+	}
+}
 
 // NewDockerfileVars builds a fully-resolved DockerfileVars for img.
 // All template rendering is performed here; if construction succeeds,
@@ -18,6 +43,12 @@ import (
 // cfg.Tools must already have checksums populated for release-checksums tools
 // (call resolveReleaseChecksums before this).
 func NewDockerfileVars(cfg *config.Config, img config.Image, sourceURL string) (DockerfileVars, error) {
+	// Load hook templates from hooks/ directory (if it exists)
+	hookTemplates, err := loadHookTemplates()
+	if err != nil {
+		return DockerfileVars{}, fmt.Errorf("loading hook templates: %w", err)
+	}
+
 	// Collect tools: universal first (in config order), then image-specific.
 	toolsByName := make(map[string]config.Tool, len(cfg.Tools))
 	for _, t := range cfg.Tools {
@@ -52,6 +83,7 @@ func NewDockerfileVars(cfg *config.Config, img config.Image, sourceURL string) (
 			Name:    t.Name,
 			Version: t.Version,
 			Install: install,
+			Setup:   buildToolSetup(t, hookTemplates),
 		})
 	}
 	if len(errs) > 0 {
@@ -108,9 +140,9 @@ func NewDockerfileVars(cfg *config.Config, img config.Image, sourceURL string) (
 
 func buildItemInstall(t config.Tool, imgPlatforms map[string]bool) (ItemInstall, error) {
 	switch t.Install.EffectiveMethod() {
-	case "curl":
+	case config.MethodCurl:
 		return buildCurlInstall(t, imgPlatforms)
-	case "go-install":
+	case config.MethodGoInstall:
 		return buildGoInstall(t)
 	default:
 		return nil, fmt.Errorf("unknown install method %q", t.Install.EffectiveMethod())
@@ -169,10 +201,11 @@ func buildCurlInstall(t config.Tool, imgPlatforms map[string]bool) (CurlInstall,
 	format, ext := detectFormat(platforms[0].DownloadURL, platforms[0].Extract)
 
 	return CurlInstall{
-		Name:       t.Name,
-		Format:     format,
-		ArchiveExt: ext,
-		Platforms:  platforms,
+		Name:          t.Name,
+		Format:        format,
+		ArchiveExt:    ext,
+		Platforms:     platforms,
+		InstallToPath: rel.ShouldInstallToPath(),
 	}, nil
 }
 
@@ -190,20 +223,54 @@ func buildGoInstall(t config.Tool) (GoInstall, error) {
 	return GoInstall{Package: pkg}, nil
 }
 
-// detectFormat classifies a rendered download URL as "archive", "archive_script", "gzip", "script", or "binary",
-// and returns the archive extension (non-empty only for "archive").
-func detectFormat(url, extract string) (format, ext string) {
-	if ext = archiveExt(url); ext != "" {
-		if strings.HasSuffix(extract, "install") || strings.HasSuffix(extract, ".sh") {
-			return "archive_script", ext
-		}
-		return "archive", ext
+// buildToolSetup checks for pre/post hook templates for the given tool.
+// Returns nil if no hooks exist, otherwise returns a ToolSetup with template names set.
+func buildToolSetup(t config.Tool, tmpl *template.Template) *ToolSetup {
+	preTemplate := t.Name + "-pre.tmpl"
+	postTemplate := t.Name + "-post.tmpl"
+
+	hasPre := tmpl.Lookup(preTemplate) != nil
+	hasPost := tmpl.Lookup(postTemplate) != nil
+
+	if !hasPre && !hasPost {
+		return nil // No hooks for this tool
 	}
+
+	setup := &ToolSetup{
+		Name:      t.Name,
+		templates: tmpl,
+	}
+	if hasPre {
+		setup.PreTemplate = preTemplate
+	}
+	if hasPost {
+		setup.PostTemplate = postTemplate
+	}
+	return setup
+}
+
+// detectFormat classifies a download URL into a format based on packaging/compression.
+// Returns one of: FormatArchive, FormatGzip, FormatExecutable.
+// For archives, also returns the archive extension (.tar.gz, .zip, etc).
+//
+// Detection logic:
+// 1. If URL is an archive (.tar.gz, .zip, etc) → FormatArchive
+// 2. If URL ends with .gz (but not .tar.gz) → FormatGzip
+// 3. Otherwise → FormatExecutable
+//
+// Format describes the artifact packaging, NOT what to do with it (copy vs run).
+// That distinction is handled at template selection time based on ScriptArgs.
+func detectFormat(url string) (Format, string) {
+	// Check for archives first
+	if ext := archiveExt(url); ext != "" {
+		return FormatArchive, ext
+	}
+
+	// Gzipped executable
 	if isGzipBinaryURL(url) {
-		return "gzip", ""
+		return FormatGzip, ""
 	}
-	if isScriptURL(url) {
-		return "script", ""
-	}
-	return "binary", ""
+
+	// Default to raw executable (binary or script)
+	return FormatExecutable, ""
 }

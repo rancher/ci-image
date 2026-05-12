@@ -74,6 +74,54 @@ jobs:
 
 Pin to a specific date-stamped tag (e.g. `go1.26:20240419-42`) for fully reproducible workflows.
 
+## Advanced Features
+
+### Tool Installation Hooks
+
+You can customize tool installation by adding pre-install or post-install hooks. Hooks are Go templates placed in the `hooks/` directory that inject additional Dockerfile commands before or after a tool is installed.
+
+**Hook naming convention:**
+- `hooks/{toolname}-pre.tmpl` - runs before tool installation
+- `hooks/{toolname}-post.tmpl` - runs after tool installation
+
+**Use cases:**
+- Create directories or configuration files before installation
+- Run custom install scripts that come with the tool
+- Set up environment variables or permissions
+- Clean up temporary files after installation
+
+**Example pre-hook:**
+```dockerfile
+# hooks/mytool-pre.tmpl
+RUN mkdir -p /opt/mytool-config
+RUN echo "config_option=value" > /opt/mytool-config/settings.conf
+```
+
+**Example post-hook:**
+```dockerfile
+# hooks/mytool-post.tmpl
+RUN /var/ci-tools/mytool/install.sh --daemon
+RUN chmod +x /usr/local/bin/mytool
+```
+
+**Accessing tool files:** For tools that include install scripts or other files, set `install_to_path: false` in the `release:` block in `deps.yaml`. This extracts the tool to `/var/ci-tools/{toolname}/` instead of installing directly to `/usr/local/bin`, making all files available to hooks:
+
+```yaml
+tools:
+  - name: mytool
+    source: owner/repo
+    version: v1.0.0
+    checksums:
+      linux/amd64: "checksum-here"
+      linux/arm64: "checksum-here"
+    release:
+      download_template: "mytool-{version}-{os}-{arch}.tar.gz"
+      extract: "mytool-{version}-{os}-{arch}"
+      install_to_path: false  # Extract to /var/ci-tools/mytool/ for hooks
+```
+
+Hook changes are automatically tracked in the changelog and `images-lock.yaml` with MD5 checksums, ensuring any modification triggers a rebuild of affected images.
+
 ---
 
 For adding tools, new Go versions, or modifying the build system, see [CONTRIBUTING.md](CONTRIBUTING.md).

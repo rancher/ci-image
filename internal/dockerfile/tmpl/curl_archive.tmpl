@@ -29,5 +29,6 @@ RUN case "${ARCH}" in \
     sha256sum -c "${INSTALL_DIR}/checksum.sha256" && \
     cd "${INSTALL_DIR}" && \
     tar xf "{{.Name}}{{.ArchiveExt}}" && \
+    chmod -R a+rX . && \
     rm "{{.Name}}{{.ArchiveExt}}" checksum.sha256
 {{- end}}

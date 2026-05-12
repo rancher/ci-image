@@ -28,6 +28,6 @@ RUN case "${ARCH}" in \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${INSTALL_DIR}/checksum.sha256" && \
     sha256sum -c "${INSTALL_DIR}/checksum.sha256" && \
     cd "${INSTALL_DIR}" && \
-    {{extractCmd .ArchiveExt}} && \
-    rm "${TMP_FILE}" "${INSTALL_DIR}/checksum.sha256"
+    tar xf "{{.Name}}{{.ArchiveExt}}" && \
+    rm "{{.Name}}{{.ArchiveExt}}" checksum.sha256
 {{- end}}

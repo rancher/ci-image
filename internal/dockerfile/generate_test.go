@@ -629,9 +629,19 @@ func TestGenerate_InstallToPath_False(t *testing.T) {
 		t.Errorf("Generate() should use mktemp for temp extraction when install_to_path: false\n\nFull output:\n%s", content)
 	}
 
-	// Should copy extracted file to INSTALL_DIR
-	if !strings.Contains(content, `cp -a "${TMP_DIR}/${EXTRACT}" "${INSTALL_DIR}/"`) {
-		t.Errorf("Generate() should copy extracted file to INSTALL_DIR when install_to_path: false\n\nFull output:\n%s", content)
+	// Should set FULL_EXTRACT_PATH
+	if !strings.Contains(content, `FULL_EXTRACT_PATH="${TMP_DIR}/${EXTRACT}"`) {
+		t.Errorf("Generate() should set FULL_EXTRACT_PATH when install_to_path: false\n\nFull output:\n%s", content)
+	}
+
+	// Should compute EXTRACT_DIR from full path
+	if !strings.Contains(content, `EXTRACT_DIR=$(dirname "${FULL_EXTRACT_PATH}")`) {
+		t.Errorf("Generate() should compute EXTRACT_DIR from FULL_EXTRACT_PATH when install_to_path: false\n\nFull output:\n%s", content)
+	}
+
+	// Should have conditional logic for directory vs file extraction
+	if !strings.Contains(content, `if [ "${EXTRACT_DIR}" != "${TMP_DIR}" ]`) {
+		t.Errorf("Generate() should check EXTRACT_DIR vs TMP_DIR when install_to_path: false\n\nFull output:\n%s", content)
 	}
 
 	// Should NOT install to /usr/local/bin

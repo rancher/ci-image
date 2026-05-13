@@ -624,29 +624,24 @@ func TestGenerate_InstallToPath_False(t *testing.T) {
 		t.Errorf("Generate() should create INSTALL_DIR when install_to_path: false\n\nFull output:\n%s", content)
 	}
 
-	// Should extract to INSTALL_DIR
-	if !strings.Contains(content, `cd "${INSTALL_DIR}"`) {
-		t.Errorf("Generate() should cd to INSTALL_DIR when install_to_path: false\n\nFull output:\n%s", content)
+	// Should use mktemp for extraction
+	if !strings.Contains(content, "export TMP_DIR=$(mktemp -d)") {
+		t.Errorf("Generate() should use mktemp for temp extraction when install_to_path: false\n\nFull output:\n%s", content)
+	}
+
+	// Should copy extracted file to INSTALL_DIR
+	if !strings.Contains(content, `cp -a "${TMP_DIR}/${EXTRACT}" "${INSTALL_DIR}/"`) {
+		t.Errorf("Generate() should copy extracted file to INSTALL_DIR when install_to_path: false\n\nFull output:\n%s", content)
 	}
 
 	// Should NOT install to /usr/local/bin
-	if strings.Contains(content, `install "${TMP_DIR}`) || strings.Contains(content, `/usr/local/bin/nix`) {
+	if strings.Contains(content, `/usr/local/bin/nix`) {
 		t.Errorf("Generate() should not install to /usr/local/bin when install_to_path: false\n\nFull output:\n%s", content)
 	}
 
-	// Should NOT cleanup the entire directory (only archive and checksum)
-	if strings.Contains(content, `rm -rf "${INSTALL_DIR}"`) {
-		t.Errorf("Generate() should not rm -rf INSTALL_DIR when install_to_path: false\n\nFull output:\n%s", content)
-	}
-
-	// Should cleanup only the archive and checksum file
-	if !strings.Contains(content, `rm "${TMP_FILE}" "${INSTALL_DIR}/checksum.sha256"`) {
-		t.Errorf("Generate() should cleanup archive and checksum when install_to_path: false\n\nFull output:\n%s", content)
-	}
-
-	// Should NOT use mktemp
-	if strings.Contains(content, "mktemp -d") {
-		t.Errorf("Generate() should not use mktemp when install_to_path: false\n\nFull output:\n%s", content)
+	// Should cleanup temp directory
+	if !strings.Contains(content, `rm -rf "${TMP_DIR}"`) {
+		t.Errorf("Generate() should cleanup TMP_DIR when install_to_path: false\n\nFull output:\n%s", content)
 	}
 }
 

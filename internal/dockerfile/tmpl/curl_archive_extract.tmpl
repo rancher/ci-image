@@ -4,6 +4,8 @@ RUN case "${ARCH}" in \
 {{- end}}
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
+    export INSTALL_DIR="/var/ci-tools/{{.Name}}" && \
+    mkdir -p "${INSTALL_DIR}" && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/{{.Name}}{{.ArchiveExt}}" && \
     case "${ARCH}" in \
@@ -15,5 +17,11 @@ RUN case "${ARCH}" in \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
     sha256sum -c "${TMP_DIR}/checksum.sha256" && \
     {{extractCmd .ArchiveExt}} && \
-    install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/{{.Name}}" && \
+    FULL_EXTRACT_PATH="${TMP_DIR}/${EXTRACT}" && \
+    EXTRACT_DIR=$(dirname "${FULL_EXTRACT_PATH}") && \
+    if [ "${EXTRACT_DIR}" != "${TMP_DIR}" ]; then \
+        cp -a "${FULL_EXTRACT_PATH}" "${INSTALL_DIR}/"; \
+    else \
+        (cd "${FULL_EXTRACT_PATH}" && cp -a . "${INSTALL_DIR}/"); \
+    fi && \
     rm -rf "${TMP_DIR}"

@@ -624,29 +624,34 @@ func TestGenerate_InstallToPath_False(t *testing.T) {
 		t.Errorf("Generate() should create INSTALL_DIR when install_to_path: false\n\nFull output:\n%s", content)
 	}
 
-	// Should extract to INSTALL_DIR
-	if !strings.Contains(content, `cd "${INSTALL_DIR}"`) {
-		t.Errorf("Generate() should cd to INSTALL_DIR when install_to_path: false\n\nFull output:\n%s", content)
+	// Should use mktemp for extraction
+	if !strings.Contains(content, "export TMP_DIR=$(mktemp -d)") {
+		t.Errorf("Generate() should use mktemp for temp extraction when install_to_path: false\n\nFull output:\n%s", content)
+	}
+
+	// Should set FULL_EXTRACT_PATH
+	if !strings.Contains(content, `FULL_EXTRACT_PATH="${TMP_DIR}/${EXTRACT}"`) {
+		t.Errorf("Generate() should set FULL_EXTRACT_PATH when install_to_path: false\n\nFull output:\n%s", content)
+	}
+
+	// Should compute EXTRACT_DIR from full path
+	if !strings.Contains(content, `EXTRACT_DIR=$(dirname "${FULL_EXTRACT_PATH}")`) {
+		t.Errorf("Generate() should compute EXTRACT_DIR from FULL_EXTRACT_PATH when install_to_path: false\n\nFull output:\n%s", content)
+	}
+
+	// Should have conditional logic for directory vs file extraction
+	if !strings.Contains(content, `if [ "${EXTRACT_DIR}" != "${TMP_DIR}" ]`) {
+		t.Errorf("Generate() should check EXTRACT_DIR vs TMP_DIR when install_to_path: false\n\nFull output:\n%s", content)
 	}
 
 	// Should NOT install to /usr/local/bin
-	if strings.Contains(content, `install "${TMP_DIR}`) || strings.Contains(content, `/usr/local/bin/nix`) {
+	if strings.Contains(content, `/usr/local/bin/nix`) {
 		t.Errorf("Generate() should not install to /usr/local/bin when install_to_path: false\n\nFull output:\n%s", content)
 	}
 
-	// Should NOT cleanup the entire directory (only archive and checksum)
-	if strings.Contains(content, `rm -rf "${INSTALL_DIR}"`) {
-		t.Errorf("Generate() should not rm -rf INSTALL_DIR when install_to_path: false\n\nFull output:\n%s", content)
-	}
-
-	// Should cleanup only the archive and checksum file
-	if !strings.Contains(content, `rm "${TMP_FILE}" "${INSTALL_DIR}/checksum.sha256"`) {
-		t.Errorf("Generate() should cleanup archive and checksum when install_to_path: false\n\nFull output:\n%s", content)
-	}
-
-	// Should NOT use mktemp
-	if strings.Contains(content, "mktemp -d") {
-		t.Errorf("Generate() should not use mktemp when install_to_path: false\n\nFull output:\n%s", content)
+	// Should cleanup temp directory
+	if !strings.Contains(content, `rm -rf "${TMP_DIR}"`) {
+		t.Errorf("Generate() should cleanup TMP_DIR when install_to_path: false\n\nFull output:\n%s", content)
 	}
 }
 

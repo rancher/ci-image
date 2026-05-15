@@ -101,7 +101,11 @@ type CurlInstall struct {
 func (c CurlInstall) Method() string { return "curl" }
 
 func (c CurlInstall) Render() string {
-	return executeTemplate("curl_"+c.Format.String()+".tmpl", c)
+	suffix := ""
+	if c.Format == FormatArchive && !c.InstallToPath {
+		suffix = "_extract"
+	}
+	return executeTemplate("curl_"+c.Format.String()+suffix+".tmpl", c)
 }
 
 // GoInstall is the resolved spec for a go-install tool.

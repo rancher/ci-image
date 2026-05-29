@@ -4,6 +4,36 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20260529-17 (2026-05-29)
+
+### Image: go1.25:20260529-17
+
+- Added: `yq` `v4.53.2`
+
+### Image: go1.26:20260529-17
+
+- Added: `yq` `v4.53.2`
+
+### Image: python3.11:20260529-17
+
+- Added: `yq` `v4.53.2`
+
+### Image: python3.13:20260529-17
+
+- Added: `yq` `v4.53.2`
+
+### Image: node22:20260529-17
+
+- Added: `yq` `v4.53.2`
+
+### Image: node24:20260529-17
+
+- Added: `yq` `v4.53.2`
+
+### Image: charts:20260529-17
+
+- Added: `yq` `v4.53.2`
+
 ## Revision: 20260512-16 (2026-05-12)
 
 _No notable changes._

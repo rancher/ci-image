@@ -137,6 +137,23 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/slsactl" && \
     rm -rf "${TMP_DIR}"
 
+# yq v4.53.2
+RUN case "${ARCH}" in \
+        amd64) CHECKSUM="d56bf5c6819e8e696340c312bd70f849dc1678a7cda9c2ad63eebd906371d56b" ;; \
+        arm64) CHECKSUM="03061b2a50c7a498de2bbb92d7cb078ce433011f085a4994117c2726be4106ea" ;; \
+        *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
+    esac && \
+    export TMP_DIR=$(mktemp -d) && \
+    case "${ARCH}" in \
+        amd64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.53.2/yq_linux_amd64" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.53.2/yq_linux_arm64" ;; \
+    esac && \
+    curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/yq" && \
+    printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/yq" > "${TMP_DIR}/checksum.sha256" && \
+    sha256sum -c "${TMP_DIR}/checksum.sha256" && \
+    install "${TMP_DIR}/yq" "/usr/local/bin/yq" && \
+    rm -rf "${TMP_DIR}"
+
 # golangci-lint v2.11.4
 ENV golangci-lint_version="v2.11.4"
 RUN case "${ARCH}" in \

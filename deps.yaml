@@ -144,6 +144,15 @@ universal:
       download_template: "slsactl_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "slsactl"
 
+  - name: yq
+    source: mikefarah/yq
+    version: v4.53.2
+    checksums:
+      linux/amd64: "d56bf5c6819e8e696340c312bd70f849dc1678a7cda9c2ad63eebd906371d56b"
+      linux/arm64: "03061b2a50c7a498de2bbb92d7cb078ce433011f085a4994117c2726be4106ea"
+    release:
+      download_template: "yq_{os}_{arch}"
+
 tools:
   - name: golangci-lint
     source: golangci/golangci-lint

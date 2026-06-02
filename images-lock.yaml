@@ -37,6 +37,7 @@ tools:
     ob-charts-tool: v0.5.0
     oras: v1.3.1
     slsactl: v0.1.30
+    yq: v4.53.2
 selectors:
     - helm
 configs:
@@ -59,6 +60,7 @@ configs:
             - ob-charts-tool
             - oras
             - slsactl
+            - yq
         family_selectors:
             helm: helmv4
         description: Rancher charts build environment
@@ -80,6 +82,7 @@ configs:
             - helmv4
             - oras
             - slsactl
+            - yq
         aliases:
             helm_v3: helmv3
         family_selectors:
@@ -104,6 +107,7 @@ configs:
             - helmv4
             - oras
             - slsactl
+            - yq
         aliases:
             helm_v3: helmv3
         family_selectors:
@@ -140,6 +144,7 @@ configs:
             - helmv3
             - helmv4
             - slsactl
+            - yq
         family_selectors:
             helm: helmv4
         description: CI image with Node 22 toolchain
@@ -154,6 +159,7 @@ configs:
             - helmv3
             - helmv4
             - slsactl
+            - yq
         family_selectors:
             helm: helmv4
         description: CI image with Node 24 toolchain
@@ -168,6 +174,7 @@ configs:
             - helmv3
             - helmv4
             - slsactl
+            - yq
         family_selectors:
             helm: helmv4
         description: CI image with Python 3.11 toolchain
@@ -182,6 +189,7 @@ configs:
             - helmv3
             - helmv4
             - slsactl
+            - yq
         family_selectors:
             helm: helmv4
         description: CI image with Python 3.13 toolchain

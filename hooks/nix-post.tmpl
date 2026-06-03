@@ -1,0 +1,19 @@
+# Fix ownership and run Nix installer from the extracted archive
+RUN set -e; \
+    sudo chown -R suse:runner /var/ci-tools/nix
+
+# Switch to unprivileged user for installation
+USER suse
+WORKDIR /home/suse
+ENV USER=suse
+
+RUN set -e; \
+    cd /var/ci-tools/nix && \
+    ./install --no-daemon
+
+RUN set -e; \
+    install -d .config/nix/profiles
+
+# Restore root user for remaining Dockerfile operations
+USER root
+ENV USER=root

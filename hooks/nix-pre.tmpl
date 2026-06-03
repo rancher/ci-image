@@ -1,0 +1,14 @@
+# Create unprivileged user for Nix installation
+RUN useradd -m suse && \
+    if [ ! -f /etc/sudoers ]; then touch /etc/sudoers; fi && \
+    echo "suse ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Add suse user to runner group and create /etc/nix directory and configuration
+RUN usermod -a -G runner suse && \
+    sudo mkdir -p /etc/nix && \
+    printf "build-users-group =\nsandbox = false\nfilter-syscalls = false\n" > /etc/nix/nix.conf && \
+    sudo chown -R suse:runner /etc/nix && \
+    sudo mkdir -p /nix && \
+    sudo chown -R suse:runner /nix && \
+    echo 'source /home/suse/.nix-profile/etc/profile.d/nix.sh' > /etc/profile.d/nix.sh && \
+    echo 'source /home/suse/.nix-profile/etc/profile.d/nix.sh' > /etc/bash.bashrc.local

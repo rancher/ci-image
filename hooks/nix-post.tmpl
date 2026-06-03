@@ -8,13 +8,11 @@ WORKDIR /home/suse
 ENV USER=suse
 
 RUN set -e; \
-    case "${ARCH}" in \
-        amd64) extract="nix-${nix_version}-x86_64-linux/install" ;; \
-        arm64) extract="nix-${nix_version}-aarch64-linux/install" ;; \
-        *) echo "unsupported architecture: ${ARCH}" >&2; exit 1 ;; \
-    esac; \
     cd /var/ci-tools/nix && \
-    ./${extract} --no-daemon
+    ./install --no-daemon
+
+RUN set -e; \
+    install -d .config/nix/profiles
 
 # Restore root user for remaining Dockerfile operations
 USER root

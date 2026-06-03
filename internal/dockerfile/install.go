@@ -45,4 +45,3 @@ func isGzipBinaryURL(url string) bool {
 	u := urlExt(url)
 	return strings.HasSuffix(u, ".gz") && !strings.HasSuffix(u, ".tar.gz")
 }
-

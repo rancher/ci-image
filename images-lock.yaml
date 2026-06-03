@@ -40,6 +40,14 @@ tools:
     yq: v4.53.2
 selectors:
     - helm
+hooks:
+    nix:
+        pre:
+            name: nix-pre.tmpl
+            checksum: 523b5a96366cae6a5ebe5f64d7df43b3
+        post:
+            name: nix-post.tmpl
+            checksum: 3cc315f4364a4bdc66ae08273ab09270
 configs:
     charts:
         base: registry.suse.com/bci/bci-base:15.7@sha256:3292c81fb9e40b60903e6c88fac34e955b6d5b3acd3eb055d02d5c1538a72aea
@@ -125,11 +133,11 @@ configs:
         tools:
             - cosign
             - gh
-            - goreleaser
             - helmv3
             - helmv4
             - nix
             - slsactl
+            - yq
         family_selectors:
             helm: helmv4
         description: Nix environment

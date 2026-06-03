@@ -40,7 +40,6 @@ RUN groupadd -g 121 runner && \
     chmod 2755 /var/ci-tools
 
 # cosign v3.0.6
-ENV cosign_version="v3.0.6"
 RUN case "${ARCH}" in \
         amd64) CHECKSUM="c956e5dfcac53d52bcf058360d579472f0c1d2d9b69f55209e256fe7783f4c74" ;; \
         arm64) CHECKSUM="bedac92e8c3729864e13d4a17048007cfafa79d5deca993a43a90ffe018ef2b8" ;; \
@@ -58,7 +57,6 @@ RUN case "${ARCH}" in \
     rm -rf "${TMP_DIR}"
 
 # gh v2.89.0
-ENV gh_version="v2.89.0"
 RUN case "${ARCH}" in \
         amd64) CHECKSUM="d0422caade520530e76c1c558da47daebaa8e1203d6b7ff10ad7d6faba3490d8" ;; \
         arm64) CHECKSUM="9e64a623dfc242990aa5d9b3f507111149c4282f66b68eaad1dc79eeb13b9ce5" ;; \
@@ -78,7 +76,6 @@ RUN case "${ARCH}" in \
     rm -rf "${TMP_DIR}"
 
 # helmv3 v3.20.2
-ENV helmv3_version="v3.20.2"
 RUN case "${ARCH}" in \
         amd64) CHECKSUM="258e830a9e613c8a7a302d6059b4bb3b9758f2f3e1bb8ea0d707ce10a9a72fea" ;; \
         arm64) CHECKSUM="5ea2d6bc2cda3f8edf985e028809f5a9278f404fb8ab24044de9b7cb9b79a691" ;; \
@@ -98,7 +95,6 @@ RUN case "${ARCH}" in \
     rm -rf "${TMP_DIR}"
 
 # helmv4 v4.1.4
-ENV helmv4_version="v4.1.4"
 RUN case "${ARCH}" in \
         amd64) CHECKSUM="70b2c30a19da4db264dfd68c8a3664e05093a361cefd89572ffb36f8abfa3d09" ;; \
         arm64) CHECKSUM="13d03672be289045d2ff00e4e345d61de1c6f21c1257a45955a30e8ae036d8f1" ;; \
@@ -118,7 +114,6 @@ RUN case "${ARCH}" in \
     rm -rf "${TMP_DIR}"
 
 # slsactl v0.1.30
-ENV slsactl_version="v0.1.30"
 RUN case "${ARCH}" in \
         amd64) CHECKSUM="7ed4750766c135ddcae788d194d7ff59a57c6debdc722fd1e52c06460218f10a" ;; \
         arm64) CHECKSUM="bbbe66089135c82526677177c080f5ca4911ad1989712596338c5acdae4bb383" ;; \
@@ -137,8 +132,24 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/slsactl" && \
     rm -rf "${TMP_DIR}"
 
+# yq v4.53.2
+RUN case "${ARCH}" in \
+        amd64) CHECKSUM="d56bf5c6819e8e696340c312bd70f849dc1678a7cda9c2ad63eebd906371d56b" ;; \
+        arm64) CHECKSUM="03061b2a50c7a498de2bbb92d7cb078ce433011f085a4994117c2726be4106ea" ;; \
+        *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
+    esac && \
+    export TMP_DIR=$(mktemp -d) && \
+    case "${ARCH}" in \
+        amd64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.53.2/yq_linux_amd64" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.53.2/yq_linux_arm64" ;; \
+    esac && \
+    curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/yq" && \
+    printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/yq" > "${TMP_DIR}/checksum.sha256" && \
+    sha256sum -c "${TMP_DIR}/checksum.sha256" && \
+    install "${TMP_DIR}/yq" "/usr/local/bin/yq" && \
+    rm -rf "${TMP_DIR}"
+
 # nix 2.34.7
-ENV nix_version="2.34.7"
 
 # Pre-install setup for nix
 # Create unprivileged user for Nix installation
@@ -163,18 +174,24 @@ RUN case "${ARCH}" in \
     esac && \
     export INSTALL_DIR="/var/ci-tools/nix" && \
     mkdir -p "${INSTALL_DIR}" && \
-    export TMP_FILE="${INSTALL_DIR}/nix.tar.xz" && \
+    export TMP_DIR=$(mktemp -d) && \
+    export TMP_FILE="${TMP_DIR}/nix.tar.xz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://releases.nixos.org/nix/nix-2.34.7/nix-2.34.7-x86_64-linux.tar.xz"; EXTRACT="nix-2.34.7-x86_64-linux/install" ;; \
-        arm64) DOWNLOAD_URL="https://releases.nixos.org/nix/nix-2.34.7/nix-2.34.7-aarch64-linux.tar.xz"; EXTRACT="nix-2.34.7-aarch64-linux/install" ;; \
+        amd64) DOWNLOAD_URL="https://releases.nixos.org/nix/nix-2.34.7/nix-2.34.7-x86_64-linux.tar.xz"; EXTRACT="nix-2.34.7-x86_64-linux/" ;; \
+        arm64) DOWNLOAD_URL="https://releases.nixos.org/nix/nix-2.34.7/nix-2.34.7-aarch64-linux.tar.xz"; EXTRACT="nix-2.34.7-aarch64-linux/" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
-    printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${INSTALL_DIR}/checksum.sha256" && \
-    sha256sum -c "${INSTALL_DIR}/checksum.sha256" && \
-    cd "${INSTALL_DIR}" && \
-    tar xf "${TMP_FILE}" && \
-    chmod -R a+rX . && \
-    rm "${TMP_FILE}" "${INSTALL_DIR}/checksum.sha256"
+    printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
+    sha256sum -c "${TMP_DIR}/checksum.sha256" && \
+    tar xJf "${TMP_FILE}" -C "${TMP_DIR}" && \
+    FULL_EXTRACT_PATH="${TMP_DIR}/${EXTRACT}" && \
+    EXTRACT_DIR=$(dirname "${FULL_EXTRACT_PATH}") && \
+    if [ "${EXTRACT_DIR}" != "${TMP_DIR}" ]; then \
+        cp -a "${FULL_EXTRACT_PATH}" "${INSTALL_DIR}/"; \
+    else \
+        (cd "${FULL_EXTRACT_PATH}" && cp -a . "${INSTALL_DIR}/"); \
+    fi && \
+    rm -rf "${TMP_DIR}"
 
 # Post-install setup for nix
 # Fix ownership and run Nix installer from the extracted archive
@@ -187,37 +204,15 @@ WORKDIR /home/suse
 ENV USER=suse
 
 RUN set -e; \
-    case "${ARCH}" in \
-        amd64) extract="nix-${nix_version}-x86_64-linux/install" ;; \
-        arm64) extract="nix-${nix_version}-aarch64-linux/install" ;; \
-        *) echo "unsupported architecture: ${ARCH}" >&2; exit 1 ;; \
-    esac; \
     cd /var/ci-tools/nix && \
-    ./${extract} --no-daemon
+    ./install --no-daemon
+
+RUN set -e; \
+    install -d .config/nix/profiles
 
 # Restore root user for remaining Dockerfile operations
 USER root
 ENV USER=root
-
-# goreleaser v2.15.2
-ENV goreleaser_version="v2.15.2"
-RUN case "${ARCH}" in \
-        amd64) CHECKSUM="0ebdbf0353aba566b969dde746cc4e4806f96c27aa2f3971b229a9df7611fedc" ;; \
-        arm64) CHECKSUM="5db66761a98f6693161e49e1a95d28d2673a892ba60cb4a5e16736cafd41c4c9" ;; \
-        *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
-    esac && \
-    export TMP_DIR=$(mktemp -d) && \
-    export TMP_FILE="${TMP_DIR}/goreleaser.tar.gz" && \
-    case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/goreleaser/goreleaser/releases/download/v2.15.2/goreleaser_Linux_x86_64.tar.gz"; EXTRACT="goreleaser" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/goreleaser/goreleaser/releases/download/v2.15.2/goreleaser_Linux_arm64.tar.gz"; EXTRACT="goreleaser" ;; \
-    esac && \
-    curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
-    printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
-    sha256sum -c "${TMP_DIR}/checksum.sha256" && \
-    tar xzf "${TMP_FILE}" -C "${TMP_DIR}" && \
-    install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/goreleaser" && \
-    rm -rf "${TMP_DIR}"
 
 # Family selectors — copy scripts and set up manifest + active symlinks.
 # /var/ci-tools/active is on PATH ahead of /usr/local/bin; runner can update

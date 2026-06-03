@@ -72,7 +72,6 @@ images:
       - vim
     tools:
       - nix
-      - goreleaser
 
 packages:
   - gettext-runtime
@@ -220,5 +219,5 @@ tools:
       linux/arm64: "f1cee64ae7a02330c6421924c28f597c41813f2214ff108622087d8056378b08"
     release:
       download_template: "{source}/nix-{version}/nix-{version}-{arch|replace:amd64=x86_64|replace:arm64=aarch64}-{os}.tar.xz"
-      extract: "nix-{version}-{arch|replace:amd64=x86_64|replace:arm64=aarch64}-{os}/install"
+      extract: "nix-{version}-{arch|replace:amd64=x86_64|replace:arm64=aarch64}-{os}/"
       install_to_path: false

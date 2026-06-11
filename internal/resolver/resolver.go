@@ -1,11 +1,14 @@
 // Package resolver resolves release-checksums tool versions and checksums.
 //
-// There are two operations:
+// There are three operations:
 //   - ApplyLock: used by generate — reads version and checksums exclusively
 //     from deps.lock and applies them to cfg. No network calls are made.
 //   - Update: used by the update command — queries upstream for the latest
 //     release, fetches checksums, and writes new entries into the lock.
 //     If a version has changed since the last lock write, a warning is logged.
+//   - ValidateLock: used by validate — re-fetches checksums for the versions
+//     recorded in deps.lock and verifies they match. Detects tampering or
+//     manual edits that introduced incorrect checksums.
 package resolver
 
 import (
@@ -91,6 +94,74 @@ func Update(cfg *config.Config, lk *lock.Lock) error {
 		}
 		log.Printf("tool %q: resolved %s", t.Name, version)
 	}
+	return nil
+}
+
+// ValidateLock verifies that the checksums recorded in lk match the actual
+// checksums for the stated versions. This detects tampering or manual edits
+// where the version was changed but checksums weren't updated correctly.
+//
+// Returns an error if any tool's checksums don't match what's upstream for
+// the recorded version. Allows stale (old but correct) lock entries.
+func ValidateLock(cfg *config.Config, lk *lock.Lock) error {
+	var errors []string
+
+	for i := range cfg.Tools {
+		t := &cfg.Tools[i]
+		if t.EffectiveMode() != "release-checksums" {
+			continue
+		}
+
+		cached, ok := lk.Tools[t.Name]
+		if !ok || cached.ResolvedVersion == "" || len(cached.Checksums) == 0 {
+			errors = append(errors, fmt.Sprintf("tool %q: not found in deps.lock or missing checksums", t.Name))
+			continue
+		}
+
+		// Use the version from the lock, not "latest"
+		version := cached.ResolvedVersion
+
+		platforms := toolPlatforms(cfg, t)
+		if len(platforms) == 0 {
+			errors = append(errors, fmt.Sprintf("tool %q: no images include this tool — cannot validate", t.Name))
+			continue
+		}
+
+		// Re-fetch checksums for the stated version
+		expectedChecksums, err := fetchChecksums(t, version, platforms)
+		if err != nil {
+			errMsg := fmt.Sprintf("tool %q: failed to fetch checksums for %s: %v", t.Name, version, err)
+			if strings.Contains(err.Error(), "404") {
+				errMsg += "\n    (This may indicate manual editing of deps.lock with a non-existent version, or the release was deleted upstream)"
+			}
+			errors = append(errors, errMsg)
+			continue
+		}
+
+		// Compare fetched checksums against what's in the lock
+		for platform, expectedSum := range expectedChecksums {
+			actualSum, ok := cached.Checksums[platform]
+			if !ok {
+				errors = append(errors, fmt.Sprintf("tool %q (%s): missing checksum for platform %s", t.Name, version, platform))
+				continue
+			}
+			if actualSum != expectedSum {
+				errors = append(errors, fmt.Sprintf("tool %q (%s): checksum mismatch for %s:\n  locked: %s\n  actual: %s", t.Name, version, platform, actualSum, expectedSum))
+			}
+		}
+
+		// Check for extra platforms in lock that aren't needed
+		for platform := range cached.Checksums {
+			if _, ok := expectedChecksums[platform]; !ok {
+				log.Printf("WARNING: tool %q: lock has checksum for platform %s but it's not required by any image", t.Name, platform)
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("deps.lock validation failed:\n  %s", strings.Join(errors, "\n  "))
+	}
+
 	return nil
 }
 

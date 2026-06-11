@@ -272,3 +272,100 @@ func TestUpdate_FirstTime(t *testing.T) {
 		t.Errorf("first-time update should not emit WARNING, got:\n%s", logged())
 	}
 }
+
+// ── ValidateLock (validate path: verify checksums match stated version) ─────
+
+func TestValidateLock_Valid(t *testing.T) {
+	cfg := minimalChartsConfig()
+	lk := &lock.Lock{
+		Tools: map[string]lock.Entry{"ob-charts-tool": obChartsV040Lock},
+	}
+
+	// Mock server that returns the correct checksums for v0.4.0
+	srv := newObChartsTestServer(t, "v0.4.0", obChartsV040Lock.Checksums)
+	t.Cleanup(gh.OverrideHTTPForTest(srv.URL))
+
+	// Should pass validation since checksums match the stated version
+	if err := ValidateLock(cfg, lk); err != nil {
+		t.Fatalf("unexpected error for valid lock: %v", err)
+	}
+}
+
+func TestValidateLock_TamperedChecksums(t *testing.T) {
+	cfg := minimalChartsConfig()
+	// Lock claims v0.4.0 but has checksums from v0.4.1 (simulating tampering)
+	lk := &lock.Lock{
+		Tools: map[string]lock.Entry{
+			"ob-charts-tool": {
+				ResolvedVersion: "v0.4.0",
+				ResolvedAt:      time.Now().UTC(),
+				Checksums:       obChartsV041Checksums, // wrong checksums!
+			},
+		},
+	}
+
+	// Mock server that returns the real checksums for v0.4.0
+	srv := newObChartsTestServer(t, "v0.4.0", obChartsV040Lock.Checksums)
+	t.Cleanup(gh.OverrideHTTPForTest(srv.URL))
+
+	// Should fail validation due to checksum mismatch
+	err := ValidateLock(cfg, lk)
+	if err == nil {
+		t.Fatal("expected error for tampered checksums, got nil")
+	}
+	if !strings.Contains(err.Error(), "checksum mismatch") {
+		t.Errorf("error should mention checksum mismatch, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "ob-charts-tool") {
+		t.Errorf("error should mention tool name, got: %v", err)
+	}
+}
+
+func TestValidateLock_NonExistentVersion(t *testing.T) {
+	cfg := minimalChartsConfig()
+	// Lock claims a version that doesn't exist
+	lk := &lock.Lock{
+		Tools: map[string]lock.Entry{
+			"ob-charts-tool": {
+				ResolvedVersion: "v99.99.99",
+				ResolvedAt:      time.Now().UTC(),
+				Checksums:       obChartsV040Lock.Checksums,
+			},
+		},
+	}
+
+	// Mock server that returns 404 for non-existent version
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "99.99.99") {
+			http.NotFound(w, r)
+			return
+		}
+		t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+		http.NotFound(w, r)
+	}))
+	t.Cleanup(srv.Close)
+	t.Cleanup(gh.OverrideHTTPForTest(srv.URL))
+
+	// Should fail validation due to 404 fetching checksums
+	err := ValidateLock(cfg, lk)
+	if err == nil {
+		t.Fatal("expected error for non-existent version, got nil")
+	}
+	if !strings.Contains(err.Error(), "v99.99.99") {
+		t.Errorf("error should mention the bad version, got: %v", err)
+	}
+}
+
+func TestValidateLock_EmptyLock(t *testing.T) {
+	cfg := minimalChartsConfig()
+	lk := &lock.Lock{Tools: map[string]lock.Entry{}}
+
+	// Should fail validation since the tool is missing from lock
+	err := ValidateLock(cfg, lk)
+	if err == nil {
+		t.Fatal("expected error for missing tool in lock, got nil")
+	}
+	if !strings.Contains(err.Error(), "not found in deps.lock") {
+		t.Errorf("error should mention tool not found, got: %v", err)
+	}
+}

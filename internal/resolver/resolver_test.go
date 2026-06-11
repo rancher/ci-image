@@ -76,6 +76,9 @@ func newObChartsTestServer(t *testing.T, latestTag string, checksums map[string]
 		switch {
 		case r.URL.Path == "/repos/rancher/ob-charts-tool/releases/latest":
 			fmt.Fprintf(w, `{"tag_name":%q}`, latestTag)
+		case r.URL.Path == "/repos/rancher/ob-charts-tool/releases":
+			// Handle list endpoint for tag prefix filtering (default "v" prefix)
+			fmt.Fprintf(w, `[{"tag_name":%q,"prerelease":false,"draft":false}]`, latestTag)
 		case strings.Contains(r.URL.Path, "ob-charts-tool") &&
 			strings.Contains(r.URL.Path, "_checksums.txt"):
 			fmt.Fprint(w, obChartsChecksumFileBody(checksums))
@@ -220,6 +223,11 @@ func TestUpdate_AlreadyUpToDate(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/repos/rancher/ob-charts-tool/releases/latest" {
 			fmt.Fprint(w, `{"tag_name":"v0.4.1"}`)
+			return
+		}
+		if r.URL.Path == "/repos/rancher/ob-charts-tool/releases" {
+			// Handle list endpoint for tag prefix filtering (default "v" prefix)
+			fmt.Fprint(w, `[{"tag_name":"v0.4.1","prerelease":false,"draft":false}]`)
 			return
 		}
 		// Any checksum fetch means the cache-hit path was skipped — fail loudly.

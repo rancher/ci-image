@@ -104,7 +104,7 @@ func resolveVersion(t *config.Tool) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("cannot resolve latest version: %w", err)
 	}
-	return gh.LatestReleaseTag(owner, repo)
+	return gh.LatestReleaseTag(owner, repo, t.TagPrefix())
 }
 
 // toolPlatforms returns the sorted union of platforms across all images that

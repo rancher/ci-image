@@ -127,10 +127,25 @@ func (t *Tool) EffectiveRelease() *ReleaseConfig {
 			if t.Release.InstallToPath != nil {
 				merged.InstallToPath = t.Release.InstallToPath
 			}
+			if t.Release.TagPrefix != nil {
+				merged.TagPrefix = t.Release.TagPrefix
+			}
 		}
 		return &merged
 	}
 	return t.Release
+}
+
+// TagPrefix returns the configured tag prefix for filtering releases.
+// Returns "v" by default (filters to semantic version tags like v1.2.3).
+// Returns empty string if explicitly configured to "" (no filtering).
+// Returns the configured prefix for monorepo sub-packages (e.g. "database/v").
+func (t *Tool) TagPrefix() string {
+	rel := t.EffectiveRelease()
+	if rel != nil && rel.TagPrefix != nil {
+		return *rel.TagPrefix
+	}
+	return "v"
 }
 
 // isGitHubSource reports whether source refers to a GitHub repository.
@@ -152,10 +167,11 @@ func isGitHubSource(source string) bool {
 
 // ReleaseConfig holds URL templates for downloading tool releases.
 type ReleaseConfig struct {
-	DownloadTemplate string `yaml:"download_template"`
-	ChecksumTemplate string `yaml:"checksum_template,omitempty"`
-	Extract          string `yaml:"extract"`
-	InstallToPath    *bool  `yaml:"install_to_path,omitempty"` // if false, extract to /var/ci-tools/{name} and leave for hooks; defaults to true
+	TagPrefix        *string `yaml:"tag_prefix,omitempty"` // filter releases by tag prefix; defaults to "v" if nil
+	DownloadTemplate string  `yaml:"download_template"`
+	ChecksumTemplate string  `yaml:"checksum_template,omitempty"`
+	Extract          string  `yaml:"extract"`
+	InstallToPath    *bool   `yaml:"install_to_path,omitempty"` // if false, extract to /var/ci-tools/{name} and leave for hooks; defaults to true
 }
 
 // ShouldInstallToPath returns whether the tool should be installed to /usr/local/bin after extraction.

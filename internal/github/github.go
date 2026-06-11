@@ -20,7 +20,9 @@ var (
 )
 
 type release struct {
-	TagName string `json:"tag_name"`
+	TagName    string `json:"tag_name"`
+	Prerelease bool   `json:"prerelease"`
+	Draft      bool   `json:"draft"`
 }
 
 // httpClient is a package-level client with a 60-second timeout so hung
@@ -56,8 +58,34 @@ func ParseSourceRepo(source string) (owner, repo string, err error) {
 
 // LatestReleaseTag returns the tag name of the latest release for the given
 // org/repo. Respects the GITHUB_TOKEN environment variable for auth.
-func LatestReleaseTag(owner, repo string) (string, error) {
-	url := fmt.Sprintf("%s/repos/%s/%s/releases/latest", apiBase, owner, repo)
+// If tagPrefix is empty, returns any release (uses GitHub's /releases/latest API).
+// If tagPrefix is non-empty, lists releases and returns the first matching tag.
+func LatestReleaseTag(owner, repo, tagPrefix string) (string, error) {
+	// Fast path: use GitHub's /releases/latest endpoint when no prefix filtering needed
+	if tagPrefix == "" {
+		url := fmt.Sprintf("%s/repos/%s/%s/releases/latest", apiBase, owner, repo)
+		resp, err := doGet(url)
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return "", fmt.Errorf("GitHub API %s: unexpected status %d", url, resp.StatusCode)
+		}
+
+		var r release
+		if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
+			return "", fmt.Errorf("decoding GitHub API response: %w", err)
+		}
+		if r.TagName == "" {
+			return "", fmt.Errorf("GitHub API returned empty tag_name for %s/%s", owner, repo)
+		}
+		return r.TagName, nil
+	}
+
+	// Prefix filtering: list releases and find the first match
+	url := fmt.Sprintf("%s/repos/%s/%s/releases?per_page=100", apiBase, owner, repo)
 	resp, err := doGet(url)
 	if err != nil {
 		return "", err
@@ -68,14 +96,23 @@ func LatestReleaseTag(owner, repo string) (string, error) {
 		return "", fmt.Errorf("GitHub API %s: unexpected status %d", url, resp.StatusCode)
 	}
 
-	var r release
-	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
+	var releases []release
+	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
 		return "", fmt.Errorf("decoding GitHub API response: %w", err)
 	}
-	if r.TagName == "" {
-		return "", fmt.Errorf("GitHub API returned empty tag_name for %s/%s", owner, repo)
+
+	for _, r := range releases {
+		// Skip drafts and prereleases
+		if r.Draft || r.Prerelease {
+			continue
+		}
+		// Check tag prefix
+		if strings.HasPrefix(r.TagName, tagPrefix) && r.TagName != "" {
+			return r.TagName, nil
+		}
 	}
-	return r.TagName, nil
+
+	return "", fmt.Errorf("no release found with tag prefix %q for %s/%s", tagPrefix, owner, repo)
 }
 
 // DownloadAndHash downloads the asset at url, streams it through a SHA-256

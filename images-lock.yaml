@@ -25,7 +25,7 @@ packages:
     - zstd
     - wget
 tools:
-    charts-build-scripts: v1.9.20
+    charts-build-scripts: v1.9.21
     cosign: v3.0.6
     gh: v2.89.0
     golangci-lint: v2.11.4
@@ -34,7 +34,7 @@ tools:
     helmv3: v3.20.2
     helmv4: v4.1.4
     nix: 2.34.7
-    ob-charts-tool: v0.5.0
+    ob-charts-tool: v0.6.0
     oras: v1.3.1
     slsactl: v0.1.30
     yq: v4.53.2

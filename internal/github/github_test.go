@@ -118,7 +118,7 @@ func TestLatestRelease(t *testing.T) {
 	defer srv.Close()
 	withTestServer(t, srv)
 
-	tag, err := LatestReleaseTag("golangci", "golangci-lint")
+	tag, err := LatestReleaseTag("golangci", "golangci-lint", "")
 	if err != nil {
 		t.Fatalf("LatestRelease() unexpected error: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestLatestRelease_NotFound(t *testing.T) {
 	defer srv.Close()
 	withTestServer(t, srv)
 
-	_, err := LatestReleaseTag("nobody", "norepo")
+	_, err := LatestReleaseTag("nobody", "norepo", "")
 	if err == nil {
 		t.Fatal("LatestRelease() expected error for 404, got nil")
 	}
@@ -150,9 +150,104 @@ func TestLatestRelease_EmptyTag(t *testing.T) {
 	defer srv.Close()
 	withTestServer(t, srv)
 
-	_, err := LatestReleaseTag("org", "repo")
+	_, err := LatestReleaseTag("org", "repo", "")
 	if err == nil {
 		t.Fatal("LatestRelease() expected error for empty tag_name, got nil")
+	}
+}
+
+func TestLatestRelease_WithTagPrefix(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/repos/owner/repo/releases" {
+			http.NotFound(w, r)
+			return
+		}
+		fmt.Fprintln(w, `[
+			{"tag_name":"v2.0.0","prerelease":false,"draft":false},
+			{"tag_name":"v1.5.0","prerelease":false,"draft":false},
+			{"tag_name":"stable","prerelease":false,"draft":false},
+			{"tag_name":"v1.0.0","prerelease":false,"draft":false}
+		]`)
+	}))
+	defer srv.Close()
+	withTestServer(t, srv)
+
+	tag, err := LatestReleaseTag("owner", "repo", "v")
+	if err != nil {
+		t.Fatalf("LatestRelease() unexpected error: %v", err)
+	}
+	if tag != "v2.0.0" {
+		t.Errorf("LatestRelease() = %q, want %q", tag, "v2.0.0")
+	}
+}
+
+func TestLatestRelease_SubPackagePrefix(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/repos/owner/repo/releases" {
+			http.NotFound(w, r)
+			return
+		}
+		fmt.Fprintln(w, `[
+			{"tag_name":"v1.0.0","prerelease":false,"draft":false},
+			{"tag_name":"database/v2.5.0","prerelease":false,"draft":false},
+			{"tag_name":"database/v2.0.0","prerelease":false,"draft":false},
+			{"tag_name":"api/v1.0.0","prerelease":false,"draft":false}
+		]`)
+	}))
+	defer srv.Close()
+	withTestServer(t, srv)
+
+	tag, err := LatestReleaseTag("owner", "repo", "database/")
+	if err != nil {
+		t.Fatalf("LatestRelease() unexpected error: %v", err)
+	}
+	if tag != "database/v2.5.0" {
+		t.Errorf("LatestRelease() = %q, want %q", tag, "database/v2.5.0")
+	}
+}
+
+func TestLatestRelease_SkipsPrereleaseAndDraft(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/repos/owner/repo/releases" {
+			http.NotFound(w, r)
+			return
+		}
+		fmt.Fprintln(w, `[
+			{"tag_name":"v2.0.0-beta","prerelease":true,"draft":false},
+			{"tag_name":"v1.9.0","prerelease":false,"draft":true},
+			{"tag_name":"v1.5.0","prerelease":false,"draft":false},
+			{"tag_name":"v1.0.0","prerelease":false,"draft":false}
+		]`)
+	}))
+	defer srv.Close()
+	withTestServer(t, srv)
+
+	tag, err := LatestReleaseTag("owner", "repo", "v")
+	if err != nil {
+		t.Fatalf("LatestRelease() unexpected error: %v", err)
+	}
+	if tag != "v1.5.0" {
+		t.Errorf("LatestRelease() = %q, want %q (should skip prerelease and draft)", tag, "v1.5.0")
+	}
+}
+
+func TestLatestRelease_NoMatchingPrefix(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/repos/owner/repo/releases" {
+			http.NotFound(w, r)
+			return
+		}
+		fmt.Fprintln(w, `[
+			{"tag_name":"stable","prerelease":false,"draft":false},
+			{"tag_name":"2024-06-11","prerelease":false,"draft":false}
+		]`)
+	}))
+	defer srv.Close()
+	withTestServer(t, srv)
+
+	_, err := LatestReleaseTag("owner", "repo", "v")
+	if err == nil {
+		t.Fatal("LatestRelease() expected error for no matching prefix, got nil")
 	}
 }
 

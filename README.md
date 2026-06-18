@@ -76,6 +76,51 @@ Pin to a specific date-stamped tag (e.g. `go1.26:20240419-42`) for fully reprodu
 
 ## Advanced Features
 
+### Tool Family Selection
+
+Some tools are available in multiple versions grouped into "families". For example, the `helm` family includes both `helmv3` and `helmv4`. You can select which version to use as the default command for that family.
+
+**Environment Variable Configuration (Recommended):**
+
+The easiest way to configure tool families is by setting `{FAMILY}_VERSION` environment variables. The container entrypoint will automatically configure the selected version before your command runs.
+
+```yaml
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/rancher/ci-image/charts:latest
+    env:
+      HELM_VERSION: helmv4  # Use Helm v4 as the default 'helm' command
+    steps:
+      - run: helm version  # Runs helmv4
+```
+
+**Manual Selection:**
+
+You can also manually select a tool version within a job step using the `ci-select` command:
+
+```yaml
+steps:
+  - name: Configure Helm v3
+    run: ci-select helm helmv3
+  
+  - name: Deploy with Helm v3
+    run: helm install myapp ./chart
+```
+
+Or use the family-specific wrapper:
+
+```yaml
+steps:
+  - run: select-helm helmv4
+  - run: helm version  # Now uses helmv4
+```
+
+**How it works:**
+
+Tool families use symlinks in `/var/ci-tools/active/` (on PATH ahead of `/usr/local/bin`) to point to the selected version. Each family has a default version that is active when the container starts, unless overridden by environment variables.
+
 ### Tool Installation Hooks
 
 You can customize tool installation by adding pre-install or post-install hooks. Hooks are Go templates placed in the `hooks/` directory that inject additional Dockerfile commands before or after a tool is installed.

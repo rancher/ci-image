@@ -17,6 +17,10 @@ type Changes struct {
 	// Family selector changes (global — a selector was introduced or removed).
 	SelectorsAdded   []SelectorChange
 	SelectorsRemoved []SelectorChange
+	// Script changes (global — generated scripts added/removed/modified).
+	ScriptsAdded    []ScriptChange
+	ScriptsRemoved  []ScriptChange
+	ScriptsModified []ScriptChange
 	// ImageChanges holds per-image diffs (only images with at least one change).
 	ImageChanges []ImageChanges
 	// ImagesAdded and ImagesRemoved track images that appeared or disappeared.
@@ -38,6 +42,7 @@ func (c *Changes) IsEmpty() bool {
 	}
 	return len(c.PackagesAdded) == 0 && len(c.PackagesRemoved) == 0 &&
 		len(c.SelectorsAdded) == 0 && len(c.SelectorsRemoved) == 0 &&
+		len(c.ScriptsAdded) == 0 && len(c.ScriptsRemoved) == 0 && len(c.ScriptsModified) == 0 &&
 		len(c.ImageChanges) == 0 && len(c.ImagesAdded) == 0 && len(c.ImagesRemoved) == 0 &&
 		len(c.DockerfileChanges) == 0
 }
@@ -136,4 +141,11 @@ type ToolHookChange struct {
 	ChangeType  string // "added", "removed", "modified"
 	OldChecksum string // for "modified" only
 	NewChecksum string // for "added" and "modified"
+}
+
+// ScriptChange records a generated script being added, removed, or modified.
+type ScriptChange struct {
+	Name        string // script name (e.g., "ci-env-init", "ci-select")
+	OldChecksum string // for modified/removed
+	NewChecksum string // for added/modified
 }

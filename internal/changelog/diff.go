@@ -102,6 +102,47 @@ func Diff(prev, next *ImagesLock) *Changes {
 	slices.SortFunc(c.SelectorsAdded, func(a, b SelectorChange) int { return strings.Compare(a.Family, b.Family) })
 	slices.SortFunc(c.SelectorsRemoved, func(a, b SelectorChange) int { return strings.Compare(a.Family, b.Family) })
 
+	// Global script changes (ci-select, ci-env-init, select-* scripts).
+	prevScripts := prev.Scripts
+	nextScripts := next.Scripts
+	if prevScripts == nil {
+		prevScripts = make(map[string]ScriptFile)
+	}
+	if nextScripts == nil {
+		nextScripts = make(map[string]ScriptFile)
+	}
+
+	// Find added and modified scripts
+	for name, nextScript := range nextScripts {
+		prevScript, existed := prevScripts[name]
+		if !existed {
+			c.ScriptsAdded = append(c.ScriptsAdded, ScriptChange{
+				Name:        name,
+				NewChecksum: nextScript.Checksum,
+			})
+		} else if prevScript.Checksum != nextScript.Checksum {
+			c.ScriptsModified = append(c.ScriptsModified, ScriptChange{
+				Name:        name,
+				OldChecksum: prevScript.Checksum,
+				NewChecksum: nextScript.Checksum,
+			})
+		}
+	}
+
+	// Find removed scripts
+	for name, prevScript := range prevScripts {
+		if _, exists := nextScripts[name]; !exists {
+			c.ScriptsRemoved = append(c.ScriptsRemoved, ScriptChange{
+				Name:        name,
+				OldChecksum: prevScript.Checksum,
+			})
+		}
+	}
+
+	slices.SortFunc(c.ScriptsAdded, func(a, b ScriptChange) int { return strings.Compare(a.Name, b.Name) })
+	slices.SortFunc(c.ScriptsRemoved, func(a, b ScriptChange) int { return strings.Compare(a.Name, b.Name) })
+	slices.SortFunc(c.ScriptsModified, func(a, b ScriptChange) int { return strings.Compare(a.Name, b.Name) })
+
 	prevImages := toSet(prev.Images)
 	nextImages := toSet(next.Images)
 

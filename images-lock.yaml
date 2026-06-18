@@ -41,6 +41,9 @@ tools:
 selectors:
     - helm
 scripts:
+    ci-env-init:
+        name: ci-env-init.sh
+        checksum: 167ebc3f3726b221939214290f693d62
     ci-select:
         name: ci-select.sh
         checksum: 414dbb7ab4fb6d6224ed240f91dfb291

@@ -4,6 +4,14 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20260618-20 (2026-06-18)
+
+### Scripts Added
+
+- `ci-env-init` (checksum: `b0df0621`)
+- `ci-select` (checksum: `414dbb7a`)
+- `select-helm` (checksum: `34decfcb`)
+
 ## Revision: 20260611-19 (2026-06-11)
 
 ### Image: charts:20260611-19

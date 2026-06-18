@@ -43,7 +43,7 @@ selectors:
 scripts:
     ci-env-init:
         name: ci-env-init.sh
-        checksum: b1d3c5db448478801dc5503a74df6bbb
+        checksum: b0df06214d9dcadb85ac433b2d285294
     ci-select:
         name: ci-select.sh
         checksum: 414dbb7ab4fb6d6224ed240f91dfb291

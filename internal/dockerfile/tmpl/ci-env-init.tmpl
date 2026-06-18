@@ -5,7 +5,7 @@
 # ci-select for each one. After configuration, execs the user's command.
 #
 # Usage (set as ENTRYPOINT):
-#   docker run -e SELECT_HELM_VERSION=helmv4 image helm version
+#   docker run -e SELECT_HELM_VERSION=helmv4 <image> helm version
 #
 # The ENTRYPOINT will configure helm to point to helmv4, then run "helm version".
 

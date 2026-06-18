@@ -84,6 +84,7 @@ Some tools are available in multiple versions grouped into "families". For examp
 
 The easiest way to configure tool families is by setting `SELECT_{FAMILY}_VERSION` environment variables. The container entrypoint will automatically configure the selected version before your command runs.
 
+**In GitHub Actions:**
 ```yaml
 jobs:
   deploy:
@@ -94,6 +95,15 @@ jobs:
       SELECT_HELM_VERSION: helmv4  # Use Helm v4 as the default 'helm' command
     steps:
       - run: helm version  # Runs helmv4
+```
+
+**Direct Docker CLI:**
+```bash
+# NOTE: -e flag must come BEFORE the image name
+docker run -e SELECT_HELM_VERSION=helmv3 ghcr.io/rancher/ci-image/charts:latest helm version
+
+# Interactive shell with specific version
+docker run -e SELECT_HELM_VERSION=helmv3 -it ghcr.io/rancher/ci-image/charts:latest
 ```
 
 **Manual Selection:**

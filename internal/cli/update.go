@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/rancher/ci-image/internal/config"
-	"github.com/rancher/ci-image/internal/lock"
 	"github.com/rancher/ci-image/internal/resolver"
+	"github.com/rancher/ci-image/internal/resolver/depslock"
 )
 
 func runUpdate(args []string) error {
@@ -30,7 +30,7 @@ func runUpdate(args []string) error {
 		return err
 	}
 
-	lk, err := lock.Read(lockPath(configPath))
+	lk, err := depslock.Read(lockPath(configPath))
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func runUpdate(args []string) error {
 		return nil
 	}
 
-	changed, err := lock.WriteIfChanged(lockPath(configPath), lk)
+	changed, err := depslock.WriteIfChanged(lockPath(configPath), lk)
 	if err != nil {
 		return fmt.Errorf("writing deps.lock: %w", err)
 	}

@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/rancher/ci-image/internal/config"
-	"github.com/rancher/ci-image/internal/lock"
 	"github.com/rancher/ci-image/internal/resolver"
+	"github.com/rancher/ci-image/internal/resolver/depslock"
 )
 
 func runValidate(args []string) error {
@@ -39,7 +39,7 @@ func runValidate(args []string) error {
 		lockFilePath := lockPath(configPath)
 		if _, err := os.Stat(lockFilePath); err == nil {
 			log.Printf("Validating %s...", lockFilePath)
-			lk, err := lock.Read(lockFilePath)
+			lk, err := depslock.Read(lockFilePath)
 			if err != nil {
 				return fmt.Errorf("reading %s: %w", lockFilePath, err)
 			}

@@ -12,12 +12,12 @@ import (
 
 	"github.com/rancher/ci-image/internal/config"
 	gh "github.com/rancher/ci-image/internal/github"
-	"github.com/rancher/ci-image/internal/lock"
+	"github.com/rancher/ci-image/internal/resolver/depslock"
 )
 
 // obChartsV040Lock is the deps.lock state from commit 6aac5b23962a674e836f8deb06111c0ee8bb4761,
 // just before ob-charts-tool was bumped from v0.4.0 → v0.4.1.
-var obChartsV040Lock = lock.Entry{
+var obChartsV040Lock = depslock.Entry{
 	ResolvedVersion: "v0.4.0",
 	ResolvedAt:      time.Date(2026, 4, 22, 19, 23, 42, 558744141, time.UTC),
 	Checksums: map[string]string{
@@ -106,8 +106,8 @@ func captureLog(t *testing.T) func() string {
 
 func TestApplyLock_FromLock(t *testing.T) {
 	cfg := minimalChartsConfig()
-	lk := &lock.Lock{
-		Tools: map[string]lock.Entry{"ob-charts-tool": obChartsV040Lock},
+	lk := &depslock.Lock{
+		Tools: map[string]depslock.Entry{"ob-charts-tool": obChartsV040Lock},
 	}
 
 	if err := ApplyLock(cfg, lk); err != nil {
@@ -128,7 +128,7 @@ func TestApplyLock_FromLock(t *testing.T) {
 
 func TestApplyLock_MissingFromLock(t *testing.T) {
 	cfg := minimalChartsConfig()
-	lk := &lock.Lock{Tools: map[string]lock.Entry{}}
+	lk := &depslock.Lock{Tools: map[string]depslock.Entry{}}
 
 	err := ApplyLock(cfg, lk)
 	if err == nil {
@@ -141,8 +141,8 @@ func TestApplyLock_MissingFromLock(t *testing.T) {
 
 func TestApplyLock_EmptyChecksums(t *testing.T) {
 	cfg := minimalChartsConfig()
-	lk := &lock.Lock{
-		Tools: map[string]lock.Entry{
+	lk := &depslock.Lock{
+		Tools: map[string]depslock.Entry{
 			"ob-charts-tool": {ResolvedVersion: "v0.4.0"}, // version set, checksums absent
 		},
 	}
@@ -158,7 +158,7 @@ func TestApplyLock_SkipsNonReleaseChecksums(t *testing.T) {
 			{Name: "helm", Source: "https://get.helm.sh", Mode: "static", Version: "v3.20.2"},
 		},
 	}
-	lk := &lock.Lock{Tools: map[string]lock.Entry{}}
+	lk := &depslock.Lock{Tools: map[string]depslock.Entry{}}
 
 	// helm is not release-checksums; an empty lock should not cause an error.
 	if err := ApplyLock(cfg, lk); err != nil {
@@ -173,8 +173,8 @@ func TestApplyLock_SkipsNonReleaseChecksums(t *testing.T) {
 // should log a WARNING about the bump and write the new entry into the lock.
 func TestUpdate_VersionChange(t *testing.T) {
 	cfg := minimalChartsConfig()
-	lk := &lock.Lock{
-		Tools: map[string]lock.Entry{"ob-charts-tool": obChartsV040Lock},
+	lk := &depslock.Lock{
+		Tools: map[string]depslock.Entry{"ob-charts-tool": obChartsV040Lock},
 	}
 
 	srv := newObChartsTestServer(t, "v0.4.1", obChartsV041Checksums)
@@ -210,8 +210,8 @@ func TestUpdate_VersionChange(t *testing.T) {
 
 func TestUpdate_AlreadyUpToDate(t *testing.T) {
 	cfg := minimalChartsConfig()
-	lk := &lock.Lock{
-		Tools: map[string]lock.Entry{
+	lk := &depslock.Lock{
+		Tools: map[string]depslock.Entry{
 			"ob-charts-tool": {
 				ResolvedVersion: "v0.4.1",
 				ResolvedAt:      time.Now().UTC(),
@@ -247,7 +247,7 @@ func TestUpdate_AlreadyUpToDate(t *testing.T) {
 
 func TestUpdate_FirstTime(t *testing.T) {
 	cfg := minimalChartsConfig()
-	lk := &lock.Lock{Tools: map[string]lock.Entry{}}
+	lk := &depslock.Lock{Tools: map[string]depslock.Entry{}}
 
 	srv := newObChartsTestServer(t, "v0.4.1", obChartsV041Checksums)
 	t.Cleanup(gh.OverrideHTTPForTest(srv.URL))
@@ -277,8 +277,8 @@ func TestUpdate_FirstTime(t *testing.T) {
 
 func TestValidateLock_Valid(t *testing.T) {
 	cfg := minimalChartsConfig()
-	lk := &lock.Lock{
-		Tools: map[string]lock.Entry{"ob-charts-tool": obChartsV040Lock},
+	lk := &depslock.Lock{
+		Tools: map[string]depslock.Entry{"ob-charts-tool": obChartsV040Lock},
 	}
 
 	// Mock server that returns the correct checksums for v0.4.0
@@ -294,8 +294,8 @@ func TestValidateLock_Valid(t *testing.T) {
 func TestValidateLock_TamperedChecksums(t *testing.T) {
 	cfg := minimalChartsConfig()
 	// Lock claims v0.4.0 but has checksums from v0.4.1 (simulating tampering)
-	lk := &lock.Lock{
-		Tools: map[string]lock.Entry{
+	lk := &depslock.Lock{
+		Tools: map[string]depslock.Entry{
 			"ob-charts-tool": {
 				ResolvedVersion: "v0.4.0",
 				ResolvedAt:      time.Now().UTC(),
@@ -324,8 +324,8 @@ func TestValidateLock_TamperedChecksums(t *testing.T) {
 func TestValidateLock_NonExistentVersion(t *testing.T) {
 	cfg := minimalChartsConfig()
 	// Lock claims a version that doesn't exist
-	lk := &lock.Lock{
-		Tools: map[string]lock.Entry{
+	lk := &depslock.Lock{
+		Tools: map[string]depslock.Entry{
 			"ob-charts-tool": {
 				ResolvedVersion: "v99.99.99",
 				ResolvedAt:      time.Now().UTC(),
@@ -358,7 +358,7 @@ func TestValidateLock_NonExistentVersion(t *testing.T) {
 
 func TestValidateLock_EmptyLock(t *testing.T) {
 	cfg := minimalChartsConfig()
-	lk := &lock.Lock{Tools: map[string]lock.Entry{}}
+	lk := &depslock.Lock{Tools: map[string]depslock.Entry{}}
 
 	// Should fail validation since the tool is missing from lock
 	err := ValidateLock(cfg, lk)

@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rancher/ci-image/internal/resolver/depslock"
 	"go.yaml.in/yaml/v4"
 
 	"github.com/rancher/ci-image/internal/config"
 	"github.com/rancher/ci-image/internal/dockerfile"
 	"github.com/rancher/ci-image/internal/fileutil"
-	"github.com/rancher/ci-image/internal/lock"
 	"github.com/rancher/ci-image/internal/readme"
 	"github.com/rancher/ci-image/internal/resolver"
 )
@@ -56,7 +56,7 @@ func runGenerate(args []string) error {
 	}
 
 	// Load the lock file (empty if it doesn't exist yet).
-	lk, err := lock.Read(lockPath(configPath))
+	lk, err := depslock.Read(lockPath(configPath))
 	if err != nil {
 		return err
 	}

@@ -82,7 +82,7 @@ Some tools are available in multiple versions grouped into "families". For examp
 
 **Environment Variable Configuration (Recommended):**
 
-The easiest way to configure tool families is by setting `{FAMILY}_VERSION` environment variables. The container entrypoint will automatically configure the selected version before your command runs.
+The easiest way to configure tool families is by setting `SELECT_{FAMILY}_VERSION` environment variables. The container entrypoint will automatically configure the selected version before your command runs.
 
 ```yaml
 jobs:
@@ -91,7 +91,7 @@ jobs:
     container:
       image: ghcr.io/rancher/ci-image/charts:latest
     env:
-      HELM_VERSION: helmv4  # Use Helm v4 as the default 'helm' command
+      SELECT_HELM_VERSION: helmv4  # Use Helm v4 as the default 'helm' command
     steps:
       - run: helm version  # Runs helmv4
 ```
@@ -119,7 +119,7 @@ steps:
 
 **How it works:**
 
-Tool families use symlinks in `/var/ci-tools/active/` (on PATH ahead of `/usr/local/bin`) to point to the selected version. Each family has a default version that is active when the container starts, unless overridden by environment variables.
+Tool families use symlinks in `/var/ci-tools/active/` (on PATH ahead of `/usr/local/bin`) to point to the selected version. Each family has a default version that is active when the container starts, unless overridden by `SELECT_{FAMILY}_VERSION` environment variables.
 
 ### Tool Installation Hooks
 

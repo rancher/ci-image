@@ -73,7 +73,7 @@ tools:
    - Set up the default symlink in `/var/ci-tools/active/`
 
 3. Users can then select a version using:
-   - Environment variable: `HELM_VERSION=helmv3`
+   - Environment variable: `SELECT_HELM_VERSION=helmv3`
    - Runtime command: `ci-select helm helmv3` or `select-helm helmv3`
 
 Only one tool in a family should have `family_default: true`.

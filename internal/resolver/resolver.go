@@ -23,7 +23,7 @@ import (
 	"github.com/rancher/ci-image/internal/config"
 	"github.com/rancher/ci-image/internal/config/renderer"
 	gh "github.com/rancher/ci-image/internal/github"
-	"github.com/rancher/ci-image/internal/lock"
+	"github.com/rancher/ci-image/internal/resolver/depslock"
 )
 
 // ApplyLock reads version and checksum data for all release-checksums tools
@@ -32,7 +32,7 @@ import (
 //
 // Returns an error if any release-checksums tool is absent from the lock or
 // has no checksums recorded — run the update command to populate the lock.
-func ApplyLock(cfg *config.Config, lk *lock.Lock) error {
+func ApplyLock(cfg *config.Config, lk *depslock.Lock) error {
 	for i := range cfg.Tools {
 		t := &cfg.Tools[i]
 		if t.EffectiveMode() != "release-checksums" {
@@ -54,7 +54,7 @@ func ApplyLock(cfg *config.Config, lk *lock.Lock) error {
 // tools by querying upstream, then updates lk in place. If a tool's version
 // has changed from what the lock records, a warning is logged but the update
 // proceeds normally.
-func Update(cfg *config.Config, lk *lock.Lock) error {
+func Update(cfg *config.Config, lk *depslock.Lock) error {
 	for i := range cfg.Tools {
 		t := &cfg.Tools[i]
 		if t.EffectiveMode() != "release-checksums" {
@@ -87,7 +87,7 @@ func Update(cfg *config.Config, lk *lock.Lock) error {
 
 		t.Version = version
 		t.Checksums = checksums
-		lk.Tools[t.Name] = lock.Entry{
+		lk.Tools[t.Name] = depslock.Entry{
 			ResolvedVersion: version,
 			ResolvedAt:      time.Now().UTC(),
 			Checksums:       checksums,
@@ -103,7 +103,7 @@ func Update(cfg *config.Config, lk *lock.Lock) error {
 //
 // Returns an error if any tool's checksums don't match what's upstream for
 // the recorded version. Allows stale (old but correct) lock entries.
-func ValidateLock(cfg *config.Config, lk *lock.Lock) error {
+func ValidateLock(cfg *config.Config, lk *depslock.Lock) error {
 	var errors []string
 
 	for i := range cfg.Tools {

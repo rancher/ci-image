@@ -245,7 +245,9 @@ RUN case "${ARCH}" in \
 # the active symlink with: ci-select <family> <tool>  or  select-<family> <tool>
 COPY dockerfiles/scripts/select-helm.sh /usr/local/bin/select-helm
 COPY dockerfiles/scripts/ci-select.sh /usr/local/bin/ci-select
-RUN chmod +x /usr/local/bin/select-helm && chmod +x /usr/local/bin/ci-select
+COPY dockerfiles/scripts/ci-env-init.sh /usr/local/bin/ci-env-init
+RUN chmod +x /usr/local/bin/select-helm && chmod +x /usr/local/bin/ci-select && \
+    chmod +x /usr/local/bin/ci-env-init
 
 
 # Set up CI tool family infrastructure (runner user and group created earlier).
@@ -261,3 +263,8 @@ RUN mkdir -p /var/ci-tools/active \
 # We trust our base image and the repos that are pulled in workflows. Otherwise
 # each workflow that uses our base images would have to add the step below.
 RUN git config --system --add safe.directory '*'
+
+# Auto-configure tool families from {FAMILY}_VERSION env vars, then exec user command.
+# Users can set HELM_VERSION=helmv4 to auto-select helmv4 as the active helm tool.
+ENTRYPOINT ["ci-env-init"]
+CMD ["/bin/bash"]

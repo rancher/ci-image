@@ -108,6 +108,29 @@ func renderEntry(entry Entry) string {
 		sb.WriteString("\n")
 	}
 
+	// Script changes (global — affect all images with selectors).
+	if len(entry.Changes.ScriptsAdded) > 0 {
+		sb.WriteString("### Scripts Added\n\n")
+		for _, s := range entry.Changes.ScriptsAdded {
+			fmt.Fprintf(&sb, "- `%s` (checksum: `%s`)\n", s.Name, s.NewChecksum[:8])
+		}
+		sb.WriteString("\n")
+	}
+	if len(entry.Changes.ScriptsModified) > 0 {
+		sb.WriteString("### Scripts Modified\n\n")
+		for _, s := range entry.Changes.ScriptsModified {
+			fmt.Fprintf(&sb, "- `%s` (checksum: `%s` → `%s`)\n", s.Name, s.OldChecksum[:8], s.NewChecksum[:8])
+		}
+		sb.WriteString("\n")
+	}
+	if len(entry.Changes.ScriptsRemoved) > 0 {
+		sb.WriteString("### Scripts Removed\n\n")
+		for _, s := range entry.Changes.ScriptsRemoved {
+			fmt.Fprintf(&sb, "- `%s` (checksum: `%s`)\n", s.Name, s.OldChecksum[:8])
+		}
+		sb.WriteString("\n")
+	}
+
 	for _, ic := range entry.Changes.ImageChanges {
 		fmt.Fprintf(&sb, "### Image: %s:%s\n\n", ic.Image, entry.Version)
 		if ic.BaseImageUpdated != nil {

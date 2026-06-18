@@ -50,7 +50,7 @@ func GenerateSelectors(cfg *config.Config) map[string]string {
 		return nil
 	}
 
-	result := make(map[string]string, len(families)+1)
+	result := make(map[string]string, len(families)+2)
 
 	// One thin per-family wrapper that just calls ci-select.
 	for family := range families {
@@ -59,6 +59,9 @@ func GenerateSelectors(cfg *config.Config) map[string]string {
 
 	// One generic ci-select script that handles all families.
 	result["ci-select.sh"] = ciSelectScript()
+
+	// Entrypoint script that auto-configures families from env vars.
+	result["ci-env-init.sh"] = ciEnvInitScript()
 
 	return result
 }
@@ -74,6 +77,13 @@ func selectFamilyScript(family string) string {
 // build time under /usr/local/share/ci-tools/families/.
 func ciSelectScript() string {
 	return executeTemplate("ci-select.tmpl", nil)
+}
+
+// ciEnvInitScript returns the content of the ci-env-init entrypoint script.
+// It auto-configures tool families based on {FAMILY}_VERSION environment variables,
+// then execs the user's command.
+func ciEnvInitScript() string {
+	return executeTemplate("ci-env-init.tmpl", nil)
 }
 
 // FamilySelectorNames returns the sorted list of family names that have

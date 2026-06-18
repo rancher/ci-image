@@ -14,9 +14,10 @@ import (
 	"github.com/rancher/ci-image/internal/config"
 	"github.com/rancher/ci-image/internal/dockerfile"
 	"github.com/rancher/ci-image/internal/fileutil"
-	"github.com/rancher/ci-image/internal/lock"
+	"github.com/rancher/ci-image/internal/lockfile"
 	"github.com/rancher/ci-image/internal/readme"
 	"github.com/rancher/ci-image/internal/resolver"
+	"github.com/rancher/ci-image/internal/resolver/depslock"
 )
 
 // lockPath returns the deps.lock path adjacent to the given config file.
@@ -56,7 +57,7 @@ func runGenerate(args []string) error {
 	}
 
 	// Load the lock file (empty if it doesn't exist yet).
-	lk, err := lock.Read(lockPath(configPath))
+	lk, err := depslock.Read(lockPath(configPath))
 	if err != nil {
 		return err
 	}
@@ -140,8 +141,8 @@ func runGenerate(args []string) error {
 	return nil
 }
 
-// cleanupRemovedSelectors deletes select-*.sh and ci-select.sh files from
-// dockerScriptsDir that are no longer produced by the current config.
+// cleanupRemovedSelectors deletes select-*.sh, ci-select.sh, and ci-env-init.sh
+// files from dockerScriptsDir that are no longer produced by the current config.
 func cleanupRemovedSelectors(generated map[string]string) error {
 	entries, err := os.ReadDir(dockerScriptsDir)
 	if err != nil {
@@ -153,6 +154,7 @@ func cleanupRemovedSelectors(generated map[string]string) error {
 	for _, entry := range entries {
 		name := entry.Name()
 		isSelectorScript := name == "ci-select.sh" ||
+			name == "ci-env-init.sh" ||
 			(strings.HasPrefix(name, "select-") && strings.HasSuffix(name, ".sh"))
 		if !isSelectorScript {
 			continue
@@ -206,26 +208,9 @@ func archiveRemovedDockerfiles(generated map[string]string) error {
 	return nil
 }
 
-// imagesLock is the structure written to images-lock.yaml.
-type imagesLock struct {
-	Images    []string                   `yaml:"images"`
-	Packages  []string                   `yaml:"packages,omitempty"`  // universal packages installed in every image
-	Tools     map[string]string          `yaml:"tools,omitempty"`     // name → version, all tools across all images
-	Selectors []string                   `yaml:"selectors,omitempty"` // active family selector names, e.g. ["helm"]
-	Hooks     map[string]hookFiles       `yaml:"hooks,omitempty"`     // tool_name → hook files with checksums
-	Configs   map[string]imageLockConfig `yaml:"configs"`
-}
-
-type imageLockConfig struct {
-	Base            string            `yaml:"base"`
-	Platforms       []string          `yaml:"platforms"`
-	Packages        []string          `yaml:"packages,omitempty"`         // image-specific packages only (excludes universal)
-	Tools           []string          `yaml:"tools,omitempty"`            // tool names only; versions in top-level tools map
-	Aliases         map[string]string `yaml:"aliases,omitempty"`          // symlink_name: tool_name
-	FamilySelectors map[string]string `yaml:"family_selectors,omitempty"` // family → default tool
-	GoVersion       string            `yaml:"go_version,omitempty"`
-	Description     string            `yaml:"description,omitempty"`
-}
+// Type aliases for clarity in this package - all canonical types live in lockfile package.
+type imagesLock = lockfile.ImagesLock
+type imageLockConfig = lockfile.ImageConfig
 
 // extractGoVersion returns the Go version from a SUSE BCI golang base image
 // reference (e.g. "registry.suse.com/bci/golang:1.25.9@sha256:…" → "1.25.9").
@@ -242,14 +227,52 @@ func extractGoVersion(base string) string {
 	return tag
 }
 
+// collectScriptFiles scans the dockerfiles/scripts/ directory for generated
+// selector scripts and returns their metadata indexed by script name (without .sh).
+// Returns empty map if the directory doesn't exist.
+func collectScriptFiles() (map[string]lockfile.ScriptFile, error) {
+	entries, err := os.ReadDir(dockerScriptsDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return make(map[string]lockfile.ScriptFile), nil
+		}
+		return nil, fmt.Errorf("reading %s: %w", dockerScriptsDir, err)
+	}
+
+	result := make(map[string]lockfile.ScriptFile)
+	for _, entry := range entries {
+		name := entry.Name()
+		// Only track selector-related scripts
+		if name != "ci-select.sh" && name != "ci-env-init.sh" &&
+			!(strings.HasPrefix(name, "select-") && strings.HasSuffix(name, ".sh")) {
+			continue
+		}
+
+		path := filepath.Join(dockerScriptsDir, name)
+		checksum, err := fileutil.MD5File(path)
+		if err != nil {
+			return nil, fmt.Errorf("computing checksum for %s: %w", path, err)
+		}
+
+		// Use name without .sh extension as key
+		key := strings.TrimSuffix(name, ".sh")
+		result[key] = lockfile.ScriptFile{
+			Name:     name,
+			Checksum: checksum,
+		}
+	}
+
+	return result, nil
+}
+
 // collectHookFiles scans the hooks/ directory and returns hook file metadata
 // indexed by tool name. Returns empty map if hooks/ doesn't exist.
-func collectHookFiles() (map[string]hookFiles, error) {
+func collectHookFiles() (map[string]lockfile.HookFiles, error) {
 	const hooksDir = "hooks"
 
 	// Check if hooks directory exists
 	if _, err := os.Stat(hooksDir); os.IsNotExist(err) {
-		return make(map[string]hookFiles), nil
+		return make(map[string]lockfile.HookFiles), nil
 	}
 
 	// Find all hook template files
@@ -263,7 +286,7 @@ func collectHookFiles() (map[string]hookFiles, error) {
 		return nil, fmt.Errorf("scanning for post-hook templates: %w", err)
 	}
 
-	result := make(map[string]hookFiles)
+	result := make(map[string]lockfile.HookFiles)
 
 	// Process pre-hook files
 	for _, path := range preMatches {
@@ -274,7 +297,7 @@ func collectHookFiles() (map[string]hookFiles, error) {
 		}
 
 		hf := result[toolName]
-		hf.Pre = &hookFile{
+		hf.Pre = &lockfile.HookFile{
 			Name:     filepath.Base(path),
 			Checksum: checksum,
 		}
@@ -290,7 +313,7 @@ func collectHookFiles() (map[string]hookFiles, error) {
 		}
 
 		hf := result[toolName]
-		hf.Post = &hookFile{
+		hf.Post = &lockfile.HookFile{
 			Name:     filepath.Base(path),
 			Checksum: checksum,
 		}
@@ -298,16 +321,6 @@ func collectHookFiles() (map[string]hookFiles, error) {
 	}
 
 	return result, nil
-}
-
-type hookFile struct {
-	Name     string `yaml:"name"`
-	Checksum string `yaml:"checksum"`
-}
-
-type hookFiles struct {
-	Pre  *hookFile `yaml:"pre,omitempty"`
-	Post *hookFile `yaml:"post,omitempty"`
 }
 
 const imagesLockHeader = "# images-lock.yaml — compiled image index generated by 'generate'.\n" +
@@ -320,6 +333,12 @@ const imagesLockHeader = "# images-lock.yaml — compiled image index generated 
 // resolved base, platforms, image-specific packages, tool memberships, and
 // optional metadata such as Go version and description.
 func writeImagesLock(cfg *config.Config, path string) error {
+	// Collect script file metadata
+	scripts, err := collectScriptFiles()
+	if err != nil {
+		return fmt.Errorf("collecting script files: %w", err)
+	}
+
 	// Collect hook file metadata
 	hooks, err := collectHookFiles()
 	if err != nil {
@@ -330,6 +349,7 @@ func writeImagesLock(cfg *config.Config, path string) error {
 		Packages:  cfg.Packages,
 		Tools:     make(map[string]string),
 		Selectors: dockerfile.FamilySelectorNames(cfg),
+		Scripts:   scripts,
 		Hooks:     hooks,
 		Configs:   make(map[string]imageLockConfig, len(cfg.Images)),
 	}

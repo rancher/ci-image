@@ -1,28 +1,13 @@
 package changelog
 
-// ImagesLock mirrors the structure of images-lock.yaml for diffing purposes.
-// It is intentionally separate from the unexported types in internal/cli to
-// avoid an import cycle.
-type ImagesLock struct {
-	Images    []string               `yaml:"images"`
-	Packages  []string               `yaml:"packages,omitempty"` // universal packages installed in every image
-	Tools     map[string]string      `yaml:"tools,omitempty"`
-	Selectors []string               `yaml:"selectors,omitempty"` // active family selector names, e.g. ["helm"]
-	Hooks     map[string]HookFiles   `yaml:"hooks,omitempty"`     // tool_name → hook files with checksums
-	Configs   map[string]ImageConfig `yaml:"configs"`
-}
+import "github.com/rancher/ci-image/internal/lockfile"
 
-// ImageConfig holds the resolved configuration for one image.
-type ImageConfig struct {
-	Base            string            `yaml:"base"`
-	Platforms       []string          `yaml:"platforms"`
-	Packages        []string          `yaml:"packages,omitempty"` // image-specific packages only (excludes universal)
-	Tools           []string          `yaml:"tools,omitempty"`
-	Aliases         map[string]string `yaml:"aliases,omitempty"`          // symlink_name: tool_name
-	FamilySelectors map[string]string `yaml:"family_selectors,omitempty"` // family → default tool
-	GoVersion       string            `yaml:"go_version,omitempty"`
-	Description     string            `yaml:"description,omitempty"`
-}
+// Type aliases - all canonical lock file types live in the lockfile package.
+type ImagesLock = lockfile.ImagesLock
+type ImageConfig = lockfile.ImageConfig
+type HookFile = lockfile.HookFile
+type HookFiles = lockfile.HookFiles
+type ScriptFile = lockfile.ScriptFile
 
 // Changes summarises what changed between two ImagesLock states.
 type Changes struct {
@@ -32,6 +17,10 @@ type Changes struct {
 	// Family selector changes (global — a selector was introduced or removed).
 	SelectorsAdded   []SelectorChange
 	SelectorsRemoved []SelectorChange
+	// Script changes (global — generated scripts added/removed/modified).
+	ScriptsAdded    []ScriptChange
+	ScriptsRemoved  []ScriptChange
+	ScriptsModified []ScriptChange
 	// ImageChanges holds per-image diffs (only images with at least one change).
 	ImageChanges []ImageChanges
 	// ImagesAdded and ImagesRemoved track images that appeared or disappeared.
@@ -53,6 +42,7 @@ func (c *Changes) IsEmpty() bool {
 	}
 	return len(c.PackagesAdded) == 0 && len(c.PackagesRemoved) == 0 &&
 		len(c.SelectorsAdded) == 0 && len(c.SelectorsRemoved) == 0 &&
+		len(c.ScriptsAdded) == 0 && len(c.ScriptsRemoved) == 0 && len(c.ScriptsModified) == 0 &&
 		len(c.ImageChanges) == 0 && len(c.ImagesAdded) == 0 && len(c.ImagesRemoved) == 0 &&
 		len(c.DockerfileChanges) == 0
 }
@@ -144,18 +134,6 @@ type ToolChange struct {
 	Version string
 }
 
-// HookFile represents a single hook template file with its checksum.
-type HookFile struct {
-	Name     string `yaml:"name"`
-	Checksum string `yaml:"checksum"` // MD5 hex
-}
-
-// HookFiles holds pre and post hook files for a tool.
-type HookFiles struct {
-	Pre  *HookFile `yaml:"pre,omitempty"`
-	Post *HookFile `yaml:"post,omitempty"`
-}
-
 // ToolHookChange records a hook template being added, removed, or modified.
 type ToolHookChange struct {
 	Tool        string
@@ -163,4 +141,11 @@ type ToolHookChange struct {
 	ChangeType  string // "added", "removed", "modified"
 	OldChecksum string // for "modified" only
 	NewChecksum string // for "added" and "modified"
+}
+
+// ScriptChange records a generated script being added, removed, or modified.
+type ScriptChange struct {
+	Name        string // script name (e.g., "ci-env-init", "ci-select")
+	OldChecksum string // for modified/removed
+	NewChecksum string // for added/modified
 }

@@ -29,7 +29,9 @@ RUN groupadd -g 121 runner && \
 # the active symlink with: ci-select <family> <tool>  or  select-<family> <tool>
 {{range .Selectors}}COPY dockerfiles/scripts/select-{{.Family}}.sh /usr/local/bin/select-{{.Family}}
 {{end}}COPY dockerfiles/scripts/ci-select.sh /usr/local/bin/ci-select
-RUN {{range .Selectors}}chmod +x /usr/local/bin/select-{{.Family}} && {{end}}chmod +x /usr/local/bin/ci-select
+COPY dockerfiles/scripts/ci-env-init.sh /usr/local/bin/ci-env-init
+RUN {{range .Selectors}}chmod +x /usr/local/bin/select-{{.Family}} && {{end}}chmod +x /usr/local/bin/ci-select && \
+    chmod +x /usr/local/bin/ci-env-init
 
 {{end}}{{if .Aliases}}# Aliases
 RUN {{range $i, $a := .Aliases}}{{if $i}} && \
@@ -46,3 +48,9 @@ RUN {{.SelectorSetupCmd}}
 {{if .HasAnyOfPackages "git" "git-core"}}# We trust our base image and the repos that are pulled in workflows. Otherwise
 # each workflow that uses our base images would have to add the step below.
 RUN git config --system --add safe.directory '*'{{end}}
+{{if .Selectors}}
+# Auto-configure tool families from {FAMILY}_VERSION env vars, then exec user command.
+# Users can set HELM_VERSION=helmv4 to auto-select helmv4 as the active helm tool.
+ENTRYPOINT ["ci-env-init"]
+CMD ["/bin/bash"]
+{{end}}

@@ -33,6 +33,51 @@ Both require the same fields:
 
 After editing, run `make generate` and commit the updated Dockerfiles.
 
+## Adding a Tool Family
+
+Tool families allow multiple versions of a tool to coexist in the same image, with a runtime selector to choose which one is active. This is useful for tools like Helm where you might need to support both v3 and v4.
+
+To add a tool family:
+
+1. Add multiple tools with the same `family` field in `deps.yaml`:
+
+```yaml
+tools:
+  - name: helmv3
+    family: helm
+    source: "https://get.helm.sh"
+    version: v3.20.2
+    checksums:
+      linux/amd64: "<sha256>"
+      linux/arm64: "<sha256>"
+    release:
+      download_template: "{source}/helm-{version}-{os}-{arch}.tar.gz"
+      extract: "{os}-{arch}/helm"
+
+  - name: helmv4
+    family: helm
+    family_default: true  # This version is active by default
+    source: "https://get.helm.sh"
+    version: v4.1.4
+    checksums:
+      linux/amd64: "<sha256>"
+      linux/arm64: "<sha256>"
+    release:
+      download_template: "{source}/helm-{version}-{os}-{arch}.tar.gz"
+      extract: "{os}-{arch}/helm"
+```
+
+2. Run `make generate`. This will:
+   - Create a `select-{family}.sh` script (e.g. `select-helm.sh`)
+   - Add the family to the `ci-select` command
+   - Set up the default symlink in `/var/ci-tools/active/`
+
+3. Users can then select a version using:
+   - Environment variable: `SELECT_HELM_VERSION=helmv3`
+   - Runtime command: `ci-select helm helmv3` or `select-helm helmv3`
+
+Only one tool in a family should have `family_default: true`.
+
 ## Adding a New Go Version
 
 1. Add a new entry under `images:` in `deps.yaml` with the desired Go base image (e.g. `registry.suse.com/bci/golang:1.X.Y@sha256:...`) and a name like `go1.X`.

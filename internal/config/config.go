@@ -58,6 +58,145 @@ type Config struct {
 	Packages  []string `yaml:"packages"`  // zypper packages installed in every image
 	Universal []Tool   `yaml:"universal"` // tools installed in every image
 	Tools     []Tool   `yaml:"tools"`     // tools added by name in image.tools
+
+	// Precomputed indices populated during Load()/validation; not serialized.
+	// Used for family expansion, validation, and dockerfile generation.
+	toolsByName   map[string]*Tool           // all tools indexed by name
+	toolsByFamily map[string][]*Tool         // non-empty family → tools in that family
+	families      map[string]*familyMetadata // family metadata (defaults, etc.)
+}
+
+// familyMetadata holds precomputed information about a tool family.
+type familyMetadata struct {
+	name         string   // family name
+	tools        []string // tool names in this family
+	defaultTool  string   // tool marked with family_default: true (empty if none)
+	defaultCount int      // count of tools with family_default: true (for validation)
+}
+
+// ensureIndices ensures the precomputed indices are built.
+// Safe to call multiple times (idempotent).
+func (cfg *Config) ensureIndices() {
+	if cfg.toolsByName != nil {
+		return // already built
+	}
+	cfg.buildIndices()
+}
+
+// buildIndices populates the precomputed index fields in cfg.
+// Should be called after unmarshaling but before validation.
+// This centralizes the dependency graph computation so it's available
+// throughout validation, dockerfile generation, and lock generation.
+func (cfg *Config) buildIndices() {
+	// Build toolsByName map
+	allTools := make([]*Tool, 0, len(cfg.Universal)+len(cfg.Tools))
+	for i := range cfg.Universal {
+		cfg.Universal[i].Universal = true
+		allTools = append(allTools, &cfg.Universal[i])
+	}
+	for i := range cfg.Tools {
+		allTools = append(allTools, &cfg.Tools[i])
+	}
+
+	cfg.toolsByName = make(map[string]*Tool, len(allTools))
+	for _, t := range allTools {
+		cfg.toolsByName[t.Name] = t
+	}
+
+	// Build toolsByFamily and families maps
+	cfg.toolsByFamily = make(map[string][]*Tool)
+	cfg.families = make(map[string]*familyMetadata)
+
+	for _, t := range allTools {
+		if t.Family == "" {
+			continue
+		}
+
+		cfg.toolsByFamily[t.Family] = append(cfg.toolsByFamily[t.Family], t)
+
+		if _, ok := cfg.families[t.Family]; !ok {
+			cfg.families[t.Family] = &familyMetadata{
+				name:  t.Family,
+				tools: []string{},
+			}
+		}
+
+		fm := cfg.families[t.Family]
+		fm.tools = append(fm.tools, t.Name)
+		if t.FamilyDefault {
+			fm.defaultTool = t.Name
+			fm.defaultCount++
+		}
+	}
+}
+
+// ToolByName looks up a tool by name from the precomputed index.
+// Returns nil if not found.
+func (cfg *Config) ToolByName(name string) *Tool {
+	return cfg.toolsByName[name]
+}
+
+// ToolsByFamily returns all tools in the given family from the precomputed index.
+// Returns nil if the family doesn't exist.
+func (cfg *Config) ToolsByFamily(family string) []*Tool {
+	return cfg.toolsByFamily[family]
+}
+
+// FamilyMetadata returns metadata about a family from the precomputed index.
+// Returns nil if the family doesn't exist.
+func (cfg *Config) FamilyMetadata(family string) *familyMetadata {
+	return cfg.families[family]
+}
+
+// ResolveToolReference resolves a tool reference (which may be a tool name or family name)
+// into a list of concrete tools. Returns nil if the reference is invalid.
+// This handles family expansion: "kubectl" → [kubectl1.28, kubectl1.29, kubectl1.30, kubectl1.31]
+func (cfg *Config) ResolveToolReference(ref string) []*Tool {
+	cfg.ensureIndices()
+
+	// Try direct tool lookup first
+	if t := cfg.toolsByName[ref]; t != nil {
+		return []*Tool{t}
+	}
+
+	// Try family expansion
+	if tools := cfg.toolsByFamily[ref]; tools != nil {
+		return tools
+	}
+
+	return nil
+}
+
+// ResolveImageTools returns all concrete tools included in the given image,
+// after expanding family references and including universal tools.
+// Returns tools in a deterministic order.
+func (cfg *Config) ResolveImageTools(img Image) []*Tool {
+	cfg.ensureIndices()
+
+	seen := make(map[string]bool)
+	var result []*Tool
+
+	// Add universal tools first
+	for i := range cfg.Tools {
+		t := &cfg.Tools[i]
+		if t.Universal {
+			result = append(result, t)
+			seen[t.Name] = true
+		}
+	}
+
+	// Add image-specific tools (with family expansion)
+	for _, ref := range img.Tools {
+		resolved := cfg.ResolveToolReference(ref)
+		for _, t := range resolved {
+			if !seen[t.Name] {
+				result = append(result, t)
+				seen[t.Name] = true
+			}
+		}
+	}
+
+	return result
 }
 
 // Image defines a Docker image to generate.

@@ -50,19 +50,23 @@ func NewDockerfileVars(cfg *config.Config, img config.Image, sourceURL string) (
 	}
 
 	// Collect tools: universal first (in config order), then image-specific.
-	toolsByName := make(map[string]config.Tool, len(cfg.Tools))
-	for _, t := range cfg.Tools {
-		toolsByName[t.Name] = t
-	}
+	// Use precomputed indices for resolution (supports family expansion).
 	var tools []config.Tool
+	seen := make(map[string]bool)
 	for _, t := range cfg.Tools {
 		if t.Universal {
 			tools = append(tools, t)
+			seen[t.Name] = true
 		}
 	}
-	for _, name := range img.Tools {
-		if t, ok := toolsByName[name]; ok {
-			tools = append(tools, t)
+	for _, ref := range img.Tools {
+		// Resolve reference (could be tool name or family name)
+		resolved := cfg.ResolveToolReference(ref)
+		for _, t := range resolved {
+			if !seen[t.Name] {
+				tools = append(tools, *t)
+				seen[t.Name] = true
+			}
 		}
 	}
 

@@ -38,14 +38,16 @@ func Load(path string) (*Config, error) {
 	}
 	cfg.Tools = append(cfg.Universal, cfg.Tools...)
 	cfg.Universal = nil
+
+	// Build precomputed indices for use in validation, dockerfile generation, and lock generation.
+	// This centralizes the dependency graph computation and must be called before auto-including
+	// alias targets since we need toolsByName.
+	cfg.buildIndices()
+
 	// Auto-include alias targets into image.Tools.
-	// If an alias references a non-universal tool that isn't already listed in
+	// If an alias references a non-universal tool which is not already listed in
 	// image.tools, add it implicitly so the user doesn't have to repeat it.
 	// Undefined targets are left alone and will be caught by validation.
-	toolsByName := make(map[string]*Tool, len(cfg.Tools))
-	for i := range cfg.Tools {
-		toolsByName[cfg.Tools[i].Name] = &cfg.Tools[i]
-	}
 	for i := range cfg.Images {
 		img := &cfg.Images[i]
 		toolSet := make(map[string]bool, len(img.Tools))
@@ -67,6 +69,7 @@ func Load(path string) (*Config, error) {
 			toolSet[t.Name] = true
 		}
 	}
+
 	if err := validateConfig(&cfg); err != nil {
 		return nil, err
 	}

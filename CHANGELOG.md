@@ -4,6 +4,41 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20260707-21 (2026-07-07)
+
+### Family Selectors Added
+
+- `kubectl` (default: `kubectl1.31`) — use `ci-select kubectl <tool>` or `select-kubectl <tool>`
+
+### Scripts Added
+
+- `select-kubectl` (checksum: `bd442fc9`)
+
+### Image: go1.25:20260707-21
+
+- Added: `kubectl1.28` `v1.28.15`
+- Added: `kubectl1.29` `v1.29.10`
+- Added: `kubectl1.30` `v1.30.6`
+- Added: `kubectl1.31` `v1.31.2`
+- Added: `kuberlr` `v0.7.0`
+
+### Image: go1.26:20260707-21
+
+- Added: `kubectl1.28` `v1.28.15`
+- Added: `kubectl1.29` `v1.29.10`
+- Added: `kubectl1.30` `v1.30.6`
+- Added: `kubectl1.31` `v1.31.2`
+- Added: `kuberlr` `v0.7.0`
+
+### Image: charts:20260707-21
+
+- `charts-build-scripts`: `v1.9.21` → `v1.9.25`
+- Added: `kubectl1.28` `v1.28.15`
+- Added: `kubectl1.29` `v1.29.10`
+- Added: `kubectl1.30` `v1.30.6`
+- Added: `kubectl1.31` `v1.31.2`
+- Added: `kuberlr` `v0.7.0`
+
 ## Revision: 20260618-20 (2026-06-18)
 
 ### Scripts Added

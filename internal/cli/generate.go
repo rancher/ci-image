@@ -365,13 +365,12 @@ func writeImagesLock(cfg *config.Config, path string) error {
 	for _, img := range cfg.Images {
 		lk.Images = append(lk.Images, img.Name)
 
+		// Resolve all tools for this image (handles family expansion)
+		resolvedTools := cfg.ResolveImageTools(img)
 		var toolNames []string
-		for i := range cfg.Tools {
-			t := &cfg.Tools[i]
-			if config.ImageIncludesTool(img, t) {
-				toolNames = append(toolNames, t.Name)
-				lk.Tools[t.Name] = t.Version
-			}
+		for _, t := range resolvedTools {
+			toolNames = append(toolNames, t.Name)
+			lk.Tools[t.Name] = t.Version
 		}
 		slices.Sort(toolNames)
 
@@ -390,6 +389,11 @@ func writeImagesLock(cfg *config.Config, path string) error {
 		}
 
 		// Record which family selectors are active for this image and their defaults.
+		// Build a set of tool names in this image for quick lookup.
+		toolSet := make(map[string]bool, len(resolvedTools))
+		for _, t := range resolvedTools {
+			toolSet[t.Name] = true
+		}
 		var familySelectors map[string]string
 		for i := range cfg.Tools {
 			t := &cfg.Tools[i]
@@ -397,7 +401,7 @@ func writeImagesLock(cfg *config.Config, path string) error {
 				continue
 			}
 			// Only include families where at least one family tool is in this image.
-			if !config.ImageIncludesTool(img, t) {
+			if !toolSet[t.Name] {
 				continue
 			}
 			if familySelectors == nil {

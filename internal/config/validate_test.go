@@ -153,7 +153,7 @@ func TestValidateConfig_Errors(t *testing.T) {
 				c.Images[0].Tools = []string{"nonexistent"}
 				return c
 			},
-			wantErr: "tool \"nonexistent\" is not defined in tools:",
+			wantErr: "tool or family \"nonexistent\" is not defined",
 		},
 		{
 			name: "image lists universal tool explicitly",
@@ -162,7 +162,7 @@ func TestValidateConfig_Errors(t *testing.T) {
 				c.Images[0].Tools = []string{"golangci-lint"}
 				return c
 			},
-			wantErr: "is in the universal: section and must not be listed in image.tools",
+			wantErr: "resolves to universal tool",
 		},
 		{
 			name: "image duplicate tool",
@@ -179,7 +179,7 @@ func TestValidateConfig_Errors(t *testing.T) {
 				c.Images[0].Tools = []string{"mytone", "mytone"}
 				return c
 			},
-			wantErr: "duplicate tool \"mytone\"",
+			wantErr: "duplicate tool reference \"mytone\"",
 		},
 
 		// Tool validation

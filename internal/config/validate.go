@@ -13,12 +13,16 @@ var ociImageNameRe = regexp.MustCompile(`^[a-z0-9]+(?:[._-][a-z0-9]+)*$`)
 var platformRe = regexp.MustCompile(`^[a-z0-9]+/[a-z0-9]+$`)
 
 // validateConfig runs all validation checks on cfg, collecting all errors.
+// Assumes cfg.buildIndices() has already been called (or calls it if needed).
 // Returns nil if the config is valid.
 func validateConfig(cfg *Config) error {
+	// Ensure indices are built (idempotent if already done)
+	cfg.ensureIndices()
+
 	var errs []string
 
-	// Build a name→tool map; catch duplicates.
-	toolsByName := make(map[string]*Tool, len(cfg.Tools))
+	// Validate tool names and check for duplicates
+	seen := make(map[string]bool, len(cfg.Tools))
 	for i := range cfg.Tools {
 		t := &cfg.Tools[i]
 		if t.Name == "" {
@@ -29,19 +33,13 @@ func validateConfig(cfg *Config) error {
 			errs = append(errs, fmt.Sprintf("tool at index %d: name %q is invalid (must match ^[a-zA-Z0-9][a-zA-Z0-9._-]*$)", i, t.Name))
 			continue
 		}
-		if _, dup := toolsByName[t.Name]; dup {
+		if seen[t.Name] {
 			errs = append(errs, fmt.Sprintf("duplicate tool name %q", t.Name))
 		}
-		toolsByName[t.Name] = t
+		seen[t.Name] = true
 	}
 
-	// Pre-compute family → tools mapping. Used both for family validation and
-	// for detecting alias/selector conflicts during image validation below.
-	type familyInfo struct {
-		tools    []string
-		defaults []string
-	}
-	families := make(map[string]*familyInfo)
+	// Validate family configuration using precomputed indices
 	for _, t := range cfg.Tools {
 		if t.Family == "" {
 			if t.FamilyDefault {
@@ -53,13 +51,12 @@ func validateConfig(cfg *Config) error {
 			errs = append(errs, fmt.Sprintf("tool %q: family %q is invalid (must match ^[a-zA-Z0-9][a-zA-Z0-9._-]*$)", t.Name, t.Family))
 			continue
 		}
-		if _, ok := families[t.Family]; !ok {
-			families[t.Family] = &familyInfo{}
-		}
-		fi := families[t.Family]
-		fi.tools = append(fi.tools, t.Name)
-		if t.FamilyDefault {
-			fi.defaults = append(fi.defaults, t.Name)
+	}
+
+	// Validate that each family has at most one default
+	for family, fm := range cfg.families {
+		if fm.defaultCount > 1 {
+			errs = append(errs, fmt.Sprintf("family %q: multiple tools marked as family_default (found %d, expected at most 1)", family, fm.defaultCount))
 		}
 	}
 
@@ -91,19 +88,25 @@ func validateConfig(cfg *Config) error {
 			errs = append(errs, fmt.Sprintf("image %q: 'packages' must have at least one entry", img.Name))
 		}
 		seenTools := make(map[string]bool)
-		for _, toolName := range img.Tools {
-			if seenTools[toolName] {
-				errs = append(errs, fmt.Sprintf("image %q: duplicate tool %q", img.Name, toolName))
+		for _, ref := range img.Tools {
+			if seenTools[ref] {
+				errs = append(errs, fmt.Sprintf("image %q: duplicate tool reference %q", img.Name, ref))
 			}
-			seenTools[toolName] = true
-			referencedByImage[toolName] = true
-			t, ok := toolsByName[toolName]
-			if !ok {
-				errs = append(errs, fmt.Sprintf("image %q: tool %q is not defined in tools:", img.Name, toolName))
+			seenTools[ref] = true
+
+			// Resolve the reference (could be a tool name or family name)
+			resolved := cfg.ResolveToolReference(ref)
+			if resolved == nil {
+				errs = append(errs, fmt.Sprintf("image %q: tool or family %q is not defined", img.Name, ref))
 				continue
 			}
-			if t.Universal {
-				errs = append(errs, fmt.Sprintf("image %q: tool %q is in the universal: section and must not be listed in image.tools", img.Name, toolName))
+
+			// Mark all resolved tools as referenced
+			for _, t := range resolved {
+				referencedByImage[t.Name] = true
+				if t.Universal {
+					errs = append(errs, fmt.Sprintf("image %q: reference %q resolves to universal tool %q which must not be listed in image.tools", img.Name, ref, t.Name))
+				}
 			}
 		}
 		for aliasName, targetName := range img.Aliases {
@@ -112,19 +115,19 @@ func validateConfig(cfg *Config) error {
 			}
 			// Target must be a defined tool. Non-universal targets are auto-included
 			// into image.Tools by the loader, so no "not included" check is needed here.
-			if _, ok := toolsByName[targetName]; !ok {
+			if cfg.ToolByName(targetName) == nil {
 				errs = append(errs, fmt.Sprintf("image %q: alias %q targets tool %q which is not defined", img.Name, aliasName, targetName))
 			}
 			// Alias name must not conflict with a tool already installed in this image.
-			if conflict, ok := toolsByName[aliasName]; ok && (conflict.Universal || seenTools[aliasName]) {
+			if conflict := cfg.ToolByName(aliasName); conflict != nil && (conflict.Universal || seenTools[aliasName]) {
 				errs = append(errs, fmt.Sprintf("image %q: alias name %q conflicts with a tool already installed in this image", img.Name, aliasName))
 			}
 			// Alias name must not shadow a family selector — /var/ci-tools/active/{family}
 			// is on PATH ahead of /usr/local/bin in any image that includes the family's tools.
-			if fi, ok := families[aliasName]; ok {
+			if fm := cfg.FamilyMetadata(aliasName); fm != nil {
 				familyActiveInImage := false
-				for _, toolName := range fi.tools {
-					if t, exists := toolsByName[toolName]; exists && (t.Universal || seenTools[toolName]) {
+				for _, toolName := range fm.tools {
+					if t := cfg.ToolByName(toolName); t != nil && (t.Universal || seenTools[toolName]) {
 						familyActiveInImage = true
 						break
 					}
@@ -138,23 +141,22 @@ func validateConfig(cfg *Config) error {
 		// If any tool from a family is included in this image, the family's default
 		// tool must also be included; otherwise selector_setup.tmpl renders an
 		// ln -sf with an empty target and the Docker build fails.
-		for family, fi := range families {
-			if len(fi.defaults) != 1 {
+		for family, fm := range cfg.families {
+			if fm.defaultTool == "" {
 				continue // misconfigured family; already reported elsewhere
 			}
-			defaultTool := fi.defaults[0]
-			dt, dtOk := toolsByName[defaultTool]
-			defaultInImage := dtOk && (dt.Universal || seenTools[defaultTool])
+			dt := cfg.ToolByName(fm.defaultTool)
+			defaultInImage := dt != nil && (dt.Universal || seenTools[fm.defaultTool])
 			if defaultInImage {
 				continue
 			}
-			for _, toolName := range fi.tools {
-				t, ok := toolsByName[toolName]
-				if !ok {
+			for _, toolName := range fm.tools {
+				t := cfg.ToolByName(toolName)
+				if t == nil {
 					continue
 				}
 				if t.Universal || seenTools[toolName] {
-					errs = append(errs, fmt.Sprintf("image %q: includes tool(s) from family %q but not the default tool %q; add it to image.tools or mark a different tool as family_default", img.Name, family, defaultTool))
+					errs = append(errs, fmt.Sprintf("image %q: includes tool(s) from family %q but not the default tool %q; add it to image.tools or mark a different tool as family_default", img.Name, family, fm.defaultTool))
 					break
 				}
 			}
@@ -163,19 +165,16 @@ func validateConfig(cfg *Config) error {
 
 	// Validate family constraints: ≥2 tools per family, exactly one default,
 	// and no family name that collides with a defined tool name.
-	for family, fi := range families {
-		if len(fi.tools) < 2 {
-			errs = append(errs, fmt.Sprintf("family %q: must have at least 2 tools (found: %s)", family, strings.Join(fi.tools, ", ")))
+	for family, fm := range cfg.families {
+		if len(fm.tools) < 2 {
+			errs = append(errs, fmt.Sprintf("family %q: must have at least 2 tools (found: %s)", family, strings.Join(fm.tools, ", ")))
 		}
-		switch len(fi.defaults) {
-		case 0:
+		// Family default validation already done above via fm.defaultCount
+		if fm.defaultCount == 0 {
 			errs = append(errs, fmt.Sprintf("family %q: no tool has family_default: true; exactly one is required", family))
-		case 1:
-			// valid
-		default:
-			errs = append(errs, fmt.Sprintf("family %q: multiple tools have family_default: true (%s); exactly one is required", family, strings.Join(fi.defaults, ", ")))
 		}
-		if _, ok := toolsByName[family]; ok {
+		// Check for family name colliding with a tool name
+		if cfg.ToolByName(family) != nil {
 			errs = append(errs, fmt.Sprintf("family %q: name conflicts with a defined tool name", family))
 		}
 	}

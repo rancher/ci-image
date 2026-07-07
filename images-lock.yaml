@@ -33,6 +33,11 @@ tools:
     govulncheck: v1.2.0
     helmv3: v3.20.2
     helmv4: v4.1.4
+    kubectl1.28: v1.28.15
+    kubectl1.29: v1.29.10
+    kubectl1.30: v1.30.6
+    kubectl1.31: v1.31.2
+    kuberlr: v0.7.0
     nix: 2.34.7
     ob-charts-tool: v0.6.0
     oras: v1.3.1
@@ -40,6 +45,7 @@ tools:
     yq: v4.53.2
 selectors:
     - helm
+    - kubectl
 scripts:
     ci-env-init:
         name: ci-env-init.sh
@@ -50,6 +56,9 @@ scripts:
     select-helm:
         name: select-helm.sh
         checksum: 34decfcb65283e1e38e208eaa8de987f
+    select-kubectl:
+        name: select-kubectl.sh
+        checksum: bd442fc901bfcb83e29efe41465813c5
 hooks:
     nix:
         pre:
@@ -75,12 +84,18 @@ configs:
             - goreleaser
             - helmv3
             - helmv4
+            - kubectl1.28
+            - kubectl1.29
+            - kubectl1.30
+            - kubectl1.31
+            - kuberlr
             - ob-charts-tool
             - oras
             - slsactl
             - yq
         family_selectors:
             helm: helmv4
+            kubectl: kubectl1.31
         description: Rancher charts build environment
     go1.25:
         base: registry.suse.com/bci/golang:1.25.9@sha256:6ab7d7eb4a23076273da5e885ea71a1f9c72923da07f41fb53fb02e914123c11
@@ -98,6 +113,11 @@ configs:
             - govulncheck
             - helmv3
             - helmv4
+            - kubectl1.28
+            - kubectl1.29
+            - kubectl1.30
+            - kubectl1.31
+            - kuberlr
             - oras
             - slsactl
             - yq
@@ -105,6 +125,7 @@ configs:
             helm_v3: helmv3
         family_selectors:
             helm: helmv4
+            kubectl: kubectl1.31
         go_version: 1.25.9
         description: CI image with Go 1.25 toolchain
     go1.26:
@@ -123,6 +144,11 @@ configs:
             - govulncheck
             - helmv3
             - helmv4
+            - kubectl1.28
+            - kubectl1.29
+            - kubectl1.30
+            - kubectl1.31
+            - kuberlr
             - oras
             - slsactl
             - yq
@@ -130,6 +156,7 @@ configs:
             helm_v3: helmv3
         family_selectors:
             helm: helmv4
+            kubectl: kubectl1.31
         go_version: 1.26.2
         description: CI image with Go 1.26 toolchain
     nix:

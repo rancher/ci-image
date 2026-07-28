@@ -69,7 +69,7 @@ hooks:
             checksum: 3cc315f4364a4bdc66ae08273ab09270
 configs:
     charts:
-        base: registry.suse.com/bci/bci-base:15.7@sha256:3292c81fb9e40b60903e6c88fac34e955b6d5b3acd3eb055d02d5c1538a72aea
+        base: registry.suse.com/bci/bci-base:15.7@sha256:daebf54bd4ab8b05e1e64597d8ea63b242605e936cff16460d0cfdb9716a896a
         platforms:
             - linux/amd64
             - linux/arm64
@@ -98,7 +98,7 @@ configs:
             kubectl: kubectl1.31
         description: Rancher charts build environment
     go1.25:
-        base: registry.suse.com/bci/golang:1.25.9@sha256:6ab7d7eb4a23076273da5e885ea71a1f9c72923da07f41fb53fb02e914123c11
+        base: registry.suse.com/bci/golang:1.25.9@sha256:e0f9780dcbf40a3e16ccf2cf3217397ca789bf59d31bdb1174680d19dc1d1efc
         platforms:
             - linux/amd64
             - linux/arm64
@@ -129,7 +129,7 @@ configs:
         go_version: 1.25.9
         description: CI image with Go 1.25 toolchain
     go1.26:
-        base: registry.suse.com/bci/golang:1.26.2@sha256:0c1bfe51ea14f3e28b4730c725687331ce6aa24c61acea3b9735286789c873b9
+        base: registry.suse.com/bci/golang:1.26.5@sha256:43bdcd2392b479600c2686bdc4ab1237f35a905e57bf8a06e83d445ce7faaf92
         platforms:
             - linux/amd64
             - linux/arm64
@@ -157,10 +157,10 @@ configs:
         family_selectors:
             helm: helmv4
             kubectl: kubectl1.31
-        go_version: 1.26.2
+        go_version: 1.26.5
         description: CI image with Go 1.26 toolchain
     nix:
-        base: registry.suse.com/bci/bci-base:15.7@sha256:3292c81fb9e40b60903e6c88fac34e955b6d5b3acd3eb055d02d5c1538a72aea
+        base: registry.suse.com/bci/bci-base:15.7@sha256:daebf54bd4ab8b05e1e64597d8ea63b242605e936cff16460d0cfdb9716a896a
         platforms:
             - linux/amd64
             - linux/arm64
@@ -179,7 +179,7 @@ configs:
             helm: helmv4
         description: Nix environment
     node22:
-        base: registry.suse.com/bci/nodejs:22.22.2@sha256:b81c6b8ffd79f8007c621b6ad21d8aa195fb3c6c8024ac6a04923227d9a18a81
+        base: registry.suse.com/bci/nodejs:22.22.2@sha256:20b413e009e142b69ed718a4989aceb62883b2331dfa7e1e87959df2cde41548
         platforms:
             - linux/amd64
             - linux/arm64
@@ -194,7 +194,7 @@ configs:
             helm: helmv4
         description: CI image with Node 22 toolchain
     node24:
-        base: registry.suse.com/bci/nodejs:24.14.1@sha256:30f4ce0caa9f329dd6c59578f771b14bdd2cd2fb9cea18bd46bbd6222ddc66a5
+        base: registry.suse.com/bci/nodejs:24.14.1@sha256:8e51b61efb267f13817162eaef5b511c8dd5c74cc014678d5a02f7c5ecc53f72
         platforms:
             - linux/amd64
             - linux/arm64
@@ -209,7 +209,7 @@ configs:
             helm: helmv4
         description: CI image with Node 24 toolchain
     python3.11:
-        base: registry.suse.com/bci/python:3.11.15@sha256:ae46b495c9413de83e4f9b2c8090b2369bbc519df460c66516c5cd8a1f32daed
+        base: registry.suse.com/bci/python:3.11.15@sha256:994af1164325656fc5ef32d48d04f4299be7d3f6186d78173f7c0f9666189249
         platforms:
             - linux/amd64
             - linux/arm64
@@ -224,7 +224,7 @@ configs:
             helm: helmv4
         description: CI image with Python 3.11 toolchain
     python3.13:
-        base: registry.suse.com/bci/python:3.13.13@sha256:ddc0eb2860df249e2054599e4df0e8452d25254508e05f3af1787359ad757963
+        base: registry.suse.com/bci/python:3.13.13@sha256:dfb71232cbea7b0cf693c9b32678520e0f91f134cddc337ca3c615b89534b284
         platforms:
             - linux/amd64
             - linux/arm64

@@ -1,4 +1,4 @@
-FROM registry.suse.com/bci/bci-base:15.7@sha256:daebf54bd4ab8b05e1e64597d8ea63b242605e936cff16460d0cfdb9716a896a
+FROM registry.suse.com/bci/bci-base:15.7@sha256:f06ad8fea5a6913d36847602535637a3e6815683f2521e13c12895ced5c54251
 
 LABEL org.opencontainers.image.source="https://github.com/rancher/ci-image" \
       org.opencontainers.image.title="Rancher nix CI image" \

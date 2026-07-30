@@ -1,7 +1,7 @@
 images:
   - name: go1.25
     description: "CI image with Go 1.25 toolchain"
-    base: "registry.suse.com/bci/golang:1.25.9@sha256:e0f9780dcbf40a3e16ccf2cf3217397ca789bf59d31bdb1174680d19dc1d1efc"
+    base: "registry.suse.com/bci/golang:1.25.12@sha256:cdea0e931e2ef55d368baa703630c9a48b195817b6ddafc51a89cda8331e97c4" 
     packages:
       - nodejs24
       - skopeo
@@ -16,7 +16,7 @@ images:
 
   - name: go1.26
     description: "CI image with Go 1.26 toolchain"
-    base: "registry.suse.com/bci/golang:1.26.5@sha256:43bdcd2392b479600c2686bdc4ab1237f35a905e57bf8a06e83d445ce7faaf92"
+    base: "registry.suse.com/bci/golang:1.26.5@sha256:36a442c253269e34cd72b201c0415889ee6705986444607ec6f727b7517c2695"
     packages:
       - nodejs24
       - skopeo
@@ -31,31 +31,31 @@ images:
 
   - name: python3.11
     description: "CI image with Python 3.11 toolchain"
-    base: "registry.suse.com/bci/python:3.11.15@sha256:994af1164325656fc5ef32d48d04f4299be7d3f6186d78173f7c0f9666189249"
+    base: "registry.suse.com/bci/python:3.11.15@sha256:d717fe2d50a890714276790f44cf577878cba8434dc776e75ce062798e25399c"
     packages:
     tools:
 
   - name: python3.13
     description: "CI image with Python 3.13 toolchain"
-    base: "registry.suse.com/bci/python:3.13.13@sha256:dfb71232cbea7b0cf693c9b32678520e0f91f134cddc337ca3c615b89534b284"
+    base: "registry.suse.com/bci/python:3.13.13@sha256:7d36dd3ba6596fb690e31d956952059fd010604ad6309f06462c02c4c9c01461"
     packages:
     tools:
 
   - name: node22
     description: "CI image with Node 22 toolchain"
-    base: "registry.suse.com/bci/nodejs:22.22.2@sha256:20b413e009e142b69ed718a4989aceb62883b2331dfa7e1e87959df2cde41548"
+    base: "registry.suse.com/bci/nodejs:22.23.1@sha256:d855dcfe77030109cc602bf9e7425dc766a425929edbdba0f88351d59b8988a6"
     packages:
     tools:
 
   - name: node24
     description: "CI image with Node 24 toolchain"
-    base: "registry.suse.com/bci/nodejs:24.14.1@sha256:8e51b61efb267f13817162eaef5b511c8dd5c74cc014678d5a02f7c5ecc53f72"
+    base: "registry.suse.com/bci/nodejs:24@sha256:94e0f8a2872ca5befff5723fe86c340103502132bcef17452ab00b3584ddb1b6"
     packages:
     tools:
 
   - name: charts
     description: "Rancher charts build environment"
-    base: "registry.suse.com/bci/bci-base:15.7@sha256:daebf54bd4ab8b05e1e64597d8ea63b242605e936cff16460d0cfdb9716a896a"
+    base: "registry.suse.com/bci/bci-base:15.7@sha256:f06ad8fea5a6913d36847602535637a3e6815683f2521e13c12895ced5c54251"
     packages:
       - git
       - patch
@@ -69,7 +69,7 @@ images:
 
   - name: nix
     description: "Nix environment"
-    base: "registry.suse.com/bci/bci-base:15.7@sha256:daebf54bd4ab8b05e1e64597d8ea63b242605e936cff16460d0cfdb9716a896a"
+    base: "registry.suse.com/bci/bci-base:15.7@sha256:f06ad8fea5a6913d36847602535637a3e6815683f2521e13c12895ced5c54251"
     packages:
       - sudo
       - vim

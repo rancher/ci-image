@@ -1,4 +1,4 @@
-FROM registry.suse.com/bci/nodejs:24.14.1@sha256:8e51b61efb267f13817162eaef5b511c8dd5c74cc014678d5a02f7c5ecc53f72
+FROM registry.suse.com/bci/nodejs:24@sha256:94e0f8a2872ca5befff5723fe86c340103502132bcef17452ab00b3584ddb1b6
 
 LABEL org.opencontainers.image.source="https://github.com/rancher/ci-image" \
       org.opencontainers.image.title="Rancher node24 CI image" \

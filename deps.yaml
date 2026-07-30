@@ -140,8 +140,8 @@ universal:
     source: rancherlabs/slsactl
     version: v0.1.35
     checksums:
-      linux/amd64: "778191c2dc648637eb89e79f3de9613c836fa61d7b3d27f460efceb18bee41e9"
-      linux/arm64: "8e0f5d0995bb53e404dd244ea0ccfaf85590a25d86b372dd7beb44a803ff6124"
+      linux/amd64: "dd8f75429cc629a4b36bf92297420d3147a140f545d3a92f2b8ffb8414f0d10b"
+      linux/arm64: "f68817d75ebe0ed0a14d55b9c637968244c38ff087a8fae21c89092f2d44db54"
     release:
       download_template: "slsactl_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "slsactl"

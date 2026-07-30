@@ -113,8 +113,8 @@ RUN case "${ARCH}" in \
 
 # slsactl v0.1.35
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="778191c2dc648637eb89e79f3de9613c836fa61d7b3d27f460efceb18bee41e9" ;; \
-        arm64) CHECKSUM="8e0f5d0995bb53e404dd244ea0ccfaf85590a25d86b372dd7beb44a803ff6124" ;; \
+        amd64) CHECKSUM="dd8f75429cc629a4b36bf92297420d3147a140f545d3a92f2b8ffb8414f0d10b" ;; \
+        arm64) CHECKSUM="f68817d75ebe0ed0a14d55b9c637968244c38ff087a8fae21c89092f2d44db54" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \

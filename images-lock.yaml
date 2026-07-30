@@ -26,12 +26,12 @@ packages:
     - wget
 tools:
     charts-build-scripts: v1.9.26
-    cosign: v3.0.6
-    gh: v2.89.0
+    cosign: v3.1.2
+    gh: v2.96.0
     golangci-lint: v2.11.4
     goreleaser: v2.15.2
     govulncheck: v1.2.0
-    helmv3: v3.20.2
+    helmv3: v3.21.3
     helmv4: v4.1.4
     kubectl1.28: v1.28.15
     kubectl1.29: v1.29.10

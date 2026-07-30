@@ -93,19 +93,19 @@ packages:
 universal:
   - name: cosign
     source: sigstore/cosign
-    version: v3.0.6
+    version: v3.1.2
     checksums:
-      linux/amd64: "c956e5dfcac53d52bcf058360d579472f0c1d2d9b69f55209e256fe7783f4c74"
-      linux/arm64: "bedac92e8c3729864e13d4a17048007cfafa79d5deca993a43a90ffe018ef2b8"
+      linux/amd64: "f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf"
+      linux/arm64: "90e7ae0b5dfd60f20816b52c012addf7fc055ebcc7bea4ce81c428ca8518c302"
     release:
       download_template: "cosign-{os}-{arch}"
 
   - name: gh
     source: cli/cli
-    version: v2.89.0
+    version: v2.96.0
     checksums:
-      linux/amd64: "d0422caade520530e76c1c558da47daebaa8e1203d6b7ff10ad7d6faba3490d8"
-      linux/arm64: "9e64a623dfc242990aa5d9b3f507111149c4282f66b68eaad1dc79eeb13b9ce5"
+      linux/amd64: "83d5c2ccad5498f58bf6368acb1ab32588cf43ab3a4b1c301bf36328b1c8bd60"
+      linux/arm64: "06f86ec7103d41993b76cd78072f43595c34aaa56506d971d9860e67140bf909"
     release:
       download_template: "gh_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "gh_{version|trimprefix:v}_{os}_{arch}/bin/gh"
@@ -115,10 +115,10 @@ universal:
     family: helm
     source: "https://get.helm.sh"
     mode: static
-    version: v3.20.2
+    version: v3.21.3
     checksums:
-      linux/amd64: "258e830a9e613c8a7a302d6059b4bb3b9758f2f3e1bb8ea0d707ce10a9a72fea"
-      linux/arm64: "5ea2d6bc2cda3f8edf985e028809f5a9278f404fb8ab24044de9b7cb9b79a691"
+      linux/amd64: "15e041a93a590dce8100f39385cd98c84a765c9e36aeeb9e2dc6ff9e4769e2e0"
+      linux/arm64: "67f58155079ff9ffab98ba5c88daff0ed9b542f3a4732f5dd426dde7dd0f5244"
     release:
       download_template: "{source}/helm-{version}-{os}-{arch}.tar.gz"
       extract: "{os}-{arch}/helm"

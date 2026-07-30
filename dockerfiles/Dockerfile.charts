@@ -39,16 +39,16 @@ RUN groupadd -g 121 runner && \
     chown root:runner /var/ci-tools && \
     chmod 2755 /var/ci-tools
 
-# cosign v3.0.6
+# cosign v3.1.2
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="c956e5dfcac53d52bcf058360d579472f0c1d2d9b69f55209e256fe7783f4c74" ;; \
-        arm64) CHECKSUM="bedac92e8c3729864e13d4a17048007cfafa79d5deca993a43a90ffe018ef2b8" ;; \
+        amd64) CHECKSUM="f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf" ;; \
+        arm64) CHECKSUM="90e7ae0b5dfd60f20816b52c012addf7fc055ebcc7bea4ce81c428ca8518c302" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/sigstore/cosign/releases/download/v3.0.6/cosign-linux-amd64" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/sigstore/cosign/releases/download/v3.0.6/cosign-linux-arm64" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/sigstore/cosign/releases/download/v3.1.2/cosign-linux-amd64" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/sigstore/cosign/releases/download/v3.1.2/cosign-linux-arm64" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/cosign" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/cosign" > "${TMP_DIR}/checksum.sha256" && \
@@ -56,17 +56,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/cosign" "/usr/local/bin/cosign" && \
     rm -rf "${TMP_DIR}"
 
-# gh v2.89.0
+# gh v2.96.0
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="d0422caade520530e76c1c558da47daebaa8e1203d6b7ff10ad7d6faba3490d8" ;; \
-        arm64) CHECKSUM="9e64a623dfc242990aa5d9b3f507111149c4282f66b68eaad1dc79eeb13b9ce5" ;; \
+        amd64) CHECKSUM="83d5c2ccad5498f58bf6368acb1ab32588cf43ab3a4b1c301bf36328b1c8bd60" ;; \
+        arm64) CHECKSUM="06f86ec7103d41993b76cd78072f43595c34aaa56506d971d9860e67140bf909" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/gh.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v2.89.0/gh_2.89.0_linux_amd64.tar.gz"; EXTRACT="gh_2.89.0_linux_amd64/bin/gh" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v2.89.0/gh_2.89.0_linux_arm64.tar.gz"; EXTRACT="gh_2.89.0_linux_arm64/bin/gh" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v2.96.0/gh_2.96.0_linux_amd64.tar.gz"; EXTRACT="gh_2.96.0_linux_amd64/bin/gh" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v2.96.0/gh_2.96.0_linux_arm64.tar.gz"; EXTRACT="gh_2.96.0_linux_arm64/bin/gh" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
@@ -75,17 +75,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/gh" && \
     rm -rf "${TMP_DIR}"
 
-# helmv3 v3.20.2
+# helmv3 v3.21.3
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="258e830a9e613c8a7a302d6059b4bb3b9758f2f3e1bb8ea0d707ce10a9a72fea" ;; \
-        arm64) CHECKSUM="5ea2d6bc2cda3f8edf985e028809f5a9278f404fb8ab24044de9b7cb9b79a691" ;; \
+        amd64) CHECKSUM="15e041a93a590dce8100f39385cd98c84a765c9e36aeeb9e2dc6ff9e4769e2e0" ;; \
+        arm64) CHECKSUM="67f58155079ff9ffab98ba5c88daff0ed9b542f3a4732f5dd426dde7dd0f5244" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/helmv3.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://get.helm.sh/helm-v3.20.2-linux-amd64.tar.gz"; EXTRACT="linux-amd64/helm" ;; \
-        arm64) DOWNLOAD_URL="https://get.helm.sh/helm-v3.20.2-linux-arm64.tar.gz"; EXTRACT="linux-arm64/helm" ;; \
+        amd64) DOWNLOAD_URL="https://get.helm.sh/helm-v3.21.3-linux-amd64.tar.gz"; EXTRACT="linux-amd64/helm" ;; \
+        arm64) DOWNLOAD_URL="https://get.helm.sh/helm-v3.21.3-linux-arm64.tar.gz"; EXTRACT="linux-arm64/helm" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \

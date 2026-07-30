@@ -4,6 +4,128 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20260730-24 (2026-07-30)
+
+### Image: go1.25:20260730-24
+
+- Base image: `registry.suse.com/bci/golang:1.25.9` → `registry.suse.com/bci/golang:1.25.12`
+- `cosign`: `v3.0.6` → `v3.1.2`
+- `gh`: `v2.89.0` → `v2.96.0`
+- `golangci-lint`: `v2.11.4` → `v2.12.2`
+- `goreleaser`: `v2.15.2` → `v2.17.1`
+- `govulncheck`: `v1.2.0` → `v1.6.0`
+- `helmv3`: `v3.20.2` → `v3.21.3`
+- `helmv4`: `v4.1.4` → `v4.2.3`
+- `kubectl1.29`: `v1.29.10` → `v1.29.15`
+- `kubectl1.30`: `v1.30.6` → `v1.30.14`
+- `kubectl1.31`: `v1.31.2` → `v1.31.14`
+- `oras`: `v1.3.1` → `v1.3.3`
+- `slsactl`: `v0.1.30` → `v0.1.35`
+- `yq`: `v4.53.2` → `v4.53.3`
+- Added: `kubectl1.32` `v1.32.13`
+- Added: `kubectl1.33` `v1.33.13`
+- Added: `kubectl1.34` `v1.34.10`
+- Added: `kubectl1.35` `v1.35.7`
+- Added: `kubectl1.36` `v1.36.3`
+- `kubectl` selector default: `kubectl1.31` → `kubectl1.36`
+
+### Image: go1.26:20260730-24
+
+- Base image: `registry.suse.com/bci/golang:1.26.2` → `registry.suse.com/bci/golang:1.26.5`
+- `cosign`: `v3.0.6` → `v3.1.2`
+- `gh`: `v2.89.0` → `v2.96.0`
+- `golangci-lint`: `v2.11.4` → `v2.12.2`
+- `goreleaser`: `v2.15.2` → `v2.17.1`
+- `govulncheck`: `v1.2.0` → `v1.6.0`
+- `helmv3`: `v3.20.2` → `v3.21.3`
+- `helmv4`: `v4.1.4` → `v4.2.3`
+- `kubectl1.29`: `v1.29.10` → `v1.29.15`
+- `kubectl1.30`: `v1.30.6` → `v1.30.14`
+- `kubectl1.31`: `v1.31.2` → `v1.31.14`
+- `oras`: `v1.3.1` → `v1.3.3`
+- `slsactl`: `v0.1.30` → `v0.1.35`
+- `yq`: `v4.53.2` → `v4.53.3`
+- Added: `kubectl1.32` `v1.32.13`
+- Added: `kubectl1.33` `v1.33.13`
+- Added: `kubectl1.34` `v1.34.10`
+- Added: `kubectl1.35` `v1.35.7`
+- Added: `kubectl1.36` `v1.36.3`
+- `kubectl` selector default: `kubectl1.31` → `kubectl1.36`
+
+### Image: python3.11:20260730-24
+
+- Base image: `registry.suse.com/bci/python:3.11.15` → `registry.suse.com/bci/python:3.11.15`
+- `cosign`: `v3.0.6` → `v3.1.2`
+- `gh`: `v2.89.0` → `v2.96.0`
+- `helmv3`: `v3.20.2` → `v3.21.3`
+- `helmv4`: `v4.1.4` → `v4.2.3`
+- `slsactl`: `v0.1.30` → `v0.1.35`
+- `yq`: `v4.53.2` → `v4.53.3`
+
+### Image: python3.13:20260730-24
+
+- Base image: `registry.suse.com/bci/python:3.13.13` → `registry.suse.com/bci/python:3.13.13`
+- `cosign`: `v3.0.6` → `v3.1.2`
+- `gh`: `v2.89.0` → `v2.96.0`
+- `helmv3`: `v3.20.2` → `v3.21.3`
+- `helmv4`: `v4.1.4` → `v4.2.3`
+- `slsactl`: `v0.1.30` → `v0.1.35`
+- `yq`: `v4.53.2` → `v4.53.3`
+
+### Image: node22:20260730-24
+
+- Base image: `registry.suse.com/bci/nodejs:22.22.2` → `registry.suse.com/bci/nodejs:22.23.1`
+- `cosign`: `v3.0.6` → `v3.1.2`
+- `gh`: `v2.89.0` → `v2.96.0`
+- `helmv3`: `v3.20.2` → `v3.21.3`
+- `helmv4`: `v4.1.4` → `v4.2.3`
+- `slsactl`: `v0.1.30` → `v0.1.35`
+- `yq`: `v4.53.2` → `v4.53.3`
+
+### Image: node24:20260730-24
+
+- Base image: `registry.suse.com/bci/nodejs:24.14.1` → `registry.suse.com/bci/nodejs:24`
+- `cosign`: `v3.0.6` → `v3.1.2`
+- `gh`: `v2.89.0` → `v2.96.0`
+- `helmv3`: `v3.20.2` → `v3.21.3`
+- `helmv4`: `v4.1.4` → `v4.2.3`
+- `slsactl`: `v0.1.30` → `v0.1.35`
+- `yq`: `v4.53.2` → `v4.53.3`
+
+### Image: charts:20260730-24
+
+- Base image: `registry.suse.com/bci/bci-base:15.7` → `registry.suse.com/bci/bci-base:15.7`
+- `charts-build-scripts`: `v1.9.26` → `v1.9.27`
+- `cosign`: `v3.0.6` → `v3.1.2`
+- `gh`: `v2.89.0` → `v2.96.0`
+- `golangci-lint`: `v2.11.4` → `v2.12.2`
+- `goreleaser`: `v2.15.2` → `v2.17.1`
+- `helmv3`: `v3.20.2` → `v3.21.3`
+- `helmv4`: `v4.1.4` → `v4.2.3`
+- `kubectl1.29`: `v1.29.10` → `v1.29.15`
+- `kubectl1.30`: `v1.30.6` → `v1.30.14`
+- `kubectl1.31`: `v1.31.2` → `v1.31.14`
+- `oras`: `v1.3.1` → `v1.3.3`
+- `slsactl`: `v0.1.30` → `v0.1.35`
+- `yq`: `v4.53.2` → `v4.53.3`
+- Added: `kubectl1.32` `v1.32.13`
+- Added: `kubectl1.33` `v1.33.13`
+- Added: `kubectl1.34` `v1.34.10`
+- Added: `kubectl1.35` `v1.35.7`
+- Added: `kubectl1.36` `v1.36.3`
+- `kubectl` selector default: `kubectl1.31` → `kubectl1.36`
+
+### Image: nix:20260730-24
+
+- Base image: `registry.suse.com/bci/bci-base:15.7` → `registry.suse.com/bci/bci-base:15.7`
+- `cosign`: `v3.0.6` → `v3.1.2`
+- `gh`: `v2.89.0` → `v2.96.0`
+- `helmv3`: `v3.20.2` → `v3.21.3`
+- `helmv4`: `v4.1.4` → `v4.2.3`
+- `nix`: `2.34.7` → `2.35.1`
+- `slsactl`: `v0.1.30` → `v0.1.35`
+- `yq`: `v4.53.2` → `v4.53.3`
+
 ## Revision: 20260720-23 (2026-07-20)
 
 _No notable changes._

@@ -187,16 +187,16 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/goreleaser" && \
     rm -rf "${TMP_DIR}"
 
-# charts-build-scripts v1.9.26
+# charts-build-scripts v1.9.27
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="ecb90d1ba0ef367923eeddc6b912c2a55370a95192e3e4796b40d12ea51b36e0" ;; \
-        arm64) CHECKSUM="58aa0c5a2c41a67de607ccaf7b6741311b2a389c3d0de0406fea0953809372d7" ;; \
+        amd64) CHECKSUM="1060b7246b3902b4b4b81afae37296cefb9c6d0079e605d70f7b42267b473665" ;; \
+        arm64) CHECKSUM="edd5eb855b291cf05a6654e462df4a7abaac4d06c1021928d8b8e2f00884a1f4" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/rancher/charts-build-scripts/releases/download/v1.9.26/charts-build-scripts_linux_amd64" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/rancher/charts-build-scripts/releases/download/v1.9.26/charts-build-scripts_linux_arm64" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/rancher/charts-build-scripts/releases/download/v1.9.27/charts-build-scripts_linux_amd64" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/rancher/charts-build-scripts/releases/download/v1.9.27/charts-build-scripts_linux_arm64" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/charts-build-scripts" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/charts-build-scripts" > "${TMP_DIR}/checksum.sha256" && \

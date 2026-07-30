@@ -25,7 +25,7 @@ packages:
     - zstd
     - wget
 tools:
-    charts-build-scripts: v1.9.26
+    charts-build-scripts: v1.9.27
     cosign: v3.1.2
     gh: v2.96.0
     golangci-lint: v2.12.2

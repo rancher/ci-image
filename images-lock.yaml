@@ -28,21 +28,26 @@ tools:
     charts-build-scripts: v1.9.26
     cosign: v3.1.2
     gh: v2.96.0
-    golangci-lint: v2.11.4
-    goreleaser: v2.15.2
-    govulncheck: v1.2.0
+    golangci-lint: v2.12.2
+    goreleaser: v2.17.1
+    govulncheck: v1.6.0
     helmv3: v3.21.3
-    helmv4: v4.1.4
+    helmv4: v4.2.3
     kubectl1.28: v1.28.15
-    kubectl1.29: v1.29.10
-    kubectl1.30: v1.30.6
-    kubectl1.31: v1.31.2
+    kubectl1.29: v1.29.15
+    kubectl1.30: v1.30.14
+    kubectl1.31: v1.31.14
+    kubectl1.32: v1.32.13
+    kubectl1.33: v1.33.13
+    kubectl1.34: v1.34.10
+    kubectl1.35: v1.35.7
+    kubectl1.36: v1.36.3
     kuberlr: v0.7.0
-    nix: 2.34.7
+    nix: 2.35.1
     ob-charts-tool: v0.6.1
-    oras: v1.3.1
-    slsactl: v0.1.30
-    yq: v4.53.2
+    oras: v1.3.3
+    slsactl: v0.1.35
+    yq: v4.53.3
 selectors:
     - helm
     - kubectl
@@ -88,6 +93,11 @@ configs:
             - kubectl1.29
             - kubectl1.30
             - kubectl1.31
+            - kubectl1.32
+            - kubectl1.33
+            - kubectl1.34
+            - kubectl1.35
+            - kubectl1.36
             - kuberlr
             - ob-charts-tool
             - oras
@@ -95,7 +105,7 @@ configs:
             - yq
         family_selectors:
             helm: helmv4
-            kubectl: kubectl1.31
+            kubectl: kubectl1.36
         description: Rancher charts build environment
     go1.25:
         base: registry.suse.com/bci/golang:1.25.12@sha256:cdea0e931e2ef55d368baa703630c9a48b195817b6ddafc51a89cda8331e97c4
@@ -117,6 +127,11 @@ configs:
             - kubectl1.29
             - kubectl1.30
             - kubectl1.31
+            - kubectl1.32
+            - kubectl1.33
+            - kubectl1.34
+            - kubectl1.35
+            - kubectl1.36
             - kuberlr
             - oras
             - slsactl
@@ -125,7 +140,7 @@ configs:
             helm_v3: helmv3
         family_selectors:
             helm: helmv4
-            kubectl: kubectl1.31
+            kubectl: kubectl1.36
         go_version: 1.25.12
         description: CI image with Go 1.25 toolchain
     go1.26:
@@ -148,6 +163,11 @@ configs:
             - kubectl1.29
             - kubectl1.30
             - kubectl1.31
+            - kubectl1.32
+            - kubectl1.33
+            - kubectl1.34
+            - kubectl1.35
+            - kubectl1.36
             - kuberlr
             - oras
             - slsactl
@@ -156,7 +176,7 @@ configs:
             helm_v3: helmv3
         family_selectors:
             helm: helmv4
-            kubectl: kubectl1.31
+            kubectl: kubectl1.36
         go_version: 1.26.5
         description: CI image with Go 1.26 toolchain
     nix:

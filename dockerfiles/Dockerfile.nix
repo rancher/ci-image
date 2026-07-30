@@ -94,17 +94,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/helmv3" && \
     rm -rf "${TMP_DIR}"
 
-# helmv4 v4.1.4
+# helmv4 v4.2.3
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="70b2c30a19da4db264dfd68c8a3664e05093a361cefd89572ffb36f8abfa3d09" ;; \
-        arm64) CHECKSUM="13d03672be289045d2ff00e4e345d61de1c6f21c1257a45955a30e8ae036d8f1" ;; \
+        amd64) CHECKSUM="e9b88b4ee95b18c706839c28d3a0220e5bc470e9cd9262410c90793c45ff8b7c" ;; \
+        arm64) CHECKSUM="21abd9354d39b2cd79a8d76be6912cd137a983cbf997193503fb8a6a6e2f2785" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/helmv4.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://get.helm.sh/helm-v4.1.4-linux-amd64.tar.gz"; EXTRACT="linux-amd64/helm" ;; \
-        arm64) DOWNLOAD_URL="https://get.helm.sh/helm-v4.1.4-linux-arm64.tar.gz"; EXTRACT="linux-arm64/helm" ;; \
+        amd64) DOWNLOAD_URL="https://get.helm.sh/helm-v4.2.3-linux-amd64.tar.gz"; EXTRACT="linux-amd64/helm" ;; \
+        arm64) DOWNLOAD_URL="https://get.helm.sh/helm-v4.2.3-linux-arm64.tar.gz"; EXTRACT="linux-arm64/helm" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
@@ -113,17 +113,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/helmv4" && \
     rm -rf "${TMP_DIR}"
 
-# slsactl v0.1.30
+# slsactl v0.1.35
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="7ed4750766c135ddcae788d194d7ff59a57c6debdc722fd1e52c06460218f10a" ;; \
-        arm64) CHECKSUM="bbbe66089135c82526677177c080f5ca4911ad1989712596338c5acdae4bb383" ;; \
+        amd64) CHECKSUM="778191c2dc648637eb89e79f3de9613c836fa61d7b3d27f460efceb18bee41e9" ;; \
+        arm64) CHECKSUM="8e0f5d0995bb53e404dd244ea0ccfaf85590a25d86b372dd7beb44a803ff6124" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/slsactl.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.30/slsactl_0.1.30_linux_amd64.tar.gz"; EXTRACT="slsactl" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.30/slsactl_0.1.30_linux_arm64.tar.gz"; EXTRACT="slsactl" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.35/slsactl_0.1.35_linux_amd64.tar.gz"; EXTRACT="slsactl" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.35/slsactl_0.1.35_linux_arm64.tar.gz"; EXTRACT="slsactl" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
@@ -132,16 +132,16 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/slsactl" && \
     rm -rf "${TMP_DIR}"
 
-# yq v4.53.2
+# yq v4.53.3
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="d56bf5c6819e8e696340c312bd70f849dc1678a7cda9c2ad63eebd906371d56b" ;; \
-        arm64) CHECKSUM="03061b2a50c7a498de2bbb92d7cb078ce433011f085a4994117c2726be4106ea" ;; \
+        amd64) CHECKSUM="fa52a4e758c63d38299163fbdd1edfb4c4963247918bf9c1c5d31d84789eded4" ;; \
+        arm64) CHECKSUM="578648e463a11c1b6db6010cbf41eafed6bee79466fcffa1bb446672cf7945ea" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.53.2/yq_linux_amd64" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.53.2/yq_linux_arm64" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.53.3/yq_linux_amd64" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.53.3/yq_linux_arm64" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/yq" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/yq" > "${TMP_DIR}/checksum.sha256" && \
@@ -149,7 +149,7 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/yq" "/usr/local/bin/yq" && \
     rm -rf "${TMP_DIR}"
 
-# nix 2.34.7
+# nix 2.35.1
 
 # Pre-install setup for nix
 # Create unprivileged user for Nix installation
@@ -168,8 +168,8 @@ RUN usermod -a -G runner suse && \
     echo 'source /home/suse/.nix-profile/etc/profile.d/nix.sh' > /etc/bash.bashrc.local
 
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="eafe5042404e818505e28c5ca3d0885f3ec45c31f955489a25bb38258f87560e" ;; \
-        arm64) CHECKSUM="f1cee64ae7a02330c6421924c28f597c41813f2214ff108622087d8056378b08" ;; \
+        amd64) CHECKSUM="79b739996f1751573b4d2b56e4ae607855184c711f2cc1274fa0952a13d4bfc9" ;; \
+        arm64) CHECKSUM="c3fe29778acaa93b5095ee66e36f11ec7c6a284c40970a24cc83ac4f04809db3" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export INSTALL_DIR="/var/ci-tools/nix" && \
@@ -177,8 +177,8 @@ RUN case "${ARCH}" in \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/nix.tar.xz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://releases.nixos.org/nix/nix-2.34.7/nix-2.34.7-x86_64-linux.tar.xz"; EXTRACT="nix-2.34.7-x86_64-linux/" ;; \
-        arm64) DOWNLOAD_URL="https://releases.nixos.org/nix/nix-2.34.7/nix-2.34.7-aarch64-linux.tar.xz"; EXTRACT="nix-2.34.7-aarch64-linux/" ;; \
+        amd64) DOWNLOAD_URL="https://releases.nixos.org/nix/nix-2.35.1/nix-2.35.1-x86_64-linux.tar.xz"; EXTRACT="nix-2.35.1-x86_64-linux/" ;; \
+        arm64) DOWNLOAD_URL="https://releases.nixos.org/nix/nix-2.35.1/nix-2.35.1-aarch64-linux.tar.xz"; EXTRACT="nix-2.35.1-aarch64-linux/" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \

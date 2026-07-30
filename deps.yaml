@@ -128,68 +128,68 @@ universal:
     family_default: true
     source: "https://get.helm.sh"
     mode: static
-    version: v4.1.4
+    version: v4.2.3
     checksums:
-      linux/amd64: "70b2c30a19da4db264dfd68c8a3664e05093a361cefd89572ffb36f8abfa3d09"
-      linux/arm64: "13d03672be289045d2ff00e4e345d61de1c6f21c1257a45955a30e8ae036d8f1"
+      linux/amd64: "e9b88b4ee95b18c706839c28d3a0220e5bc470e9cd9262410c90793c45ff8b7c"
+      linux/arm64: "21abd9354d39b2cd79a8d76be6912cd137a983cbf997193503fb8a6a6e2f2785"
     release:
       download_template: "{source}/helm-{version}-{os}-{arch}.tar.gz"
       extract: "{os}-{arch}/helm"
 
   - name: slsactl
     source: rancherlabs/slsactl
-    version: v0.1.30
+    version: v0.1.35
     checksums:
-      linux/amd64: "7ed4750766c135ddcae788d194d7ff59a57c6debdc722fd1e52c06460218f10a"
-      linux/arm64: "bbbe66089135c82526677177c080f5ca4911ad1989712596338c5acdae4bb383"
+      linux/amd64: "778191c2dc648637eb89e79f3de9613c836fa61d7b3d27f460efceb18bee41e9"
+      linux/arm64: "8e0f5d0995bb53e404dd244ea0ccfaf85590a25d86b372dd7beb44a803ff6124"
     release:
       download_template: "slsactl_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "slsactl"
 
   - name: yq
     source: mikefarah/yq
-    version: v4.53.2
+    version: v4.53.3
     checksums:
-      linux/amd64: "d56bf5c6819e8e696340c312bd70f849dc1678a7cda9c2ad63eebd906371d56b"
-      linux/arm64: "03061b2a50c7a498de2bbb92d7cb078ce433011f085a4994117c2726be4106ea"
+      linux/amd64: "fa52a4e758c63d38299163fbdd1edfb4c4963247918bf9c1c5d31d84789eded4"
+      linux/arm64: "578648e463a11c1b6db6010cbf41eafed6bee79466fcffa1bb446672cf7945ea"
     release:
       download_template: "yq_{os}_{arch}"
 
 tools:
   - name: golangci-lint
     source: golangci/golangci-lint
-    version: v2.11.4
+    version: v2.12.2
     checksums:
-      linux/amd64: "200c5b7503f67b59a6743ccf32133026c174e272b930ee79aa2aa6f37aca7ef1"
-      linux/arm64: "3bcfa2e6f3d32b2bf5cd75eaa876447507025e0303698633f722a05331988db4"
+      linux/amd64: "8df580d2670fed8fa984aac0507099af8df275e665215f5c7a2ae3943893a553"
+      linux/arm64: "44cd40a8c76c86755375adfeea52cfd3533cb43d7bd647771e0ae065e166df3a"
     release:
       download_template: "golangci-lint-{version|trimprefix:v}-{os}-{arch}.tar.gz"
       extract: "golangci-lint-{version|trimprefix:v}-{os}-{arch}/golangci-lint"
 
   - name: goreleaser
     source: goreleaser/goreleaser
-    version: v2.15.2
+    version: v2.17.1
     checksums:
-      linux/amd64: "0ebdbf0353aba566b969dde746cc4e4806f96c27aa2f3971b229a9df7611fedc"
-      linux/arm64: "5db66761a98f6693161e49e1a95d28d2673a892ba60cb4a5e16736cafd41c4c9"
+      linux/amd64: "a99bbc7ae0d8d897b07c4c497a9b62f222558804715ef219d1af05a7e417bc80"
+      linux/arm64: "702f03769ac8bcb0e47839c82243cc614ae995633599a98c63062e13ea85f829"
     release:
       download_template: "goreleaser_{os|title}_{arch|replace:amd64=x86_64}.tar.gz"
       extract: "goreleaser"
 
   - name: govulncheck
     source: golang/vuln
-    version: v1.2.0
-    version_commit: a8075323febce35764797d66a61fa9e19a8d9797
+    version: v1.6.0
+    version_commit: 19b0bb6a272792b9afa8a6983c3e9b9a1816947f
     install:
       method: go-install
       package: "golang.org/x/vuln/cmd/govulncheck@{version_commit}"
 
   - name: oras
     source: oras-project/oras
-    version: v1.3.1
+    version: v1.3.3
     checksums:
-      linux/amd64: "d52c4af76ce6a3ceb8579e51fb751a43ac051cca67f965f973a0b0e897a2bb86"
-      linux/arm64: "79946ad57d732836f9242f903f476b6fa484c451d659f121bce54d931ab2a044"
+      linux/amd64: "9ce999f8d2de03fc03968b29d743077a58783e545e5eaa53917ca177352d0e59"
+      linux/arm64: "ac7156f93a21e903f7ad606c792f3560f17e0cd0e36365634701b1e7cc4e4eca"
     release:
       download_template: "oras_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "oras"
@@ -221,10 +221,10 @@ tools:
     family: kubectl
     source: "https://dl.k8s.io/release"
     mode: static
-    version: v1.29.10
+    version: v1.29.15
     checksums:
       linux/amd64: "24f2f09a635d36b2ce36eaebf191326e2b25097eec541a3e47fee6726ef06cef"
-      linux/arm64: "4cfa950fbd354bdc655cc425494aa77fe81710bc8f7d3f95285338aac223cc82"
+      linux/arm64: "a41984dc0ff34ee05f1283ebd9b3121c003b3469b97214738246faa5b6788f7c"
     release:
       download_template: "{source}/{version}/bin/{os}/{arch}/kubectl"
 
@@ -232,24 +232,79 @@ tools:
     family: kubectl
     source: "https://dl.k8s.io/release"
     mode: static
-    version: v1.30.6
+    version: v1.30.14
     checksums:
-      linux/amd64: "7a3adf80ca74b1b2afdfc7f4570f0005ca03c2812367ffb6ee2f731d66e45e61"
-      linux/arm64: "0b448581f05f46d80219d1a73bd1966de09066c313f64e67e7b75b35e07191cd"
+      linux/amd64: "7ccac981ece0098284d8961973295f5124d78eab7b89ba5023f35591baa16271"
+      linux/arm64: "a32e46ae15fe41292dc6a7cd76beba7104282a5a3fa9e3686319000a537f4f5d"
     release:
       download_template: "{source}/{version}/bin/{os}/{arch}/kubectl"
 
   - name: kubectl1.31
     family: kubectl
+    source: "https://dl.k8s.io/release"
+    mode: static
+    version: v1.31.14
+    checksums:
+      linux/amd64: "8791ec7c8966b61420d55103a5fb948de9f0ca3d7306d789734975ad9704bdb0"
+      linux/arm64: "3abb0c2d7121e1833831f56fd857a93de386e76d14b64baf86220d0afe495209"
+    release:
+      download_template: "{source}/{version}/bin/{os}/{arch}/kubectl"
+
+  - name: kubectl1.32
+    family: kubectl
+    source: "https://dl.k8s.io/release"
+    mode: static
+    version: v1.32.13
+    checksums:
+      linux/amd64: "db2ae479a63f3665d7f704ab18c0d4d4050144237980763221835b7305703c4c"
+      linux/arm64: "b1f87f196633a89208546d79bfa4e2470bda70e7bf42c4d3adb008ec208da9d1"
+    release:
+      download_template: "{source}/{version}/bin/{os}/{arch}/kubectl"
+
+  - name: kubectl1.33
+    family: kubectl
+    source: "https://dl.k8s.io/release"
+    version: v1.33.13
+    checksums:
+      linux/amd64: "316d712726d857c20744c57cb36aa47cfc79bc0af7e82cebf3780244b654c073"
+      linux/arm64: "9fe8aadd5aab9421978c7ac95de6fad304a3c4c0ce9dbf4127579779e0699080"
+    release:
+      download_template: "{source}/{version}/bin/{os}/{arch}/kubectl"
+
+  - name: kubectl1.34
+    family: kubectl
+    source: "https://dl.k8s.io/release"
+    mode: static
+    version: v1.34.10
+    checksums:
+      linux/amd64: "95bd70842bd11a524d24acd5b68726899e3488e153e45e2b4ae846545beda050"
+      linux/arm64: "52d3aeefea32fdfa3671ccd636be5da463ddfd0a2fc09d7bcbaedcff4c76cad5"
+    release:
+      download_template: "{source}/{version}/bin/{os}/{arch}/kubectl"
+
+  - name: kubectl1.35
+    family: kubectl
+    source: "https://dl.k8s.io/release"
+    mode: static
+    version: v1.35.7
+    checksums:
+      linux/amd64: "12e97f9d23a9f6cbb87b89becd6bd291e1a858a3379a4e11e2c822c4c1530052"
+      linux/arm64: "5103d45b8881434d417694057b8ccb5ae79fd310a5c5c13e403c5e62e15909be"
+    release:
+      download_template: "{source}/{version}/bin/{os}/{arch}/kubectl"
+
+  - name: kubectl1.36
+    family: kubectl
     family_default: true
     source: "https://dl.k8s.io/release"
     mode: static
-    version: v1.31.2
+    version: v1.36.3
     checksums:
-      linux/amd64: "399e9d1995da80b64d2ef3606c1a239018660d8b35209fba3f7b0bc11c631c68"
-      linux/arm64: "bb9fd6e5a92c2e2378954a2f1a8b4ccb2e8ba5a3635f870c3f306a53b359f971"
+      linux/amd64: "ebbd080e7c2e275093b55915722043257eb24004363e20acb3c4d71919f88336"
+      linux/arm64: "3d86f24401c41ae5a46ac50eef8865fe891d3647d324a0836f6c63757a126e62"
     release:
       download_template: "{source}/{version}/bin/{os}/{arch}/kubectl"
+
 
   # charts-build-scripts is a first-party Rancher tool on the compile-time
   # allowlist. mode: release-checksums means checksums are fetched from the
@@ -272,10 +327,10 @@ tools:
   - name: nix
     source: "https://releases.nixos.org/nix"
     mode: static
-    version: 2.34.7
+    version: 2.35.1
     checksums:
-      linux/amd64: "eafe5042404e818505e28c5ca3d0885f3ec45c31f955489a25bb38258f87560e"
-      linux/arm64: "f1cee64ae7a02330c6421924c28f597c41813f2214ff108622087d8056378b08"
+      linux/amd64: "79b739996f1751573b4d2b56e4ae607855184c711f2cc1274fa0952a13d4bfc9"
+      linux/arm64: "c3fe29778acaa93b5095ee66e36f11ec7c6a284c40970a24cc83ac4f04809db3"
     release:
       download_template: "{source}/nix-{version}/nix-{version}-{arch|replace:amd64=x86_64|replace:arm64=aarch64}-{os}.tar.xz"
       extract: "nix-{version}-{arch|replace:amd64=x86_64|replace:arm64=aarch64}-{os}/"

@@ -168,8 +168,8 @@ RUN usermod -a -G runner suse && \
     echo 'source /home/suse/.nix-profile/etc/profile.d/nix.sh' > /etc/bash.bashrc.local
 
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="79b739996f1751573b4d2b56e4ae607855184c711f2cc1274fa0952a13d4bfc9" ;; \
-        arm64) CHECKSUM="c3fe29778acaa93b5095ee66e36f11ec7c6a284c40970a24cc83ac4f04809db3" ;; \
+        amd64) CHECKSUM="c3fe29778acaa93b5095ee66e36f11ec7c6a284c40970a24cc83ac4f04809db3" ;; \
+        arm64) CHECKSUM="79b739996f1751573b4d2b56e4ae607855184c711f2cc1274fa0952a13d4bfc9" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export INSTALL_DIR="/var/ci-tools/nix" && \

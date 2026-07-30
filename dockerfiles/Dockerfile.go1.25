@@ -1,4 +1,4 @@
-FROM registry.suse.com/bci/golang:1.25.9@sha256:6ab7d7eb4a23076273da5e885ea71a1f9c72923da07f41fb53fb02e914123c11
+FROM registry.suse.com/bci/golang:1.25.12@sha256:cdea0e931e2ef55d368baa703630c9a48b195817b6ddafc51a89cda8331e97c4
 
 LABEL org.opencontainers.image.source="https://github.com/rancher/ci-image" \
       org.opencontainers.image.title="Rancher go1.25 CI image" \
@@ -39,16 +39,16 @@ RUN groupadd -g 121 runner && \
     chown root:runner /var/ci-tools && \
     chmod 2755 /var/ci-tools
 
-# cosign v3.0.6
+# cosign v3.1.2
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="c956e5dfcac53d52bcf058360d579472f0c1d2d9b69f55209e256fe7783f4c74" ;; \
-        arm64) CHECKSUM="bedac92e8c3729864e13d4a17048007cfafa79d5deca993a43a90ffe018ef2b8" ;; \
+        amd64) CHECKSUM="f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf" ;; \
+        arm64) CHECKSUM="90e7ae0b5dfd60f20816b52c012addf7fc055ebcc7bea4ce81c428ca8518c302" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/sigstore/cosign/releases/download/v3.0.6/cosign-linux-amd64" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/sigstore/cosign/releases/download/v3.0.6/cosign-linux-arm64" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/sigstore/cosign/releases/download/v3.1.2/cosign-linux-amd64" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/sigstore/cosign/releases/download/v3.1.2/cosign-linux-arm64" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/cosign" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/cosign" > "${TMP_DIR}/checksum.sha256" && \
@@ -56,17 +56,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/cosign" "/usr/local/bin/cosign" && \
     rm -rf "${TMP_DIR}"
 
-# gh v2.89.0
+# gh v2.96.0
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="d0422caade520530e76c1c558da47daebaa8e1203d6b7ff10ad7d6faba3490d8" ;; \
-        arm64) CHECKSUM="9e64a623dfc242990aa5d9b3f507111149c4282f66b68eaad1dc79eeb13b9ce5" ;; \
+        amd64) CHECKSUM="83d5c2ccad5498f58bf6368acb1ab32588cf43ab3a4b1c301bf36328b1c8bd60" ;; \
+        arm64) CHECKSUM="06f86ec7103d41993b76cd78072f43595c34aaa56506d971d9860e67140bf909" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/gh.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v2.89.0/gh_2.89.0_linux_amd64.tar.gz"; EXTRACT="gh_2.89.0_linux_amd64/bin/gh" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v2.89.0/gh_2.89.0_linux_arm64.tar.gz"; EXTRACT="gh_2.89.0_linux_arm64/bin/gh" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v2.96.0/gh_2.96.0_linux_amd64.tar.gz"; EXTRACT="gh_2.96.0_linux_amd64/bin/gh" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v2.96.0/gh_2.96.0_linux_arm64.tar.gz"; EXTRACT="gh_2.96.0_linux_arm64/bin/gh" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
@@ -75,17 +75,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/gh" && \
     rm -rf "${TMP_DIR}"
 
-# helmv3 v3.20.2
+# helmv3 v3.21.3
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="258e830a9e613c8a7a302d6059b4bb3b9758f2f3e1bb8ea0d707ce10a9a72fea" ;; \
-        arm64) CHECKSUM="5ea2d6bc2cda3f8edf985e028809f5a9278f404fb8ab24044de9b7cb9b79a691" ;; \
+        amd64) CHECKSUM="15e041a93a590dce8100f39385cd98c84a765c9e36aeeb9e2dc6ff9e4769e2e0" ;; \
+        arm64) CHECKSUM="67f58155079ff9ffab98ba5c88daff0ed9b542f3a4732f5dd426dde7dd0f5244" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/helmv3.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://get.helm.sh/helm-v3.20.2-linux-amd64.tar.gz"; EXTRACT="linux-amd64/helm" ;; \
-        arm64) DOWNLOAD_URL="https://get.helm.sh/helm-v3.20.2-linux-arm64.tar.gz"; EXTRACT="linux-arm64/helm" ;; \
+        amd64) DOWNLOAD_URL="https://get.helm.sh/helm-v3.21.3-linux-amd64.tar.gz"; EXTRACT="linux-amd64/helm" ;; \
+        arm64) DOWNLOAD_URL="https://get.helm.sh/helm-v3.21.3-linux-arm64.tar.gz"; EXTRACT="linux-arm64/helm" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
@@ -94,17 +94,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/helmv3" && \
     rm -rf "${TMP_DIR}"
 
-# helmv4 v4.1.4
+# helmv4 v4.2.3
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="70b2c30a19da4db264dfd68c8a3664e05093a361cefd89572ffb36f8abfa3d09" ;; \
-        arm64) CHECKSUM="13d03672be289045d2ff00e4e345d61de1c6f21c1257a45955a30e8ae036d8f1" ;; \
+        amd64) CHECKSUM="e9b88b4ee95b18c706839c28d3a0220e5bc470e9cd9262410c90793c45ff8b7c" ;; \
+        arm64) CHECKSUM="21abd9354d39b2cd79a8d76be6912cd137a983cbf997193503fb8a6a6e2f2785" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/helmv4.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://get.helm.sh/helm-v4.1.4-linux-amd64.tar.gz"; EXTRACT="linux-amd64/helm" ;; \
-        arm64) DOWNLOAD_URL="https://get.helm.sh/helm-v4.1.4-linux-arm64.tar.gz"; EXTRACT="linux-arm64/helm" ;; \
+        amd64) DOWNLOAD_URL="https://get.helm.sh/helm-v4.2.3-linux-amd64.tar.gz"; EXTRACT="linux-amd64/helm" ;; \
+        arm64) DOWNLOAD_URL="https://get.helm.sh/helm-v4.2.3-linux-arm64.tar.gz"; EXTRACT="linux-arm64/helm" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
@@ -113,17 +113,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/helmv4" && \
     rm -rf "${TMP_DIR}"
 
-# slsactl v0.1.30
+# slsactl v0.1.35
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="7ed4750766c135ddcae788d194d7ff59a57c6debdc722fd1e52c06460218f10a" ;; \
-        arm64) CHECKSUM="bbbe66089135c82526677177c080f5ca4911ad1989712596338c5acdae4bb383" ;; \
+        amd64) CHECKSUM="dd8f75429cc629a4b36bf92297420d3147a140f545d3a92f2b8ffb8414f0d10b" ;; \
+        arm64) CHECKSUM="f68817d75ebe0ed0a14d55b9c637968244c38ff087a8fae21c89092f2d44db54" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/slsactl.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.30/slsactl_0.1.30_linux_amd64.tar.gz"; EXTRACT="slsactl" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.30/slsactl_0.1.30_linux_arm64.tar.gz"; EXTRACT="slsactl" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.35/slsactl_0.1.35_linux_amd64.tar.gz"; EXTRACT="slsactl" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.35/slsactl_0.1.35_linux_arm64.tar.gz"; EXTRACT="slsactl" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
@@ -132,16 +132,16 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/slsactl" && \
     rm -rf "${TMP_DIR}"
 
-# yq v4.53.2
+# yq v4.53.3
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="d56bf5c6819e8e696340c312bd70f849dc1678a7cda9c2ad63eebd906371d56b" ;; \
-        arm64) CHECKSUM="03061b2a50c7a498de2bbb92d7cb078ce433011f085a4994117c2726be4106ea" ;; \
+        amd64) CHECKSUM="fa52a4e758c63d38299163fbdd1edfb4c4963247918bf9c1c5d31d84789eded4" ;; \
+        arm64) CHECKSUM="578648e463a11c1b6db6010cbf41eafed6bee79466fcffa1bb446672cf7945ea" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.53.2/yq_linux_amd64" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.53.2/yq_linux_arm64" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.53.3/yq_linux_amd64" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.53.3/yq_linux_arm64" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/yq" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/yq" > "${TMP_DIR}/checksum.sha256" && \
@@ -149,17 +149,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/yq" "/usr/local/bin/yq" && \
     rm -rf "${TMP_DIR}"
 
-# golangci-lint v2.11.4
+# golangci-lint v2.12.2
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="200c5b7503f67b59a6743ccf32133026c174e272b930ee79aa2aa6f37aca7ef1" ;; \
-        arm64) CHECKSUM="3bcfa2e6f3d32b2bf5cd75eaa876447507025e0303698633f722a05331988db4" ;; \
+        amd64) CHECKSUM="8df580d2670fed8fa984aac0507099af8df275e665215f5c7a2ae3943893a553" ;; \
+        arm64) CHECKSUM="44cd40a8c76c86755375adfeea52cfd3533cb43d7bd647771e0ae065e166df3a" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/golangci-lint.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-linux-amd64.tar.gz"; EXTRACT="golangci-lint-2.11.4-linux-amd64/golangci-lint" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-linux-arm64.tar.gz"; EXTRACT="golangci-lint-2.11.4-linux-arm64/golangci-lint" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-linux-amd64.tar.gz"; EXTRACT="golangci-lint-2.12.2-linux-amd64/golangci-lint" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-linux-arm64.tar.gz"; EXTRACT="golangci-lint-2.12.2-linux-arm64/golangci-lint" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
@@ -168,17 +168,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/golangci-lint" && \
     rm -rf "${TMP_DIR}"
 
-# goreleaser v2.15.2
+# goreleaser v2.17.1
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="0ebdbf0353aba566b969dde746cc4e4806f96c27aa2f3971b229a9df7611fedc" ;; \
-        arm64) CHECKSUM="5db66761a98f6693161e49e1a95d28d2673a892ba60cb4a5e16736cafd41c4c9" ;; \
+        amd64) CHECKSUM="a99bbc7ae0d8d897b07c4c497a9b62f222558804715ef219d1af05a7e417bc80" ;; \
+        arm64) CHECKSUM="702f03769ac8bcb0e47839c82243cc614ae995633599a98c63062e13ea85f829" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/goreleaser.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/goreleaser/goreleaser/releases/download/v2.15.2/goreleaser_Linux_x86_64.tar.gz"; EXTRACT="goreleaser" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/goreleaser/goreleaser/releases/download/v2.15.2/goreleaser_Linux_arm64.tar.gz"; EXTRACT="goreleaser" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/goreleaser/goreleaser/releases/download/v2.17.1/goreleaser_Linux_x86_64.tar.gz"; EXTRACT="goreleaser" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/goreleaser/goreleaser/releases/download/v2.17.1/goreleaser_Linux_arm64.tar.gz"; EXTRACT="goreleaser" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
@@ -187,20 +187,20 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/goreleaser" && \
     rm -rf "${TMP_DIR}"
 
-# govulncheck v1.2.0
-RUN go install golang.org/x/vuln/cmd/govulncheck@a8075323febce35764797d66a61fa9e19a8d9797
+# govulncheck v1.6.0
+RUN go install golang.org/x/vuln/cmd/govulncheck@19b0bb6a272792b9afa8a6983c3e9b9a1816947f
 
-# oras v1.3.1
+# oras v1.3.3
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="d52c4af76ce6a3ceb8579e51fb751a43ac051cca67f965f973a0b0e897a2bb86" ;; \
-        arm64) CHECKSUM="79946ad57d732836f9242f903f476b6fa484c451d659f121bce54d931ab2a044" ;; \
+        amd64) CHECKSUM="9ce999f8d2de03fc03968b29d743077a58783e545e5eaa53917ca177352d0e59" ;; \
+        arm64) CHECKSUM="ac7156f93a21e903f7ad606c792f3560f17e0cd0e36365634701b1e7cc4e4eca" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/oras.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/oras-project/oras/releases/download/v1.3.1/oras_1.3.1_linux_amd64.tar.gz"; EXTRACT="oras" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/oras-project/oras/releases/download/v1.3.1/oras_1.3.1_linux_arm64.tar.gz"; EXTRACT="oras" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/oras-project/oras/releases/download/v1.3.3/oras_1.3.3_linux_amd64.tar.gz"; EXTRACT="oras" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/oras-project/oras/releases/download/v1.3.3/oras_1.3.3_linux_arm64.tar.gz"; EXTRACT="oras" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
@@ -245,16 +245,16 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/kubectl1.28" "/usr/local/bin/kubectl1.28" && \
     rm -rf "${TMP_DIR}"
 
-# kubectl1.29 v1.29.10
+# kubectl1.29 v1.29.15
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="24f2f09a635d36b2ce36eaebf191326e2b25097eec541a3e47fee6726ef06cef" ;; \
-        arm64) CHECKSUM="4cfa950fbd354bdc655cc425494aa77fe81710bc8f7d3f95285338aac223cc82" ;; \
+        amd64) CHECKSUM="3473e14c7b024a6e5403c6401b273b3faff8e5b1fed022d633815eb3168e4516" ;; \
+        arm64) CHECKSUM="a41984dc0ff34ee05f1283ebd9b3121c003b3469b97214738246faa5b6788f7c" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.29.10/bin/linux/amd64/kubectl" ;; \
-        arm64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.29.10/bin/linux/arm64/kubectl" ;; \
+        amd64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.29.15/bin/linux/amd64/kubectl" ;; \
+        arm64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.29.15/bin/linux/arm64/kubectl" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/kubectl1.29" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/kubectl1.29" > "${TMP_DIR}/checksum.sha256" && \
@@ -262,16 +262,16 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/kubectl1.29" "/usr/local/bin/kubectl1.29" && \
     rm -rf "${TMP_DIR}"
 
-# kubectl1.30 v1.30.6
+# kubectl1.30 v1.30.14
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="7a3adf80ca74b1b2afdfc7f4570f0005ca03c2812367ffb6ee2f731d66e45e61" ;; \
-        arm64) CHECKSUM="0b448581f05f46d80219d1a73bd1966de09066c313f64e67e7b75b35e07191cd" ;; \
+        amd64) CHECKSUM="7ccac981ece0098284d8961973295f5124d78eab7b89ba5023f35591baa16271" ;; \
+        arm64) CHECKSUM="a32e46ae15fe41292dc6a7cd76beba7104282a5a3fa9e3686319000a537f4f5d" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.30.6/bin/linux/amd64/kubectl" ;; \
-        arm64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.30.6/bin/linux/arm64/kubectl" ;; \
+        amd64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.30.14/bin/linux/amd64/kubectl" ;; \
+        arm64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.30.14/bin/linux/arm64/kubectl" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/kubectl1.30" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/kubectl1.30" > "${TMP_DIR}/checksum.sha256" && \
@@ -279,21 +279,106 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/kubectl1.30" "/usr/local/bin/kubectl1.30" && \
     rm -rf "${TMP_DIR}"
 
-# kubectl1.31 v1.31.2
+# kubectl1.31 v1.31.14
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="399e9d1995da80b64d2ef3606c1a239018660d8b35209fba3f7b0bc11c631c68" ;; \
-        arm64) CHECKSUM="bb9fd6e5a92c2e2378954a2f1a8b4ccb2e8ba5a3635f870c3f306a53b359f971" ;; \
+        amd64) CHECKSUM="8791ec7c8966b61420d55103a5fb948de9f0ca3d7306d789734975ad9704bdb0" ;; \
+        arm64) CHECKSUM="3abb0c2d7121e1833831f56fd857a93de386e76d14b64baf86220d0afe495209" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.31.2/bin/linux/amd64/kubectl" ;; \
-        arm64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.31.2/bin/linux/arm64/kubectl" ;; \
+        amd64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.31.14/bin/linux/amd64/kubectl" ;; \
+        arm64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.31.14/bin/linux/arm64/kubectl" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/kubectl1.31" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/kubectl1.31" > "${TMP_DIR}/checksum.sha256" && \
     sha256sum -c "${TMP_DIR}/checksum.sha256" && \
     install "${TMP_DIR}/kubectl1.31" "/usr/local/bin/kubectl1.31" && \
+    rm -rf "${TMP_DIR}"
+
+# kubectl1.32 v1.32.13
+RUN case "${ARCH}" in \
+        amd64) CHECKSUM="db2ae479a63f3665d7f704ab18c0d4d4050144237980763221835b7305703c4c" ;; \
+        arm64) CHECKSUM="b1f87f196633a89208546d79bfa4e2470bda70e7bf42c4d3adb008ec208da9d1" ;; \
+        *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
+    esac && \
+    export TMP_DIR=$(mktemp -d) && \
+    case "${ARCH}" in \
+        amd64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.32.13/bin/linux/amd64/kubectl" ;; \
+        arm64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.32.13/bin/linux/arm64/kubectl" ;; \
+    esac && \
+    curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/kubectl1.32" && \
+    printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/kubectl1.32" > "${TMP_DIR}/checksum.sha256" && \
+    sha256sum -c "${TMP_DIR}/checksum.sha256" && \
+    install "${TMP_DIR}/kubectl1.32" "/usr/local/bin/kubectl1.32" && \
+    rm -rf "${TMP_DIR}"
+
+# kubectl1.33 v1.33.13
+RUN case "${ARCH}" in \
+        amd64) CHECKSUM="316d712726d857c20744c57cb36aa47cfc79bc0af7e82cebf3780244b654c073" ;; \
+        arm64) CHECKSUM="9fe8aadd5aab9421978c7ac95de6fad304a3c4c0ce9dbf4127579779e0699080" ;; \
+        *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
+    esac && \
+    export TMP_DIR=$(mktemp -d) && \
+    case "${ARCH}" in \
+        amd64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.33.13/bin/linux/amd64/kubectl" ;; \
+        arm64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.33.13/bin/linux/arm64/kubectl" ;; \
+    esac && \
+    curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/kubectl1.33" && \
+    printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/kubectl1.33" > "${TMP_DIR}/checksum.sha256" && \
+    sha256sum -c "${TMP_DIR}/checksum.sha256" && \
+    install "${TMP_DIR}/kubectl1.33" "/usr/local/bin/kubectl1.33" && \
+    rm -rf "${TMP_DIR}"
+
+# kubectl1.34 v1.34.10
+RUN case "${ARCH}" in \
+        amd64) CHECKSUM="95bd70842bd11a524d24acd5b68726899e3488e153e45e2b4ae846545beda050" ;; \
+        arm64) CHECKSUM="52d3aeefea32fdfa3671ccd636be5da463ddfd0a2fc09d7bcbaedcff4c76cad5" ;; \
+        *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
+    esac && \
+    export TMP_DIR=$(mktemp -d) && \
+    case "${ARCH}" in \
+        amd64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.34.10/bin/linux/amd64/kubectl" ;; \
+        arm64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.34.10/bin/linux/arm64/kubectl" ;; \
+    esac && \
+    curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/kubectl1.34" && \
+    printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/kubectl1.34" > "${TMP_DIR}/checksum.sha256" && \
+    sha256sum -c "${TMP_DIR}/checksum.sha256" && \
+    install "${TMP_DIR}/kubectl1.34" "/usr/local/bin/kubectl1.34" && \
+    rm -rf "${TMP_DIR}"
+
+# kubectl1.35 v1.35.7
+RUN case "${ARCH}" in \
+        amd64) CHECKSUM="12e97f9d23a9f6cbb87b89becd6bd291e1a858a3379a4e11e2c822c4c1530052" ;; \
+        arm64) CHECKSUM="5103d45b8881434d417694057b8ccb5ae79fd310a5c5c13e403c5e62e15909be" ;; \
+        *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
+    esac && \
+    export TMP_DIR=$(mktemp -d) && \
+    case "${ARCH}" in \
+        amd64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.35.7/bin/linux/amd64/kubectl" ;; \
+        arm64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.35.7/bin/linux/arm64/kubectl" ;; \
+    esac && \
+    curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/kubectl1.35" && \
+    printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/kubectl1.35" > "${TMP_DIR}/checksum.sha256" && \
+    sha256sum -c "${TMP_DIR}/checksum.sha256" && \
+    install "${TMP_DIR}/kubectl1.35" "/usr/local/bin/kubectl1.35" && \
+    rm -rf "${TMP_DIR}"
+
+# kubectl1.36 v1.36.3
+RUN case "${ARCH}" in \
+        amd64) CHECKSUM="ebbd080e7c2e275093b55915722043257eb24004363e20acb3c4d71919f88336" ;; \
+        arm64) CHECKSUM="3d86f24401c41ae5a46ac50eef8865fe891d3647d324a0836f6c63757a126e62" ;; \
+        *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
+    esac && \
+    export TMP_DIR=$(mktemp -d) && \
+    case "${ARCH}" in \
+        amd64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.36.3/bin/linux/amd64/kubectl" ;; \
+        arm64) DOWNLOAD_URL="https://dl.k8s.io/release/v1.36.3/bin/linux/arm64/kubectl" ;; \
+    esac && \
+    curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/kubectl1.36" && \
+    printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/kubectl1.36" > "${TMP_DIR}/checksum.sha256" && \
+    sha256sum -c "${TMP_DIR}/checksum.sha256" && \
+    install "${TMP_DIR}/kubectl1.36" "/usr/local/bin/kubectl1.36" && \
     rm -rf "${TMP_DIR}"
 
 # Family selectors — copy scripts and set up manifest + active symlinks.
@@ -325,9 +410,14 @@ RUN mkdir -p /var/ci-tools/active \
     && touch /usr/local/share/ci-tools/families/kubectl/kubectl1.29 \
     && touch /usr/local/share/ci-tools/families/kubectl/kubectl1.30 \
     && touch /usr/local/share/ci-tools/families/kubectl/kubectl1.31 \
+    && touch /usr/local/share/ci-tools/families/kubectl/kubectl1.32 \
+    && touch /usr/local/share/ci-tools/families/kubectl/kubectl1.33 \
+    && touch /usr/local/share/ci-tools/families/kubectl/kubectl1.34 \
+    && touch /usr/local/share/ci-tools/families/kubectl/kubectl1.35 \
+    && touch /usr/local/share/ci-tools/families/kubectl/kubectl1.36 \
     && touch /usr/local/share/ci-tools/families/kubectl/kuberlr \
-    && ln -sf kubectl1.31 /usr/local/share/ci-tools/families/kubectl/default \
-    && ln -sf /usr/local/bin/kubectl1.31 /var/ci-tools/active/kubectl \
+    && ln -sf kubectl1.36 /usr/local/share/ci-tools/families/kubectl/default \
+    && ln -sf /usr/local/bin/kubectl1.36 /var/ci-tools/active/kubectl \
     && chown -R root:runner /var/ci-tools \
     && chmod 2775 /var/ci-tools/active
 

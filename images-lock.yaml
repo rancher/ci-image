@@ -25,8 +25,9 @@ packages:
     - zstd
     - wget
 tools:
-    charts-build-scripts: v1.9.27
+    charts-build-scripts: v1.9.30
     cosign: v3.1.2
+    ecm-distro-tools-release: v0.76.0
     gh: v2.96.0
     golangci-lint: v2.12.2
     goreleaser: v2.17.1
@@ -84,6 +85,7 @@ configs:
         tools:
             - charts-build-scripts
             - cosign
+            - ecm-distro-tools-release
             - gh
             - golangci-lint
             - goreleaser

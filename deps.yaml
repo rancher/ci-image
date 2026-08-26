@@ -66,6 +66,7 @@ images:
       - ob-charts-tool
       - oras
       - kubectl # the whole kubectl family
+      - ecm-distro-tools-release
 
   - name: nix
     description: "Nix environment"
@@ -323,6 +324,24 @@ tools:
     release:
       download_template: "ob-charts-tool_{os}_{arch}"
       checksum_template: "ob-charts-tool_{version|trimprefix:v}_checksums.txt"
+
+  # ecm-distro-tools is a collection of tools used by the Release Team
+  # to release Rancher, charts, k3s and rke2. Release is the main tool
+  # and the only one included here. There are many other tools in the
+  # repository, but they aren't as widely used as `release`
+  # allowlist. mode: release-checksums means checksums are fetched from the
+  # upstream release at generate time; version: latest resolves to the current
+  # release tag via the GitHub API. The lock file (deps.lock) records the
+  # resolved version and timestamp so CI can detect when it changes.
+  - name: ecm-distro-tools-release
+    source: rancher/ecm-distro-tools
+    mode: release-checksums
+    version: latest
+    release:
+      download_template: "release-{os}-{arch}"
+      checksum_template: "sha256sums-release.txt"
+      # the checksum file records the build-tree path, not the asset name
+      checksum_filename_template: "bin/release-{os}-{arch}"
 
   - name: nix
     source: "https://releases.nixos.org/nix"

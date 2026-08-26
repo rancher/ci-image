@@ -8,6 +8,7 @@ package config
 var allowlist = []string{
 	"rancher/charts-build-scripts",
 	"rancher/ob-charts-tool",
+	"rancher/ecm-distro-tools",
 }
 
 func inAllowlist(source string) bool {

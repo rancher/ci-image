@@ -27,7 +27,7 @@ packages:
 tools:
     charts-build-scripts: v1.9.30
     cosign: v3.1.2
-    ecm-distro-tools-release: v0.76.0
+    ecm-distro-tools-release: v0.77.0
     gh: v2.96.0
     golangci-lint: v2.12.2
     goreleaser: v2.17.1

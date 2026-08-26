@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"log"
 	"maps"
+	"path"
 	"slices"
 	"strings"
 	"time"
@@ -289,5 +290,5 @@ func platformDownloadFilename(t *config.Tool, version, platform string, baseVars
 	if err != nil {
 		return "", "", fmt.Errorf("download_template for %s: %w", platform, err)
 	}
-	return dlURL, filename, nil
+	return dlURL, path.Base(dlURL), nil
 }

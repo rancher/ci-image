@@ -7,11 +7,11 @@ tools:
             linux/amd64: c274fbe8f983b9bad1ccd8c8de3619b7d39d1bf3bcbd7bdafb52eba3c936ef73
             linux/arm64: 6595ff112ae9b198b8915a9969fdd7ef4555775dd589d4d19572e4f15eda527a
     ecm-distro-tools-release:
-        resolved_version: v0.76.0
-        resolved_at: 2026-08-26T13:54:34.483712Z
+        resolved_version: v0.77.0
+        resolved_at: 2026-08-26T14:57:37.585373Z
         checksums:
-            linux/amd64: 2c6bbc8980dcc07bc2d59a4d7baf99242c0244ead44ac3e52b5ed9da31e61ff8
-            linux/arm64: 0bf5fafaf50b2960f2e58e01cfdd86906a819eef12df2e3d2f146898f6e400b4
+            linux/amd64: 7693239454b946a9c8c949bdf775dd8255a49f93f30e65d14ce24b1da0facb7a
+            linux/arm64: 5dbf70e505f1e85ecec342809e73aca7298de3874012eebac438c36920f001da
     ob-charts-tool:
         resolved_version: v0.6.1
         resolved_at: 2026-07-10T22:28:43.949996Z

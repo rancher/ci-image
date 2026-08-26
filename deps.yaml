@@ -339,9 +339,7 @@ tools:
     version: latest
     release:
       download_template: "release-{os}-{arch}"
-      checksum_template: "sha256sums-release.txt"
-      # the checksum file records the build-tree path, not the asset name
-      checksum_filename_template: "bin/release-{os}-{arch}"
+      checksum_template: "sha256sum.txt"
 
   - name: nix
     source: "https://releases.nixos.org/nix"

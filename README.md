@@ -11,8 +11,8 @@ Images are published to `ghcr.io/rancher/ci-image/<name>`, each tagged independe
 <!-- BEGIN IMAGES TABLE -->
 | Image | Go Version | Description |
 |-------|------------|-------------|
-| `go1.25` | 1.25.12 | CI image with Go 1.25 toolchain |
-| `go1.26` | 1.26.5 | CI image with Go 1.26 toolchain |
+| `go1.25` | 1.25.14 | CI image with Go 1.25 toolchain |
+| `go1.26` | 1.26.7 | CI image with Go 1.26 toolchain |
 | `python3.11` | none | CI image with Python 3.11 toolchain |
 | `python3.13` | none | CI image with Python 3.13 toolchain |
 | `node22` | none | CI image with Node 22 toolchain |

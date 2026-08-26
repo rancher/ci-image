@@ -26,7 +26,7 @@ _GIT_REMOTE  := $(shell git remote get-url origin 2>/dev/null | sed 's|git@githu
 _BUILD_DATE  := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 _SOURCE_URL   = $(if $(ORG),https://github.com/$(REPO),$(_GIT_REMOTE))
 
-.PHONY: all help test generate verify build push build-all push-all clean setup validate changelog-worktree changelog-local
+.PHONY: all help test generate update verify build push build-all push-all clean setup validate changelog-worktree changelog-local
 
 # Stamp file so setup only runs once per clone, not on every make invocation.
 .git/hooks/.setup-done: .githooks/pre-push
@@ -48,6 +48,9 @@ test: _setup ## Run unit tests
 
 generate: _setup ## Generate Dockerfiles from templates and deps.yaml
 	go run main.go
+
+update: _setup ## Update the deps.lock file
+	go run main.go update
 
 verify: _setup ## Verify no uncommitted changes exist
 	@if [ -n "$$(git status --porcelain)" ]; then \

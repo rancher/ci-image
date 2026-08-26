@@ -271,7 +271,14 @@ func fetchPerPlatform(t *config.Tool, version string, platforms []string, baseVa
 }
 
 // platformDownloadFilename renders the download URL for a platform and returns
-// both the full URL and the basename (used as the key in checksum files).
+// both the full URL and the name to look up in the checksum file.
+//
+// The lookup name is the download URL's basename, which is what most projects
+// record. Projects whose checksum files use a different name — for example
+// rancher/ecm-distro-tools lists "bin/release-linux-amd64" while the released
+// asset is "release-linux-amd64" — override it with
+// release.checksum_filename_template, rendered with the same variables as
+// download_template.
 func platformDownloadFilename(t *config.Tool, version, platform string, baseVars renderer.Vars) (dlURL, filename string, err error) {
 	parts := strings.SplitN(platform, "/", 2)
 	if len(parts) != 2 {
@@ -290,5 +297,12 @@ func platformDownloadFilename(t *config.Tool, version, platform string, baseVars
 	if err != nil {
 		return "", "", fmt.Errorf("download_template for %s: %w", platform, err)
 	}
-	return dlURL, path.Base(dlURL), nil
+	if rel.ChecksumFilenameTemplate == "" {
+		return dlURL, path.Base(dlURL), nil
+	}
+	filename, err = renderer.Render(rel.ChecksumFilenameTemplate, vars)
+	if err != nil {
+		return "", "", fmt.Errorf("checksum_filename_template for %s: %w", platform, err)
+	}
+	return dlURL, filename, nil
 }

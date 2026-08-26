@@ -260,6 +260,9 @@ func (t *Tool) EffectiveRelease() *ReleaseConfig {
 			if t.Release.ChecksumTemplate != "" {
 				merged.ChecksumTemplate = t.Release.ChecksumTemplate
 			}
+			if t.Release.ChecksumFilenameTemplate != "" {
+				merged.ChecksumFilenameTemplate = t.Release.ChecksumFilenameTemplate
+			}
 			if t.Release.Extract != "" {
 				merged.Extract = t.Release.Extract
 			}
@@ -306,11 +309,12 @@ func isGitHubSource(source string) bool {
 
 // ReleaseConfig holds URL templates for downloading tool releases.
 type ReleaseConfig struct {
-	TagPrefix        *string `yaml:"tag_prefix,omitempty"` // filter releases by tag prefix; defaults to "v" if nil
-	DownloadTemplate string  `yaml:"download_template"`
-	ChecksumTemplate string  `yaml:"checksum_template,omitempty"`
-	Extract          string  `yaml:"extract"`
-	InstallToPath    *bool   `yaml:"install_to_path,omitempty"` // if false, extract to /var/ci-tools/{name} and leave for hooks; defaults to true
+	TagPrefix                *string `yaml:"tag_prefix,omitempty"` // filter releases by tag prefix; defaults to "v" if nil
+	DownloadTemplate         string  `yaml:"download_template"`
+	ChecksumTemplate         string  `yaml:"checksum_template,omitempty"`
+	ChecksumFilenameTemplate string  `yaml:"checksum_filename_template,omitempty"` // filename to look up inside the checksum file; defaults to the download URL's basename
+	Extract                  string  `yaml:"extract"`
+	InstallToPath            *bool   `yaml:"install_to_path,omitempty"` // if false, extract to /var/ci-tools/{name} and leave for hooks; defaults to true
 }
 
 // ShouldInstallToPath returns whether the tool should be installed to /usr/local/bin after extraction.

@@ -4,6 +4,14 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20260902-27 (2026-09-02)
+
+### Image: charts:20260902-27
+
+- `charts-build-scripts`: `v1.9.30` → `v1.9.32`
+- Added: `release` `v0.77.1`
+- Removed: `ecm-distro-tools-release`
+
 ## Revision: 20260826-26 (2026-08-26)
 
 ### Image: charts:20260826-26

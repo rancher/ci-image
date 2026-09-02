@@ -187,16 +187,16 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/goreleaser" && \
     rm -rf "${TMP_DIR}"
 
-# charts-build-scripts v1.9.30
+# charts-build-scripts v1.9.32
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="c274fbe8f983b9bad1ccd8c8de3619b7d39d1bf3bcbd7bdafb52eba3c936ef73" ;; \
-        arm64) CHECKSUM="6595ff112ae9b198b8915a9969fdd7ef4555775dd589d4d19572e4f15eda527a" ;; \
+        amd64) CHECKSUM="b2c2a403cc8b2601371927062a3052e168f505e2e71bf5f29a7614d2b4c872fb" ;; \
+        arm64) CHECKSUM="38b76ef048466b01443f5eb302c3101c3f6da0485782e5c21eee0f1ab0b7fa78" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/rancher/charts-build-scripts/releases/download/v1.9.30/charts-build-scripts_linux_amd64" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/rancher/charts-build-scripts/releases/download/v1.9.30/charts-build-scripts_linux_arm64" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/rancher/charts-build-scripts/releases/download/v1.9.32/charts-build-scripts_linux_amd64" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/rancher/charts-build-scripts/releases/download/v1.9.32/charts-build-scripts_linux_arm64" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/charts-build-scripts" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/charts-build-scripts" > "${TMP_DIR}/checksum.sha256" && \
@@ -412,21 +412,21 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/kubectl1.36" "/usr/local/bin/kubectl1.36" && \
     rm -rf "${TMP_DIR}"
 
-# ecm-distro-tools-release v0.77.0
+# release v0.77.1
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="7693239454b946a9c8c949bdf775dd8255a49f93f30e65d14ce24b1da0facb7a" ;; \
-        arm64) CHECKSUM="5dbf70e505f1e85ecec342809e73aca7298de3874012eebac438c36920f001da" ;; \
+        amd64) CHECKSUM="76c9ac6b65fe31915613e82909b980fdb8769dc1a3f88ba0950ed7f188418759" ;; \
+        arm64) CHECKSUM="3d0be6f81dd5ea08ecf25590a8f35edce757159d41dd039f877b3d4e3996329a" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/rancher/ecm-distro-tools/releases/download/v0.77.0/release-linux-amd64" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/rancher/ecm-distro-tools/releases/download/v0.77.0/release-linux-arm64" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/rancher/ecm-distro-tools/releases/download/v0.77.1/release-linux-amd64" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/rancher/ecm-distro-tools/releases/download/v0.77.1/release-linux-arm64" ;; \
     esac && \
-    curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/ecm-distro-tools-release" && \
-    printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/ecm-distro-tools-release" > "${TMP_DIR}/checksum.sha256" && \
+    curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/release" && \
+    printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/release" > "${TMP_DIR}/checksum.sha256" && \
     sha256sum -c "${TMP_DIR}/checksum.sha256" && \
-    install "${TMP_DIR}/ecm-distro-tools-release" "/usr/local/bin/ecm-distro-tools-release" && \
+    install "${TMP_DIR}/release" "/usr/local/bin/release" && \
     rm -rf "${TMP_DIR}"
 
 # Family selectors — copy scripts and set up manifest + active symlinks.

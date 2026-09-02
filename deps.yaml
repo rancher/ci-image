@@ -66,7 +66,7 @@ images:
       - ob-charts-tool
       - oras
       - kubectl # the whole kubectl family
-      - ecm-distro-tools-release
+      - release
 
   - name: nix
     description: "Nix environment"
@@ -333,7 +333,7 @@ tools:
   # upstream release at generate time; version: latest resolves to the current
   # release tag via the GitHub API. The lock file (deps.lock) records the
   # resolved version and timestamp so CI can detect when it changes.
-  - name: ecm-distro-tools-release
+  - name: release
     source: rancher/ecm-distro-tools
     mode: release-checksums
     version: latest

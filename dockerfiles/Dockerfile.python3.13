@@ -1,4 +1,4 @@
-FROM registry.suse.com/bci/python:3.13.14@sha256:d9861b1ac8e1029e9fc10198e61a88c7caf871910a2c57e236007d6edbb7ae16
+FROM registry.suse.com/bci/python:3.13.14@sha256:d2a3575d498faa93d10e0f8035f1a43e7106c5a95e2ba452480b6f5750bb3651
 
 LABEL org.opencontainers.image.source="https://github.com/rancher/ci-image" \
       org.opencontainers.image.title="Rancher python3.13 CI image" \

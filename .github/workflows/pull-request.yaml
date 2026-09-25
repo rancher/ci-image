@@ -16,7 +16,7 @@ permissions:
 jobs:
   setup:
     runs-on: ubuntu-latest
-    container: ghcr.io/rancher/ci-image/go1.26:20260424-8@sha256:9a82b824c9b32c5652d86b2a3d058e35a89ada6d84ee1b356200e2052c0f522d
+    container: ghcr.io/rancher/ci-image/go1.27 # zizmor: ignore[unpinned-images] -- internal image is exempt from this rule
     outputs:
       images: ${{ steps.list.outputs.images }}
       version: ${{ steps.version.outputs.value }}
@@ -103,7 +103,7 @@ jobs:
   build-ci-image:
     needs: [setup]
     runs-on: ubuntu-latest
-    container: ghcr.io/rancher/ci-image/go1.26:20260424-8@sha256:9a82b824c9b32c5652d86b2a3d058e35a89ada6d84ee1b356200e2052c0f522d
+    container: ghcr.io/rancher/ci-image/go1.27 # zizmor: ignore[unpinned-images] -- internal image is exempt from this rule
     strategy:
       fail-fast: false
       matrix:

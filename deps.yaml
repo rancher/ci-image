@@ -170,6 +170,8 @@ universal:
       linux/arm64: "578648e463a11c1b6db6010cbf41eafed6bee79466fcffa1bb446672cf7945ea"
     release:
       download_template: "yq_{os}_{arch}"
+      checksum_template: "checksums"
+      checksum_hashes_order_template: "checksums_hashes_order"
 
 tools:
   - name: golangci-lint
@@ -181,6 +183,7 @@ tools:
     release:
       download_template: "golangci-lint-{version|trimprefix:v}-{os}-{arch}.tar.gz"
       extract: "golangci-lint-{version|trimprefix:v}-{os}-{arch}/golangci-lint"
+      checksum_template: "golangci-lint-{version|trimprefix:v}-checksums.txt"
 
   - name: goreleaser
     source: goreleaser/goreleaser
@@ -191,6 +194,7 @@ tools:
     release:
       download_template: "goreleaser_{os|title}_{arch|replace:amd64=x86_64}.tar.gz"
       extract: "goreleaser"
+      checksum_template: "checksums.txt"
 
   - name: govulncheck
     source: golang/vuln

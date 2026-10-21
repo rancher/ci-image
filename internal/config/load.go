@@ -14,9 +14,15 @@ func Load(path string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading %s: %w", path, err)
 	}
+	return Parse(data, path)
+}
+
+// Parse parses and validates deps.yaml content. name is used only in error
+// messages. Load is Parse plus reading the file.
+func Parse(data []byte, name string) (*Config, error) {
 	var cfg Config
 	if err := yaml.Load(data, &cfg); err != nil {
-		return nil, fmt.Errorf("parsing %s: %w", path, err)
+		return nil, fmt.Errorf("parsing %s: %w", name, err)
 	}
 	// Apply per-image defaults.
 	for i := range cfg.Images {

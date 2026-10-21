@@ -218,6 +218,9 @@ func validateConfig(cfg *Config) error {
 				if effectiveRelease.DownloadTemplate == "" {
 					errs = append(errs, fmt.Sprintf("tool %q: release.download_template is required for method 'curl'", t.Name))
 				}
+				if effectiveRelease.ChecksumHashesOrderTemplate != "" && effectiveRelease.ChecksumTemplate == "" {
+					errs = append(errs, fmt.Sprintf("tool %q: release.checksum_hashes_order_template requires release.checksum_template", t.Name))
+				}
 				if effectiveRelease.Extract == "" && mode != ModeReleaseChecksums && isArchiveTemplate(effectiveRelease.DownloadTemplate) {
 					errs = append(errs, fmt.Sprintf("tool %q: release.extract is required for method 'curl' when download_template is an archive", t.Name))
 				}

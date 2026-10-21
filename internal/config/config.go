@@ -261,6 +261,9 @@ func (t *Tool) EffectiveRelease() *ReleaseConfig {
 			if t.Release.ChecksumTemplate != "" {
 				merged.ChecksumTemplate = t.Release.ChecksumTemplate
 			}
+			if t.Release.ChecksumHashesOrderTemplate != "" {
+				merged.ChecksumHashesOrderTemplate = t.Release.ChecksumHashesOrderTemplate
+			}
 			if t.Release.Extract != "" {
 				merged.Extract = t.Release.Extract
 			}
@@ -301,8 +304,13 @@ type ReleaseConfig struct {
 	TagPrefix        *string `yaml:"tag_prefix,omitempty"` // filter releases by tag prefix; defaults to "v" if nil
 	DownloadTemplate string  `yaml:"download_template"`
 	ChecksumTemplate string  `yaml:"checksum_template,omitempty"`
-	Extract          string  `yaml:"extract"`
-	InstallToPath    *bool   `yaml:"install_to_path,omitempty"` // if false, extract to /var/ci-tools/{name} and leave for hooks; defaults to true
+	// ChecksumHashesOrderTemplate marks checksum_template as a multi-hash file
+	// (one line per asset: "<filename> <hash> <hash> ..." with many algorithms,
+	// as yq publishes) and names the file that lists the algorithm of each
+	// column, one per line. The SHA-256 column is selected by name from it.
+	ChecksumHashesOrderTemplate string `yaml:"checksum_hashes_order_template,omitempty"`
+	Extract                     string `yaml:"extract"`
+	InstallToPath               *bool  `yaml:"install_to_path,omitempty"` // if false, extract to /var/ci-tools/{name} and leave for hooks; defaults to true
 }
 
 // ShouldInstallToPath returns whether the tool should be installed to /usr/local/bin after extraction.

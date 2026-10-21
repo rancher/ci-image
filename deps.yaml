@@ -174,10 +174,10 @@ universal:
 tools:
   - name: golangci-lint
     source: golangci/golangci-lint
-    version: v2.12.2
+    version: v2.15.0
     checksums:
-      linux/amd64: "8df580d2670fed8fa984aac0507099af8df275e665215f5c7a2ae3943893a553"
-      linux/arm64: "44cd40a8c76c86755375adfeea52cfd3533cb43d7bd647771e0ae065e166df3a"
+      linux/amd64: "9b7fe6a6bf6334b98decf8d86b11415ea7889afdabdd1959fdce23af2a9ebcea"
+      linux/arm64: "b4d8f17068b35ee6060cc2f69a16fb48740d706fbba81661c318649c114a6998"
     release:
       download_template: "golangci-lint-{version|trimprefix:v}-{os}-{arch}.tar.gz"
       extract: "golangci-lint-{version|trimprefix:v}-{os}-{arch}/golangci-lint"

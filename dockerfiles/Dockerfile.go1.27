@@ -149,17 +149,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/yq" "/usr/local/bin/yq" && \
     rm -rf "${TMP_DIR}"
 
-# golangci-lint v2.12.2
+# golangci-lint v2.15.0
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="8df580d2670fed8fa984aac0507099af8df275e665215f5c7a2ae3943893a553" ;; \
-        arm64) CHECKSUM="44cd40a8c76c86755375adfeea52cfd3533cb43d7bd647771e0ae065e166df3a" ;; \
+        amd64) CHECKSUM="9b7fe6a6bf6334b98decf8d86b11415ea7889afdabdd1959fdce23af2a9ebcea" ;; \
+        arm64) CHECKSUM="b4d8f17068b35ee6060cc2f69a16fb48740d706fbba81661c318649c114a6998" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/golangci-lint.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-linux-amd64.tar.gz"; EXTRACT="golangci-lint-2.12.2-linux-amd64/golangci-lint" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-linux-arm64.tar.gz"; EXTRACT="golangci-lint-2.12.2-linux-arm64/golangci-lint" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/golangci/golangci-lint/releases/download/v2.15.0/golangci-lint-2.15.0-linux-amd64.tar.gz"; EXTRACT="golangci-lint-2.15.0-linux-amd64/golangci-lint" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/golangci/golangci-lint/releases/download/v2.15.0/golangci-lint-2.15.0-linux-arm64.tar.gz"; EXTRACT="golangci-lint-2.15.0-linux-arm64/golangci-lint" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \

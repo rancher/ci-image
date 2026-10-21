@@ -19,3 +19,9 @@ var defaultClient = sync.OnceValue(func() *ghrelease.Client {
 // ghClient returns the client used for every GitHub request. It is a variable
 // so tests can substitute a client pointed at a local server.
 var ghClient = defaultClient
+
+// GitHubClient returns the shared GitHub client: restricted to GitHub hosts,
+// with GITHUB_TOKEN sent only to them. Other packages that need GitHub access
+// (such as the interactive updater) use this instead of building their own so
+// they inherit the same host policy.
+func GitHubClient() *ghrelease.Client { return ghClient() }

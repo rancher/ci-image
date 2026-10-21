@@ -2,6 +2,7 @@ package resolver
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	ghrelease "github.com/mallardduck/ghreleases"
 
 	"github.com/rancher/ci-image/internal/config"
 	"github.com/rancher/ci-image/internal/resolver/depslock"
@@ -366,5 +369,162 @@ func TestValidateLock_EmptyLock(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "not found in deps.lock") {
 		t.Errorf("error should mention tool not found, got: %v", err)
+	}
+}
+
+func TestHashDownloads(t *testing.T) {
+	bodies := map[string]string{
+		"/sigstore/cosign/releases/download/v3.1.4/cosign-linux-amd64": "amd64-bytes",
+		"/sigstore/cosign/releases/download/v3.1.4/cosign-linux-arm64": "arm64-bytes",
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, ok := bodies[r.URL.Path]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		fmt.Fprint(w, body)
+	}))
+	defer srv.Close()
+	t.Cleanup(overrideGitHub(srv.URL))
+
+	cfg := &config.Config{
+		Images: []config.Image{{Name: "i", Platforms: []string{"linux/amd64", "linux/arm64"}, Tools: []string{"cosign"}}},
+		Tools: []config.Tool{{
+			Name: "cosign", Source: "sigstore/cosign", Version: "v3.1.2",
+			Release: &config.ReleaseConfig{DownloadTemplate: "cosign-{os}-{arch}"},
+		}},
+	}
+	sums, urls, err := HashDownloads(cfg, &cfg.Tools[0], "v3.1.4")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sums["linux/amd64"] != "acc6d7ed66b5be10b94ba9edade92ef1ff532ba27ee68b081fa7d9ec4d695d1f" || sums["linux/arm64"] != "9c529bd1aa243e62eff539e25a3e5965cb9c2765f7d33d828dd0f24fadc89cea" {
+		t.Fatalf("sums = %v", sums)
+	}
+	if len(urls) != 2 || !strings.HasSuffix(urls[0], "/v3.1.4/cosign-linux-amd64") {
+		t.Fatalf("urls = %v", urls)
+	}
+
+	// The published-checksum path 404s for this tool, which is what triggers the fallback.
+	_, err = FetchToolChecksums(cfg, &cfg.Tools[0], "v3.1.4")
+	var statusErr *ghrelease.HTTPStatusError
+	if !errors.As(err, &statusErr) || statusErr.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected a 404 from the published-checksum path, got %v", err)
+	}
+}
+
+func TestFetchToolChecksums_MultiHashOrder(t *testing.T) {
+	order := "MD5\nSHA-256\nSHA3-256\n"
+	sha2 := strings.Repeat("a", 64)
+	sha3 := strings.Repeat("b", 64)
+	sums := fmt.Sprintf("yq_linux_amd64  %s  %s  %s\nyq_linux_arm64  %s  %s  %s\n",
+		strings.Repeat("1", 32), sha2, sha3, strings.Repeat("2", 32), strings.Repeat("c", 64), sha3)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/mikefarah/yq/releases/download/v4.54.1/checksums":
+			fmt.Fprint(w, sums)
+		case "/mikefarah/yq/releases/download/v4.54.1/checksums_hashes_order":
+			fmt.Fprint(w, order)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	t.Cleanup(overrideGitHub(srv.URL))
+
+	cfg := &config.Config{
+		Images: []config.Image{{Name: "i", Platforms: []string{"linux/amd64", "linux/arm64"}, Tools: []string{"yq"}}},
+		Tools: []config.Tool{{
+			Name: "yq", Source: "mikefarah/yq", Version: "v4.53.3",
+			Release: &config.ReleaseConfig{
+				DownloadTemplate:            "yq_{os}_{arch}",
+				ChecksumTemplate:            "checksums",
+				ChecksumHashesOrderTemplate: "checksums_hashes_order",
+			},
+		}},
+	}
+	got, err := FetchToolChecksums(cfg, &cfg.Tools[0], "v4.54.1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got["linux/amd64"] != sha2 || got["linux/arm64"] != strings.Repeat("c", 64) {
+		t.Fatalf("got %v", got)
+	}
+	locs, err := ChecksumLocation(cfg, &cfg.Tools[0], "v4.54.1")
+	if err != nil || len(locs) != 2 || !strings.Contains(locs[1], "checksums_hashes_order") {
+		t.Fatalf("locations = %v, %v", locs, err)
+	}
+}
+
+func TestHashDownloads_RefusesNonGitHubHost(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("request reached the server despite a disallowed host: %s", r.URL)
+	}))
+	defer srv.Close()
+	t.Cleanup(overrideGitHub(srv.URL))
+
+	cfg := &config.Config{
+		Images: []config.Image{{Name: "i", Platforms: []string{"linux/amd64"}, Tools: []string{"helmv3"}}},
+		Tools: []config.Tool{{
+			Name: "helmv3", Source: "https://get.helm.sh", Version: "v3.21.3",
+			Release: &config.ReleaseConfig{DownloadTemplate: "{source}/helm-{version}-{os}-{arch}.tar.gz"},
+		}},
+	}
+	_, _, err := HashDownloads(cfg, &cfg.Tools[0], "v3.21.4")
+	if !errors.Is(err, ghrelease.ErrHostNotAllowed) {
+		t.Fatalf("err = %v, want ErrHostNotAllowed", err)
+	}
+}
+
+func TestFetchToolChecksums_LenientSkipsNonChecksumLines(t *testing.T) {
+	amd := strings.Repeat("a", 64)
+	arm := strings.Repeat("b", 64)
+	body := "# release checksums\n" +
+		"-----BEGIN PGP SIGNED MESSAGE-----\n" +
+		amd + "  tool_linux_amd64\n" +
+		"not-a-hash  tool_windows_amd64\n" +
+		arm + " *tool_linux_arm64\n" +
+		"-----END PGP SIGNATURE-----\n"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/checksums.txt") {
+			fmt.Fprint(w, body)
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer srv.Close()
+	t.Cleanup(overrideGitHub(srv.URL))
+
+	cfg := &config.Config{
+		Images: []config.Image{{Name: "i", Platforms: []string{"linux/amd64", "linux/arm64"}, Tools: []string{"tool"}}},
+		Tools: []config.Tool{{
+			Name: "tool", Source: "o/tool", Version: "v1.0.0",
+			Release: &config.ReleaseConfig{DownloadTemplate: "tool_{os}_{arch}", ChecksumTemplate: "checksums.txt"},
+		}},
+	}
+	got, err := FetchToolChecksums(cfg, &cfg.Tools[0], "v1.0.1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got["linux/amd64"] != amd || got["linux/arm64"] != arm {
+		t.Fatalf("got %v", got)
+	}
+}
+
+func TestResolveVersion_RejectsEmptyTag(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"tag_name":""}`)
+	}))
+	defer srv.Close()
+	t.Cleanup(overrideGitHub(srv.URL))
+
+	noPrefix := ""
+	tool := &config.Tool{
+		Name: "x", Source: "o/x", Version: "latest",
+		Release: &config.ReleaseConfig{TagPrefix: &noPrefix},
+	}
+	if _, err := resolveVersion(tool); err == nil || !strings.Contains(err.Error(), "empty tag_name") {
+		t.Fatalf("err = %v, want an empty tag_name error", err)
 	}
 }

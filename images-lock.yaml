@@ -26,10 +26,10 @@ packages:
     - zstd
     - wget
 tools:
-    charts-build-scripts: v1.9.32
+    charts-build-scripts: v1.9.34
     cosign: v3.1.2
     gh: v2.96.0
-    golangci-lint: v2.12.2
+    golangci-lint: v2.15.0
     goreleaser: v2.17.1
     govulncheck: v1.6.0
     helmv3: v3.21.3
@@ -47,7 +47,7 @@ tools:
     nix: 2.35.1
     ob-charts-tool: v0.6.1
     oras: v1.3.3
-    release: v0.77.1
+    release: v0.78.1
     slsactl: v0.1.35
     yq: v4.53.3
 selectors:

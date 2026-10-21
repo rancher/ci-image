@@ -4,6 +4,26 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20261021-30 (2026-10-21)
+
+### Image: go1.25:20261021-30
+
+- `golangci-lint`: `v2.12.2` → `v2.15.0`
+
+### Image: go1.26:20261021-30
+
+- `golangci-lint`: `v2.12.2` → `v2.15.0`
+
+### Image: go1.27:20261021-30
+
+- `golangci-lint`: `v2.12.2` → `v2.15.0`
+
+### Image: charts:20261021-30
+
+- `charts-build-scripts`: `v1.9.32` → `v1.9.34`
+- `golangci-lint`: `v2.12.2` → `v2.15.0`
+- `release`: `v0.77.1` → `v0.78.1`
+
 ## Revision: 20261015-29 (2026-10-15)
 
 ### Image: go1.25:20261015-29

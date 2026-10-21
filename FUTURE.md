@@ -40,15 +40,16 @@ Currently checksums are always verified against the raw downloaded file (archive
 
 The install method registry is designed to make adding `wget` a low-effort change (one constant, one RUN block template nearly identical to the `curl` block). Currently deferred because `curl` covers all existing tools. Worth adding when there's a concrete tool that requires it, not speculatively.
 
-### Additional `update` command scope
+### Additional `manual-updates` scope
 
-The `update` command targets `curl`-based `pinned` tools. Extensions worth considering:
+`manual-updates` (interactive only) covers GitHub-sourced pinned/static tools, `go-install` tools (`version` + `version_commit`) and base image digests. Not yet covered:
 
-- **`go-install` tools**: update `version:` and `version_commit:` by querying the GitHub API or the Go module proxy. Less clear-cut than asset-based tools.
-- **Base image digest updates**: update `image.base` digests when a new BCI image is published. Would need a way to resolve the latest digest for a given BCI image tag.
-- **Bulk update**: `update --all` to update every tool in one pass. Raises questions about atomicity (what if one tool fails mid-run).
+- **New release lines**: Go/Node/Python lines and OS releases are reported but adding them stays a manual `deps.yaml` edit.
+- **Non-GitHub sources** (kubectl from `dl.k8s.io`, helm from `get.helm.sh`, nix from `releases.nixos.org`): listed as not GitHub-sourced and left alone. Updating them needs a way to declare where versions and checksums come from outside GitHub, and which hosts may be contacted. That is a config and trust design question, so it needs agreement before it is built.
 
-Note: `release-checksums` + `version: latest` tools do not need `update` — their version is resolved automatically by `generate` and tracked in `deps.lock`.
+A non-interactive mode is a non-goal: unattended rewrites of pinned versions and checksums would move trust decisions into automation.
+
+Note: `release-checksums` + `version: latest` tools do not need this — their version is resolved by `update` and tracked in `deps.lock`.
 
 ### Version branches and tagged releases
 

@@ -10,6 +10,10 @@ For a high-level overview of the project, see [README.md](README.md).
 4. `make verify` ensures no uncommitted changes exist (run in CI).
 5. `make push` builds and pushes multi-arch images to GHCR.
 
+## GitHub Access
+
+Release lookups, checksum downloads and template rendering go through the vendored [`ghreleases`](https://github.com/mallardduck/ghreleases) package. Requests are restricted to GitHub hosts (`github.com` and `githubusercontent.com`, including redirects), and `GITHUB_TOKEN` is only ever sent to GitHub hosts. Template variables available in `deps.yaml` are `{name}`, `{source}`, `{version}`, `{version_commit}`, `{os}` and `{arch}`; unknown variables and modifiers are errors.
+
 ## Adding a New Tool
 
 `deps.yaml` has two sections for tools:

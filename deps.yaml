@@ -115,6 +115,7 @@ universal:
       linux/arm64: "90e7ae0b5dfd60f20816b52c012addf7fc055ebcc7bea4ce81c428ca8518c302"
     release:
       download_template: "cosign-{os}-{arch}"
+      checksum_template: "cosign_checksums.txt"
 
   - name: gh
     source: cli/cli
@@ -161,6 +162,7 @@ universal:
     release:
       download_template: "slsactl_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "slsactl"
+      checksum_template: "slsactl_{version|trimprefix:v}_checksums.txt"
 
   - name: yq
     source: mikefarah/yq
@@ -170,6 +172,8 @@ universal:
       linux/arm64: "578648e463a11c1b6db6010cbf41eafed6bee79466fcffa1bb446672cf7945ea"
     release:
       download_template: "yq_{os}_{arch}"
+      checksum_template: "checksums"
+      checksum_hashes_order_template: "checksums_hashes_order"
 
 tools:
   - name: golangci-lint
@@ -181,6 +185,7 @@ tools:
     release:
       download_template: "golangci-lint-{version|trimprefix:v}-{os}-{arch}.tar.gz"
       extract: "golangci-lint-{version|trimprefix:v}-{os}-{arch}/golangci-lint"
+      checksum_template: "golangci-lint-{version|trimprefix:v}-checksums.txt"
 
   - name: goreleaser
     source: goreleaser/goreleaser
@@ -191,6 +196,7 @@ tools:
     release:
       download_template: "goreleaser_{os|title}_{arch|replace:amd64=x86_64}.tar.gz"
       extract: "goreleaser"
+      checksum_template: "checksums.txt"
 
   - name: govulncheck
     source: golang/vuln
@@ -221,6 +227,7 @@ tools:
     release:
       download_template: "kuberlr_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "kuberlr_{version|trimprefix:v}_{os}_{arch}/kuberlr"
+      checksum_template: "checksums.txt"
 
   - name: kubectl1.28
     family: kubectl

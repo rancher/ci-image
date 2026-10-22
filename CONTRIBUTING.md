@@ -35,7 +35,25 @@ Both require the same fields:
     extract: "mytool"       # path of the binary inside the archive; omit for plain binaries
 ```
 
+Optional `release:` fields tell `manual-updates` where upstream publishes checksums: `checksum_template` for a single `<sha256>  <filename>` file, or a per-platform `<download>.sha256sum` is assumed if omitted. Some projects (e.g. `yq`) publish one file with many hash algorithms per line; set `checksum_hashes_order_template` alongside `checksum_template` to name the file that lists the column order. The SHA-256 column is then selected by name, never by position or shape (SHA3-256, GOST and BLAKE2s are also 64 hex characters), and the file is rejected if anything is ambiguous.
+
 After editing, run `make generate` and commit the updated Dockerfiles.
+
+## Updating Pinned Tools and Base Images
+
+`make update` only refreshes `deps.lock` for `release-checksums` tools. GitHub-sourced tools with `version:` and `checksums:` in `deps.yaml`, and (with `--base-images`) the `base:` image digests, are updated with:
+
+```sh
+make manual-updates
+```
+
+This is an interactive review (there is deliberately no `--yes`/`--all` flag, and it refuses to run without a terminal). It looks up newer releases, then for each one shows the version change and the old/new checksums, and where the checksums were read from (the tool's own `release:` config). You stage or skip each update; major bumps require typing `yes`. Nothing is written until you confirm at the end, and `deps.yaml` is edited in place so comments and formatting survive. If upstream publishes no checksum for a tool (e.g. `cosign`), the review offers to download each artifact and hash it locally. This is opt-in per tool and clearly labelled, because it only proves the bytes match what was downloaded rather than what upstream published. Set `GITHUB_TOKEN` to avoid GitHub API rate limits.
+
+To review just some tools, name them: `go run main.go manual-updates goreleaser oras` (or `make manual-updates ARGS="goreleaser oras"`). A family name selects all its members, and an unknown name is an error. Tool names cannot be combined with `--base-images`.
+
+Base images are only checked when you pass `--base-images` (`go run main.go manual-updates --base-images`); by default only tools are reviewed. They follow `registry.suse.com` tags: a full `x.y.z` tag moves to the newest patch of the same `x.y`, while floating tags (`24`, `15.7`) keep their tag and only refresh the digest. Newer lines (such as a new Go minor) are listed for your attention but never proposed.
+
+Only tools whose `source:` is a GitHub repository are checked. Tools with other sources (for example the kubectl and helm tools and nix) are listed as "not GitHub-sourced" and left alone; update them by hand.
 
 ## Adding a Tool Family
 

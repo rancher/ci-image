@@ -15,6 +15,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"maps"
 	"net/http"
@@ -169,6 +170,82 @@ func ValidateLock(cfg *config.Config, lk *depslock.Lock) error {
 	return nil
 }
 
+// FetchToolChecksums fetches upstream checksums for t at version using the
+// tool's own release configuration, for every platform of every image that
+// includes t. It is the same lookup Update and ValidateLock use, so a tool's
+// release: block (download_template, checksum_template) is the single source
+// of truth for where checksums come from.
+func FetchToolChecksums(cfg *config.Config, t *config.Tool, version string) (map[string]string, error) {
+	platforms := toolPlatforms(cfg, t)
+	if len(platforms) == 0 {
+		return nil, fmt.Errorf("no images include this tool — cannot determine required platforms")
+	}
+	return fetchChecksums(t, version, platforms)
+}
+
+// HashDownloads computes checksums by downloading each platform's artifact
+// (per the tool's download_template) and hashing it locally. It is the
+// fallback for upstreams that publish no checksum file. The result only proves
+// the bytes match what was downloaded, not that upstream vouches for them, so
+// callers must make that visible to a human before it is used. It also returns
+// the URLs that were hashed.
+func HashDownloads(cfg *config.Config, t *config.Tool, version string) (sums map[string]string, urls []string, err error) {
+	platforms := toolPlatforms(cfg, t)
+	if len(platforms) == 0 {
+		return nil, nil, fmt.Errorf("no images include this tool — cannot determine required platforms")
+	}
+	sums = make(map[string]string, len(platforms))
+	for _, p := range platforms {
+		u, _, err := platformDownloadFilename(t, version, p)
+		if err != nil {
+			return nil, nil, err
+		}
+		res, err := ghClient().Download(u, io.Discard, ghrelease.DownloadOptions{})
+		if err != nil {
+			return nil, nil, err
+		}
+		sums[p] = res.Hash
+		urls = append(urls, u)
+	}
+	return sums, urls, nil
+}
+
+// ChecksumLocation describes where FetchToolChecksums looks for t at version:
+// the rendered checksum_template URL (plus the column-order file for multi-hash
+// files), or the per-platform "<download>.sha256sum" URLs. Used to show the
+// reviewer what a checksum is derived from.
+func ChecksumLocation(cfg *config.Config, t *config.Tool, version string) ([]string, error) {
+	rel := t.EffectiveRelease()
+	if rel == nil {
+		return nil, fmt.Errorf("no release config")
+	}
+	baseVars := config.TemplateVars(t.Name, t.Source, version, "", "", "")
+	if rel.ChecksumTemplate != "" {
+		u, err := config.RenderTemplate(config.ExpandGitHubTemplate(rel.ChecksumTemplate, t.Source), baseVars)
+		if err != nil {
+			return nil, err
+		}
+		urls := []string{u}
+		if rel.ChecksumHashesOrderTemplate != "" {
+			o, err := config.RenderTemplate(config.ExpandGitHubTemplate(rel.ChecksumHashesOrderTemplate, t.Source), baseVars)
+			if err != nil {
+				return nil, err
+			}
+			urls = append(urls, o+" (column order, SHA-256 selected by name)")
+		}
+		return urls, nil
+	}
+	var urls []string
+	for _, p := range toolPlatforms(cfg, t) {
+		u, _, err := platformDownloadFilename(t, version, p)
+		if err != nil {
+			return nil, err
+		}
+		urls = append(urls, u+".sha256sum")
+	}
+	return urls, nil
+}
+
 // resolveVersion returns the version to use for t. If t.Version is "latest",
 // the GitHub API is queried for the current release tag.
 func resolveVersion(t *config.Tool) (string, error) {
@@ -233,7 +310,18 @@ func fetchFromAggregatedFile(t *config.Tool, version string, platforms []string,
 	if err != nil {
 		return nil, fmt.Errorf("checksum_template: %w", err)
 	}
-	fileMap, err := ghClient().FetchChecksumsLenient(context.Background(), checksumURL)
+	var fileMap map[string]string
+	if rel.ChecksumHashesOrderTemplate != "" {
+		// Multi-hash file: the SHA-256 column is chosen by name from the order file.
+		orderTmpl := config.ExpandGitHubTemplate(rel.ChecksumHashesOrderTemplate, t.Source)
+		orderURL, rerr := config.RenderTemplate(orderTmpl, baseVars)
+		if rerr != nil {
+			return nil, fmt.Errorf("checksum_hashes_order_template: %w", rerr)
+		}
+		fileMap, err = ghClient().FetchMultiHashChecksums(context.Background(), checksumURL, orderURL)
+	} else {
+		fileMap, err = ghClient().FetchChecksumsLenient(context.Background(), checksumURL)
+	}
 	if err != nil {
 		return nil, err
 	}

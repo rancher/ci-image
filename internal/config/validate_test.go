@@ -546,3 +546,47 @@ func TestValidateConfig_MultipleErrorsCollected(t *testing.T) {
 		t.Errorf("error missing version complaint: %s", msg)
 	}
 }
+
+func TestValidate_HashesOrderRequiresChecksumTemplate(t *testing.T) {
+	yamlText := `images:
+  - name: i
+    base: "registry.suse.com/bci/bci-base:15.7"
+    tools: [t]
+tools:
+  - name: t
+    source: o/r
+    version: v1.0.0
+    checksums:
+      linux/amd64: "` + strings.Repeat("a", 64) + `"
+      linux/arm64: "` + strings.Repeat("b", 64) + `"
+    release:
+      download_template: "t_{os}_{arch}"
+      checksum_hashes_order_template: "order"
+`
+	_, err := Parse([]byte(yamlText), "x")
+	if err == nil || !strings.Contains(err.Error(), "checksum_hashes_order_template requires release.checksum_template") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestImageIncludesTool(t *testing.T) {
+	img := Image{Tools: []string{"oras", "kubectl"}}
+	tests := []struct {
+		name string
+		tool Tool
+		want bool
+	}{
+		{"by name", Tool{Name: "oras"}, true},
+		{"via family reference", Tool{Name: "kuberlr", Family: "kubectl"}, true},
+		{"universal", Tool{Name: "x", Universal: true}, true},
+		{"unrelated family", Tool{Name: "helmv3", Family: "helm"}, false},
+		{"not referenced", Tool{Name: "other"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ImageIncludesTool(img, &tt.tool); got != tt.want {
+				t.Errorf("got %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

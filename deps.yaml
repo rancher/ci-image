@@ -115,6 +115,7 @@ universal:
       linux/arm64: "90e7ae0b5dfd60f20816b52c012addf7fc055ebcc7bea4ce81c428ca8518c302"
     release:
       download_template: "cosign-{os}-{arch}"
+      checksum_template: "cosign_checksums.txt"
 
   - name: gh
     source: cli/cli
@@ -161,6 +162,7 @@ universal:
     release:
       download_template: "slsactl_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "slsactl"
+      checksum_template: "slsactl_{version|trimprefix:v}_checksums.txt"
 
   - name: yq
     source: mikefarah/yq
@@ -225,6 +227,7 @@ tools:
     release:
       download_template: "kuberlr_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "kuberlr_{version|trimprefix:v}_{os}_{arch}/kuberlr"
+      checksum_template: "checksums.txt"
 
   - name: kubectl1.28
     family: kubectl

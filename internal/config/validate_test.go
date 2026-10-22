@@ -568,3 +568,25 @@ tools:
 		t.Fatalf("err = %v", err)
 	}
 }
+
+func TestImageIncludesTool(t *testing.T) {
+	img := Image{Tools: []string{"oras", "kubectl"}}
+	tests := []struct {
+		name string
+		tool Tool
+		want bool
+	}{
+		{"by name", Tool{Name: "oras"}, true},
+		{"via family reference", Tool{Name: "kuberlr", Family: "kubectl"}, true},
+		{"universal", Tool{Name: "x", Universal: true}, true},
+		{"unrelated family", Tool{Name: "helmv3", Family: "helm"}, false},
+		{"not referenced", Tool{Name: "other"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ImageIncludesTool(img, &tt.tool); got != tt.want {
+				t.Errorf("got %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

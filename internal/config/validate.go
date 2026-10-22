@@ -303,9 +303,12 @@ func isArchiveTemplate(tmpl string) bool {
 	return false
 }
 
-// imageIncludesTool reports whether img will include t at generate time.
+// imageIncludesTool reports whether img will include t at generate time, either
+// as a universal tool, by name, or via a reference to t's family.
 func imageIncludesTool(img Image, t *Tool) bool {
-	return t.Universal || slices.Contains(img.Tools, t.Name)
+	return t.Universal ||
+		slices.Contains(img.Tools, t.Name) ||
+		(t.Family != "" && slices.Contains(img.Tools, t.Family))
 }
 
 // ImageIncludesTool is the exported form, for use outside the config package.

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/rancher/ci-image/internal/config"
-	gh "github.com/rancher/ci-image/internal/github"
 	"github.com/rancher/ci-image/internal/resolver/depslock"
 )
 
@@ -178,7 +177,7 @@ func TestUpdate_VersionChange(t *testing.T) {
 	}
 
 	srv := newObChartsTestServer(t, "v0.4.1", obChartsV041Checksums)
-	t.Cleanup(gh.OverrideHTTPForTest(srv.URL))
+	t.Cleanup(overrideGitHub(srv.URL))
 	logged := captureLog(t)
 
 	if err := Update(cfg, lk); err != nil {
@@ -235,7 +234,7 @@ func TestUpdate_AlreadyUpToDate(t *testing.T) {
 		http.NotFound(w, r)
 	}))
 	t.Cleanup(srv.Close)
-	t.Cleanup(gh.OverrideHTTPForTest(srv.URL))
+	t.Cleanup(overrideGitHub(srv.URL))
 
 	if err := Update(cfg, lk); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -250,7 +249,7 @@ func TestUpdate_FirstTime(t *testing.T) {
 	lk := &depslock.Lock{Tools: map[string]depslock.Entry{}}
 
 	srv := newObChartsTestServer(t, "v0.4.1", obChartsV041Checksums)
-	t.Cleanup(gh.OverrideHTTPForTest(srv.URL))
+	t.Cleanup(overrideGitHub(srv.URL))
 	logged := captureLog(t)
 
 	if err := Update(cfg, lk); err != nil {
@@ -283,7 +282,7 @@ func TestValidateLock_Valid(t *testing.T) {
 
 	// Mock server that returns the correct checksums for v0.4.0
 	srv := newObChartsTestServer(t, "v0.4.0", obChartsV040Lock.Checksums)
-	t.Cleanup(gh.OverrideHTTPForTest(srv.URL))
+	t.Cleanup(overrideGitHub(srv.URL))
 
 	// Should pass validation since checksums match the stated version
 	if err := ValidateLock(cfg, lk); err != nil {
@@ -306,7 +305,7 @@ func TestValidateLock_TamperedChecksums(t *testing.T) {
 
 	// Mock server that returns the real checksums for v0.4.0
 	srv := newObChartsTestServer(t, "v0.4.0", obChartsV040Lock.Checksums)
-	t.Cleanup(gh.OverrideHTTPForTest(srv.URL))
+	t.Cleanup(overrideGitHub(srv.URL))
 
 	// Should fail validation due to checksum mismatch
 	err := ValidateLock(cfg, lk)
@@ -344,7 +343,7 @@ func TestValidateLock_NonExistentVersion(t *testing.T) {
 		http.NotFound(w, r)
 	}))
 	t.Cleanup(srv.Close)
-	t.Cleanup(gh.OverrideHTTPForTest(srv.URL))
+	t.Cleanup(overrideGitHub(srv.URL))
 
 	// Should fail validation due to 404 fetching checksums
 	err := ValidateLock(cfg, lk)

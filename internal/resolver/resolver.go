@@ -12,17 +12,20 @@
 package resolver
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
 	"maps"
+	"net/http"
 	"path"
 	"slices"
 	"strings"
 	"time"
 
+	ghrelease "github.com/mallardduck/ghreleases"
+
 	"github.com/rancher/ci-image/internal/config"
-	"github.com/rancher/ci-image/internal/config/renderer"
-	gh "github.com/rancher/ci-image/internal/github"
 	"github.com/rancher/ci-image/internal/resolver/depslock"
 )
 
@@ -104,7 +107,7 @@ func Update(cfg *config.Config, lk *depslock.Lock) error {
 // Returns an error if any tool's checksums don't match what's upstream for
 // the recorded version. Allows stale (old but correct) lock entries.
 func ValidateLock(cfg *config.Config, lk *depslock.Lock) error {
-	var errors []string
+	var problems []string
 
 	for i := range cfg.Tools {
 		t := &cfg.Tools[i]
@@ -114,7 +117,7 @@ func ValidateLock(cfg *config.Config, lk *depslock.Lock) error {
 
 		cached, ok := lk.Tools[t.Name]
 		if !ok || cached.ResolvedVersion == "" || len(cached.Checksums) == 0 {
-			errors = append(errors, fmt.Sprintf("tool %q: not found in deps.lock or missing checksums", t.Name))
+			problems = append(problems, fmt.Sprintf("tool %q: not found in deps.lock or missing checksums", t.Name))
 			continue
 		}
 
@@ -123,7 +126,7 @@ func ValidateLock(cfg *config.Config, lk *depslock.Lock) error {
 
 		platforms := toolPlatforms(cfg, t)
 		if len(platforms) == 0 {
-			errors = append(errors, fmt.Sprintf("tool %q: no images include this tool — cannot validate", t.Name))
+			problems = append(problems, fmt.Sprintf("tool %q: no images include this tool — cannot validate", t.Name))
 			continue
 		}
 
@@ -131,10 +134,11 @@ func ValidateLock(cfg *config.Config, lk *depslock.Lock) error {
 		expectedChecksums, err := fetchChecksums(t, version, platforms)
 		if err != nil {
 			errMsg := fmt.Sprintf("tool %q: failed to fetch checksums for %s: %v", t.Name, version, err)
-			if strings.Contains(err.Error(), "404") {
+			var statusErr *ghrelease.HTTPStatusError
+			if errors.As(err, &statusErr) && statusErr.StatusCode == http.StatusNotFound {
 				errMsg += "\n    (This may indicate manual editing of deps.lock with a non-existent version, or the release was deleted upstream)"
 			}
-			errors = append(errors, errMsg)
+			problems = append(problems, errMsg)
 			continue
 		}
 
@@ -142,11 +146,11 @@ func ValidateLock(cfg *config.Config, lk *depslock.Lock) error {
 		for platform, expectedSum := range expectedChecksums {
 			actualSum, ok := cached.Checksums[platform]
 			if !ok {
-				errors = append(errors, fmt.Sprintf("tool %q (%s): missing checksum for platform %s", t.Name, version, platform))
+				problems = append(problems, fmt.Sprintf("tool %q (%s): missing checksum for platform %s", t.Name, version, platform))
 				continue
 			}
 			if actualSum != expectedSum {
-				errors = append(errors, fmt.Sprintf("tool %q (%s): checksum mismatch for %s:\n  locked: %s\n  actual: %s", t.Name, version, platform, actualSum, expectedSum))
+				problems = append(problems, fmt.Sprintf("tool %q (%s): checksum mismatch for %s:\n  locked: %s\n  actual: %s", t.Name, version, platform, actualSum, expectedSum))
 			}
 		}
 
@@ -158,8 +162,8 @@ func ValidateLock(cfg *config.Config, lk *depslock.Lock) error {
 		}
 	}
 
-	if len(errors) > 0 {
-		return fmt.Errorf("deps.lock validation failed:\n  %s", strings.Join(errors, "\n  "))
+	if len(problems) > 0 {
+		return fmt.Errorf("deps.lock validation failed:\n  %s", strings.Join(problems, "\n  "))
 	}
 
 	return nil
@@ -171,11 +175,19 @@ func resolveVersion(t *config.Tool) (string, error) {
 	if t.Version != "latest" {
 		return t.Version, nil
 	}
-	owner, repo, err := gh.ParseSourceRepo(t.Source)
+	owner, repo, err := ghrelease.ParseSource(t.Source)
 	if err != nil {
 		return "", fmt.Errorf("cannot resolve latest version: %w", err)
 	}
-	return gh.LatestReleaseTag(owner, repo, t.TagPrefix())
+	ctx := ghrelease.WithTagPrefix(context.Background(), t.TagPrefix())
+	tag, err := ghClient().LatestRelease(ctx, owner, repo)
+	if err != nil {
+		return "", err
+	}
+	if tag == "" {
+		return "", fmt.Errorf("GitHub API returned empty tag_name for %s/%s", owner, repo)
+	}
+	return tag, nil
 }
 
 // toolPlatforms returns the sorted union of platforms across all images that
@@ -200,11 +212,7 @@ func toolPlatforms(cfg *config.Config, t *config.Tool) []string {
 // fetched and each platform is looked up by its download filename. Otherwise,
 // a per-platform file at "{download_url}.sha256sum" is fetched.
 func fetchChecksums(t *config.Tool, version string, platforms []string) (map[string]string, error) {
-	baseVars := renderer.Vars{
-		Name:    t.Name,
-		Source:  t.Source,
-		Version: version,
-	}
+	baseVars := config.TemplateVars(t.Name, t.Source, version, "", "", "")
 
 	rel := t.EffectiveRelease()
 	if rel == nil {
@@ -219,20 +227,20 @@ func fetchChecksums(t *config.Tool, version string, platforms []string) (map[str
 	return fetchPerPlatform(t, version, platforms, baseVars, result)
 }
 
-func fetchFromAggregatedFile(t *config.Tool, version string, platforms []string, baseVars renderer.Vars, rel *config.ReleaseConfig) (map[string]string, error) {
-	checksumTmpl := gh.ExpandGitHubTemplate(rel.ChecksumTemplate, t.Source)
-	checksumURL, err := renderer.Render(checksumTmpl, baseVars)
+func fetchFromAggregatedFile(t *config.Tool, version string, platforms []string, baseVars ghrelease.TemplateVars, rel *config.ReleaseConfig) (map[string]string, error) {
+	checksumTmpl := config.ExpandGitHubTemplate(rel.ChecksumTemplate, t.Source)
+	checksumURL, err := config.RenderTemplate(checksumTmpl, baseVars)
 	if err != nil {
 		return nil, fmt.Errorf("checksum_template: %w", err)
 	}
-	fileMap, err := gh.FetchChecksumFile(checksumURL)
+	fileMap, err := ghClient().FetchChecksumsLenient(context.Background(), checksumURL)
 	if err != nil {
 		return nil, err
 	}
 
 	result := make(map[string]string, len(platforms))
 	for _, platform := range platforms {
-		_, filename, err := platformDownloadFilename(t, version, platform, baseVars)
+		_, filename, err := platformDownloadFilename(t, version, platform)
 		if err != nil {
 			return nil, err
 		}
@@ -245,13 +253,13 @@ func fetchFromAggregatedFile(t *config.Tool, version string, platforms []string,
 	return result, nil
 }
 
-func fetchPerPlatform(t *config.Tool, version string, platforms []string, baseVars renderer.Vars, result map[string]string) (map[string]string, error) {
+func fetchPerPlatform(t *config.Tool, version string, platforms []string, baseVars ghrelease.TemplateVars, result map[string]string) (map[string]string, error) {
 	for _, platform := range platforms {
-		dlURL, filename, err := platformDownloadFilename(t, version, platform, baseVars)
+		dlURL, filename, err := platformDownloadFilename(t, version, platform)
 		if err != nil {
 			return nil, err
 		}
-		fileMap, err := gh.FetchChecksumFile(dlURL + ".sha256sum")
+		fileMap, err := ghClient().FetchChecksumsLenient(context.Background(), dlURL+".sha256sum")
 		if err != nil {
 			return nil, err
 		}
@@ -272,21 +280,18 @@ func fetchPerPlatform(t *config.Tool, version string, platforms []string, baseVa
 
 // platformDownloadFilename renders the download URL for a platform and returns
 // both the full URL and the basename (used as the key in checksum files).
-func platformDownloadFilename(t *config.Tool, version, platform string, baseVars renderer.Vars) (dlURL, filename string, err error) {
+func platformDownloadFilename(t *config.Tool, version, platform string) (dlURL, filename string, err error) {
 	parts := strings.SplitN(platform, "/", 2)
 	if len(parts) != 2 {
 		return "", "", fmt.Errorf("invalid platform %q", platform)
 	}
-	vars := baseVars
-	vars.OS = parts[0]
-	vars.Arch = parts[1]
-	vars.Version = version
+	vars := config.TemplateVars(t.Name, t.Source, version, "", parts[0], parts[1])
 	rel := t.EffectiveRelease()
 	if rel == nil {
 		return "", "", fmt.Errorf("no release config for tool %q", t.Name)
 	}
-	dlTmpl := gh.ExpandGitHubTemplate(rel.DownloadTemplate, t.Source)
-	dlURL, err = renderer.Render(dlTmpl, vars)
+	dlTmpl := config.ExpandGitHubTemplate(rel.DownloadTemplate, t.Source)
+	dlURL, err = config.RenderTemplate(dlTmpl, vars)
 	if err != nil {
 		return "", "", fmt.Errorf("download_template for %s: %w", platform, err)
 	}

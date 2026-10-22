@@ -8,8 +8,6 @@ import (
 	"text/template"
 
 	"github.com/rancher/ci-image/internal/config"
-	"github.com/rancher/ci-image/internal/config/renderer"
-	gh "github.com/rancher/ci-image/internal/github"
 )
 
 // Format describes the packaging/compression type of a download artifact.
@@ -156,15 +154,8 @@ func buildItemInstall(t config.Tool, imgPlatforms map[string]bool) (ItemInstall,
 func buildCurlInstall(t config.Tool, imgPlatforms map[string]bool) (CurlInstall, error) {
 	rel := t.EffectiveRelease() // non-nil guaranteed by config validation
 
-	downloadTmpl := gh.ExpandGitHubTemplate(rel.DownloadTemplate, t.Source)
+	downloadTmpl := config.ExpandGitHubTemplate(rel.DownloadTemplate, t.Source)
 	extractTmpl := rel.Extract
-
-	baseVars := renderer.Vars{
-		Name:          t.Name,
-		Source:        t.Source,
-		Version:       t.Version,
-		VersionCommit: t.VersionCommit,
-	}
 
 	// Intersect tool checksums with image platforms, sorted for determinism.
 	allPlatforms := slices.Sorted(maps.Keys(t.Checksums))
@@ -177,15 +168,13 @@ func buildCurlInstall(t config.Tool, imgPlatforms map[string]bool) (CurlInstall,
 		if len(parts) != 2 {
 			return CurlInstall{}, fmt.Errorf("invalid platform format %q", platform)
 		}
-		vars := baseVars
-		vars.OS = parts[0]
-		vars.Arch = parts[1]
+		vars := config.TemplateVars(t.Name, t.Source, t.Version, t.VersionCommit, parts[0], parts[1])
 
-		dlURL, err := renderer.Render(downloadTmpl, vars)
+		dlURL, err := config.RenderTemplate(downloadTmpl, vars)
 		if err != nil {
 			return CurlInstall{}, fmt.Errorf("download_template: %w", err)
 		}
-		extract, err := renderer.Render(extractTmpl, vars)
+		extract, err := config.RenderTemplate(extractTmpl, vars)
 		if err != nil {
 			return CurlInstall{}, fmt.Errorf("extract: %w", err)
 		}
@@ -214,13 +203,8 @@ func buildCurlInstall(t config.Tool, imgPlatforms map[string]bool) (CurlInstall,
 }
 
 func buildGoInstall(t config.Tool) (GoInstall, error) {
-	vars := renderer.Vars{
-		Name:          t.Name,
-		Source:        t.Source,
-		Version:       t.Version,
-		VersionCommit: t.VersionCommit,
-	}
-	pkg, err := renderer.Render(t.Install.Package, vars)
+	vars := config.TemplateVars(t.Name, t.Source, t.Version, t.VersionCommit, "", "")
+	pkg, err := config.RenderTemplate(t.Install.Package, vars)
 	if err != nil {
 		return GoInstall{}, fmt.Errorf("install.package: %w", err)
 	}

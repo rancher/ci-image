@@ -2,7 +2,8 @@ package config
 
 import (
 	"fmt"
-	"strings"
+
+	ghrelease "github.com/mallardduck/ghreleases"
 )
 
 // Mode describes how tool versions are managed.
@@ -288,20 +289,11 @@ func (t *Tool) TagPrefix() string {
 }
 
 // isGitHubSource reports whether source refers to a GitHub repository.
-// Accepts both org/repo shorthand and https://github.com/org/repo URLs.
+// It uses the same parser as release lookups so "is this a GitHub source" has
+// a single definition (org/repo shorthand or a github.com URL).
 func isGitHubSource(source string) bool {
-	if strings.HasPrefix(source, "https://github.com/") || strings.HasPrefix(source, "http://github.com/") {
-		return true
-	}
-	if strings.Contains(source, "://") {
-		return false // some other URL scheme
-	}
-	// org/repo shorthand: require exactly one slash with non-empty parts.
-	if strings.Count(source, "/") != 1 {
-		return false
-	}
-	parts := strings.SplitN(source, "/", 2)
-	return parts[0] != "" && parts[1] != ""
+	_, _, err := ghrelease.ParseSource(source)
+	return err == nil
 }
 
 // ReleaseConfig holds URL templates for downloading tool releases.

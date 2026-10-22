@@ -171,8 +171,8 @@ func (c *Client) do(ctx context.Context, method, path, accept string) (*http.Res
 	if err != nil {
 		return nil, err
 	}
-	if target.Host != base.Host {
-		return nil, fmt.Errorf("registry pagination left host %s", base.Host)
+	if target.Host != base.Host || target.Scheme != base.Scheme {
+		return nil, fmt.Errorf("registry pagination left %s://%s", base.Scheme, base.Host)
 	}
 
 	token := ""

@@ -101,11 +101,41 @@ func New(host string) (*Client, error) {
 	if !ok {
 		return nil, fmt.Errorf("registry %q is not on the allowlist", host)
 	}
-	return &Client{
+	c := &Client{
 		BaseURL:    "https://" + host,
-		HTTP:       &http.Client{Timeout: 60 * time.Second},
 		TokenHosts: tokenHosts,
-	}, nil
+	}
+	c.HTTP = &http.Client{Timeout: 60 * time.Second, CheckRedirect: c.checkRedirect}
+	return c, nil
+}
+
+// maxRedirects bounds redirect chains, matching net/http's default.
+const maxRedirects = 10
+
+// checkRedirect revalidates every redirect destination against the allowlist.
+// Requests that began on the registry host may only stay on that host; token
+// requests (which began elsewhere) may also reach the registry or another
+// allowed token host. The scheme may never be downgraded from the base's.
+func (c *Client) checkRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= maxRedirects {
+		return fmt.Errorf("stopped after %d redirects", maxRedirects)
+	}
+	base, err := url.Parse(c.BaseURL)
+	if err != nil {
+		return err
+	}
+	dest := req.URL
+	if dest.Scheme != base.Scheme {
+		return fmt.Errorf("refusing redirect to %s: scheme differs from %s", dest.Redacted(), base.Scheme)
+	}
+	allowed := dest.Host == base.Host
+	if via[0].URL.Host != base.Host {
+		allowed = allowed || slices.Contains(c.TokenHosts, dest.Host)
+	}
+	if !allowed {
+		return fmt.Errorf("refusing redirect from %s to %s: host not allowed", via[len(via)-1].URL.Host, dest.Host)
+	}
+	return nil
 }
 
 // Tags returns every tag of repo, following pagination.

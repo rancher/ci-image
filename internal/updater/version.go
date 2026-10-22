@@ -31,9 +31,10 @@ func (b Bump) String() string {
 	}
 }
 
-// parseVersion parses dotted numeric versions with an optional leading "v".
+// parseVersion parses strictly dotted-numeric versions. Callers strip any tag
+// prefix (the tool's tag_prefix, e.g. "v" or "api/v") first; a leftover prefix
+// makes the version unparseable rather than silently comparable.
 func parseVersion(s string) ([]int, bool) {
-	s = strings.TrimPrefix(s, "v")
 	if s == "" {
 		return nil, false
 	}

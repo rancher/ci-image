@@ -207,13 +207,15 @@ func discoverTool(ctx context.Context, t *config.Tool) (r result) {
 		r.upToDate = t.Name
 		return
 	}
-	if strings.HasPrefix(tag, "v") != strings.HasPrefix(t.Version, "v") {
+	tagStripped, tagHas := strings.CutPrefix(tag, up.prefix)
+	toolVersionStripped, verHas := strings.CutPrefix(t.Version, up.prefix)
+	if tagHas != verHas {
 		skip("latest tag %q has a different version format than %q", tag, t.Version)
 		return
 	}
-	bump, ok := Classify(t.Version, tag)
+	bump, ok := Classify(toolVersionStripped, tagStripped)
 	if !ok {
-		if cmp, ok2 := compareOrder(tag, t.Version); ok2 && cmp < 0 {
+		if cmp, ok2 := compareOrder(tagStripped, toolVersionStripped); ok2 && cmp < 0 {
 			r.upToDate = t.Name // pinned ahead of the feed's latest
 			return
 		}

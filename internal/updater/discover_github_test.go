@@ -171,3 +171,70 @@ func TestDiscover_ReportsGitHubToolsThenBasesAndCollectsNonGitHub(t *testing.T) 
 		t.Errorf("skipped = %+v, want only the base image", rep.Skipped)
 	}
 }
+
+// discoverWithFeed runs discoverTool against a feed whose latest tag is latest.
+// A tag_prefix scans the release list; an empty one uses /releases/latest.
+func discoverWithFeed(t *testing.T, tl *config.Tool, latest string) result {
+	t.Helper()
+	useGitHub(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/releases/latest") {
+			fmt.Fprintf(w, `{"tag_name":%q}`, latest)
+			return
+		}
+		fmt.Fprintf(w, `[{"tag_name":%q,"prerelease":false,"draft":false}]`, latest)
+	})
+	return discoverTool(context.Background(), tl)
+}
+
+func withPrefix(tl *config.Tool, prefix string) *config.Tool {
+	tl.Release = &config.ReleaseConfig{TagPrefix: &prefix}
+	return tl
+}
+
+func TestDiscoverTool_CustomTagPrefixes(t *testing.T) {
+	tests := []struct {
+		name, prefix, current, latest string
+		bump                          Bump
+	}{
+		{"word prefix", "jq-", "jq-1.7.1", "jq-1.8.0", BumpMinor},
+		{"monorepo", "database/v", "database/v1.2.3", "database/v1.2.4", BumpPatch},
+		{"path without v", "api/", "api/2.0.0", "api/3.0.0", BumpMajor},
+		{"empty prefix, bare tags", "", "1.2.3", "1.2.4", BumpPatch},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := discoverWithFeed(t, withPrefix(tool("t", "o/t", tt.current), tt.prefix), tt.latest)
+			if r.cand == nil {
+				t.Fatalf("no candidate: %+v", r)
+			}
+			if r.cand.Current != tt.current || r.cand.Latest != tt.latest || r.cand.Bump != tt.bump {
+				t.Errorf("candidate = %+v", *r.cand)
+			}
+		})
+	}
+}
+
+func TestDiscoverTool_CustomPrefixPinnedAhead(t *testing.T) {
+	r := discoverWithFeed(t, withPrefix(tool("t", "o/t", "jq-1.9.0"), "jq-"), "jq-1.8.0")
+	if r.cand != nil || r.upToDate != "t" {
+		t.Errorf("got %+v", r)
+	}
+}
+
+// An empty tag_prefix means bare versions. A "v" tag against a bare pin is
+// not comparable and must be skipped, never treated as equivalent.
+func TestDiscoverTool_EmptyPrefixMixedFormatsSkip(t *testing.T) {
+	for _, c := range []struct{ current, latest string }{{"1.2.3", "v1.2.4"}, {"v1.2.3", "1.2.4"}} {
+		r := discoverWithFeed(t, withPrefix(tool("t", "o/t", c.current), ""), c.latest)
+		if r.cand != nil || r.skip == nil {
+			t.Errorf("%s -> %s: want skip, got %+v", c.current, c.latest, r)
+		}
+	}
+}
+
+func TestDiscoverTool_CustomPrefixFormatMismatchSkips(t *testing.T) {
+	r := discoverWithFeed(t, withPrefix(tool("t", "o/t", "1.2.3"), "jq-"), "jq-1.2.4")
+	if r.skip == nil || !strings.Contains(r.skip.Reason, "different version format") {
+		t.Errorf("got %+v", r)
+	}
+}

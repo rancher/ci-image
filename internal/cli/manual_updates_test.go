@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -98,7 +99,7 @@ func TestRunManualUpdates_RejectsAutomation(t *testing.T) {
 }
 
 func prepFailsLocalOK(c updater.Candidate) (updater.Proposal, error) {
-	return updater.Proposal{}, errors.New("fetching checksum file: unexpected status 404")
+	return updater.Proposal{}, fmt.Errorf("fetching checksums: %w", updater.ErrNoPublishedChecksum)
 }
 
 func localOK(c updater.Candidate) (updater.Proposal, error) {
@@ -133,6 +134,24 @@ func TestReview_LocalHashFallback_DeclinedSkips(t *testing.T) {
 	tools, _, _ := s.review(rep)
 	if len(tools) != 0 || called {
 		t.Fatalf("declined fallback must not download or stage (called=%v staged=%v)", called, names(tools))
+	}
+}
+
+func TestReview_LocalHashFallback_NotOfferedForOtherFailures(t *testing.T) {
+	for name, err := range map[string]error{
+		"transient 500": errors.New("unexpected status code: 500"),
+		"malformed":     errors.New("invalid checksum file format"),
+		"template":      errors.New("checksum_template: bad"),
+	} {
+		rep := report()
+		rep.Candidates = rep.Candidates[:1]
+		called := false
+		s, out := session("y\ny\n", func(updater.Candidate) (updater.Proposal, error) { return updater.Proposal{}, err })
+		s.prepareLocal = func(c updater.Candidate) (updater.Proposal, error) { called = true; return localOK(c) }
+		tools, _, _ := s.review(rep)
+		if called || len(tools) != 0 || strings.Contains(out.String(), "hash it here") {
+			t.Fatalf("%s: local-hash fallback must not be offered:\n%s", name, out)
+		}
 	}
 }
 

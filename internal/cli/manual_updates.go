@@ -251,6 +251,12 @@ func (s *manualSession) review(rep updater.Report) (tools []updater.ToolEdit, ba
 		p, err := s.prepare(c)
 		if err != nil {
 			s.printf("   %s %v\n", s.red("error:"), err)
+			// Only a missing checksum file justifies hashing locally; any other
+			// failure may be transient or hide a published checksum.
+			if !errors.Is(err, updater.ErrNoPublishedChecksum) {
+				s.printf("   skipped.\n")
+				continue
+			}
 			if p, err = s.offerLocalHash(c); err != nil {
 				s.printf("   skipped.\n")
 				continue
@@ -274,7 +280,7 @@ func (s *manualSession) review(rep updater.Report) (tools []updater.ToolEdit, ba
 	return tools, bases, false
 }
 
-// offerLocalHash is reached when published checksums could not be fetched. It
+// offerLocalHash is reached only when upstream publishes no checksum file. It
 // only proceeds if the user explicitly agrees to trust our own download.
 func (s *manualSession) offerLocalHash(c updater.Candidate) (updater.Proposal, error) {
 	if c.Kind != updater.KindTool || s.prepareLocal == nil {

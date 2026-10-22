@@ -2,8 +2,10 @@ package updater
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
+	"net/http"
 	"slices"
 	"strings"
 	"sync"
@@ -369,6 +371,13 @@ type Proposal struct {
 	LocalHash bool
 }
 
+// ErrNoPublishedChecksum is returned (wrapped) by Prepare only when upstream
+// answered 404 for the checksum file, i.e. it publishes none at that location.
+// Other failures (5xx, malformed file, disallowed host, template errors) are
+// not this condition: a published checksum may exist, so callers must not fall
+// back to locally computed hashes for them.
+var ErrNoPublishedChecksum = errors.New("no published checksum file")
+
 // Prepare gathers what the reviewer must see before deciding. For tools this
 // downloads the new checksums using the tool's own release configuration.
 // Nothing is written.
@@ -383,6 +392,10 @@ func (c *Candidate) Prepare(cfg *config.Config) (Proposal, error) {
 	}
 	sums, err := resolver.FetchToolChecksums(cfg, c.tool, c.Latest)
 	if err != nil {
+		var statusErr *ghrelease.HTTPStatusError
+		if errors.As(err, &statusErr) && statusErr.StatusCode == http.StatusNotFound {
+			return p, fmt.Errorf("fetching checksums: %w: %w", ErrNoPublishedChecksum, err)
+		}
 		return p, fmt.Errorf("fetching checksums: %w", err)
 	}
 	p.Sources, err = resolver.ChecksumLocation(cfg, c.tool, c.Latest)

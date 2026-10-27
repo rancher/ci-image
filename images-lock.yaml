@@ -253,7 +253,7 @@ configs:
             helm: helmv4
         description: CI image with Node 22 toolchain
     node24:
-        base: registry.suse.com/bci/nodejs:24@sha256:b40c0d9763833ecc6e8bc37a810a147c895b1a1c505243bf9ad3a3f0978b26b6
+        base: registry.suse.com/bci/nodejs:24.18.1-base@sha256:b40c0d9763833ecc6e8bc37a810a147c895b1a1c505243bf9ad3a3f0978b26b6
         platforms:
             - linux/amd64
             - linux/arm64

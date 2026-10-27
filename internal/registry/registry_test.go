@@ -150,7 +150,7 @@ func TestDigestMissingHeader(t *testing.T) {
 
 func TestNew_AppCoUsesEnvCredentials(t *testing.T) {
 	t.Setenv("APPCO_USERNAME", "user")
-	t.Setenv("APPCO_TOKEN", "s3cret")
+	t.Setenv("APPCO_PASSWORD", "s3cret")
 	c, err := New("dp.apps.rancher.io")
 	if err != nil {
 		t.Fatal(err)

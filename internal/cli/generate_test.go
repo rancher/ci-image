@@ -21,7 +21,7 @@ func TestWriteImagesLock_LanguageFields(t *testing.T) {
 		{Name: "charts", Base: "registry.suse.com/bci/bci-base:15.7" + dg},
 	}}
 	path := "images-lock.yaml"
-	if err := writeImagesLock(cfg, path); err != nil {
+	if _, err := writeImagesLock(cfg, path); err != nil {
 		t.Fatal(err)
 	}
 	data, err := os.ReadFile(path)

@@ -16,7 +16,7 @@ func TestUpdateTable_LanguageColumns(t *testing.T) {
 		{Name: "go1.26", Language: "go", Version: "1.26.10", Description: "Go"},
 		{Name: "charts", Description: "Charts"},
 	}
-	if err := UpdateTable(path, rows); err != nil {
+	if _, err := UpdateTable(path, rows); err != nil {
 		t.Fatal(err)
 	}
 	raw, _ := os.ReadFile(path)

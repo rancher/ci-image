@@ -133,10 +133,13 @@ func runGenerate(args []string) error {
 
 	// Write the compiled images lock.
 	imagesLockPath := filepath.Join(filepath.Dir(configPath), "images-lock.yaml")
-	if err := writeImagesLock(cfg, imagesLockPath); err != nil {
+	changed, err := writeImagesLock(cfg, imagesLockPath)
+	if err != nil {
 		return fmt.Errorf("writing %s: %w", imagesLockPath, err)
 	}
-	log.Printf("Generated %s", imagesLockPath)
+	if changed {
+		log.Printf("Updated %s", imagesLockPath)
+	}
 
 	// Update the Available Images table in README.md.
 	rows := make([]readme.ImageRow, 0, len(cfg.Images))
@@ -150,10 +153,13 @@ func runGenerate(args []string) error {
 		})
 	}
 	readmeFile := filepath.Join(filepath.Dir(configPath), readmePath)
-	if err := readme.UpdateTable(readmeFile, rows); err != nil {
+	changed, err = readme.UpdateTable(readmeFile, rows)
+	if err != nil {
 		return fmt.Errorf("updating %s: %w", readmeFile, err)
 	}
-	log.Printf("Updated %s", readmeFile)
+	if changed {
+		log.Printf("Updated %s", readmeFile)
+	}
 
 	return nil
 }
@@ -334,17 +340,17 @@ const imagesLockHeader = "# images-lock.yaml — compiled image index generated 
 // universal packages and tool versions, plus a per-image configs map with the
 // resolved base, platforms, image-specific packages, tool memberships, and
 // optional metadata such as language, rolling tags and description.
-func writeImagesLock(cfg *config.Config, path string) error {
+func writeImagesLock(cfg *config.Config, path string) (changed bool, err error) {
 	// Collect script file metadata
 	scripts, err := collectScriptFiles()
 	if err != nil {
-		return fmt.Errorf("collecting script files: %w", err)
+		return false, fmt.Errorf("collecting script files: %w", err)
 	}
 
 	// Collect hook file metadata
 	hooks, err := collectHookFiles()
 	if err != nil {
-		return fmt.Errorf("collecting hook files: %w", err)
+		return false, fmt.Errorf("collecting hook files: %w", err)
 	}
 
 	lk := imagesLock{
@@ -431,10 +437,10 @@ func writeImagesLock(cfg *config.Config, path string) error {
 
 	body, err := yaml.Marshal(lk)
 	if err != nil {
-		return fmt.Errorf("marshalling images lock: %w", err)
+		return false, fmt.Errorf("marshalling images lock: %w", err)
 	}
 	_, err = fileutil.WriteIfChanged(path, append([]byte(imagesLockHeader), body...), 0o644)
-	return err
+	return false, err
 }
 
 const defaultSourceRepo = "rancher/ci-image"

@@ -125,3 +125,34 @@ func TestRenderEntry_NoUniversalChanges(t *testing.T) {
 		t.Errorf("unexpected 'Universal package changes' note when no universal changes, got:\n%s", got)
 	}
 }
+
+func TestRenderEntry_LanguageAndRollingTags(t *testing.T) {
+	entry := Entry{
+		Version: "20261027-1",
+		Date:    testDate,
+		Changes: &Changes{
+			ImageChanges: []ImageChanges{
+				{
+					Image:                  "go1.26",
+					LanguageVersionChanged: &LanguageVersionChange{Language: "go", From: "1.26.9", To: "1.26.10"},
+					TagAliasesAdded:        []string{"1.26.10"},
+					TagAliasesRemoved:      []string{"1.26.9"},
+				},
+				{Image: "node22", TagAliasesAdded: []string{"22.23.2"}},
+				{Image: "python3.13", TagAliasesRemoved: []string{"3.13.15"}},
+			},
+			AllImages: []string{"go1.26", "node22", "python3.13"},
+		},
+	}
+	got := renderEntry(entry)
+	for _, want := range []string{
+		"- Go: `1.26.9` → `1.26.10`",
+		"- Rolling tag: `1.26.9` → `1.26.10`",
+		"- Added rolling tag: `22.23.2`",
+		"- Removed rolling tag: `3.13.15`",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in:\n%s", want, got)
+		}
+	}
+}

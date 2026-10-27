@@ -529,3 +529,49 @@ func TestDiff_OnlyChangedImageAppears(t *testing.T) {
 		t.Errorf("expected change for image 'a', got %q", c.ImageChanges[0].Image)
 	}
 }
+
+func lockWith(cfg ImageConfig) *ImagesLock {
+	cfg.Platforms = []string{"linux/amd64"}
+	return &ImagesLock{Images: []string{"go1.26"}, Configs: map[string]ImageConfig{"go1.26": cfg}}
+}
+
+func TestDiff_LanguageVersionAndRollingTagMove(t *testing.T) {
+	prev := lockWith(ImageConfig{Base: "b:1", Language: "go", LanguageVersion: "1.26.9", TagAliases: []string{"1.26.9"}})
+	next := lockWith(ImageConfig{Base: "b:2", Language: "go", LanguageVersion: "1.26.10", TagAliases: []string{"1.26.10"}})
+
+	c := Diff(prev, next)
+	if len(c.ImageChanges) != 1 {
+		t.Fatalf("expected 1 image change, got %d", len(c.ImageChanges))
+	}
+	ic := c.ImageChanges[0]
+	if lv := ic.LanguageVersionChanged; lv == nil || lv.Language != "go" || lv.From != "1.26.9" || lv.To != "1.26.10" {
+		t.Errorf("unexpected language change: %+v", lv)
+	}
+	if len(ic.TagAliasesAdded) != 1 || ic.TagAliasesAdded[0] != "1.26.10" ||
+		len(ic.TagAliasesRemoved) != 1 || ic.TagAliasesRemoved[0] != "1.26.9" {
+		t.Errorf("unexpected alias change: +%v -%v", ic.TagAliasesAdded, ic.TagAliasesRemoved)
+	}
+}
+
+func TestDiff_RollingTagToggled(t *testing.T) {
+	off := lockWith(ImageConfig{Base: "b:1", Language: "go", LanguageVersion: "1.26.9"})
+	on := lockWith(ImageConfig{Base: "b:1", Language: "go", LanguageVersion: "1.26.9", TagAliases: []string{"1.26.9"}})
+
+	added := Diff(off, on).ImageChanges
+	if len(added) != 1 || len(added[0].TagAliasesAdded) != 1 || added[0].LanguageVersionChanged != nil {
+		t.Fatalf("enabling: %+v", added)
+	}
+	removed := Diff(on, off).ImageChanges
+	if len(removed) != 1 || len(removed[0].TagAliasesRemoved) != 1 {
+		t.Fatalf("disabling: %+v", removed)
+	}
+}
+
+// Locks written before language_version existed must not report a version move.
+func TestDiff_LanguageVersionIgnoredWhenPrevUnrecorded(t *testing.T) {
+	prev := lockWith(ImageConfig{Base: "b:1"})
+	next := lockWith(ImageConfig{Base: "b:1", Language: "go", LanguageVersion: "1.26.9"})
+	if c := Diff(prev, next); len(c.ImageChanges) != 0 {
+		t.Fatalf("expected no changes, got %+v", c.ImageChanges)
+	}
+}

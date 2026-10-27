@@ -17,14 +17,19 @@ import (
 	"time"
 )
 
+// registryConfig describes how to talk to an allowlisted registry.
+type registryConfig struct {
+	// tokenHosts are the extra hosts the registry may delegate token issuance
+	// to (its own host is always accepted). A challenge can name any realm, so
+	// tokens are only requested from hosts listed here.
+	tokenHosts []string
+}
+
 // allowedRegistries is the compile-time allowlist of registries this client
-// will talk to, mapped to the extra hosts each may delegate token issuance to
-// (a registry's own host is always accepted). A registry's challenge can name
-// any realm, so tokens are only requested from hosts listed here. Adding an
-// entry requires a code change visible in PR review.
-var allowedRegistries = map[string][]string{
+// will talk to. Adding an entry requires a code change visible in PR review.
+var allowedRegistries = map[string]registryConfig{
 	// registry.suse.com issues anonymous pull tokens via SCC.
-	"registry.suse.com": {"scc.suse.com"},
+	"registry.suse.com": {tokenHosts: []string{"scc.suse.com"}},
 }
 
 const (
@@ -93,17 +98,20 @@ type Client struct {
 	HTTP    *http.Client
 	// TokenHosts are additional hosts, besides BaseURL's, that may issue tokens.
 	TokenHosts []string
+	// Username and Password are basic-auth credentials, for registries that
+	// require them. Only ever sent to BaseURL's host.
+	Username, Password string
 }
 
 // New returns a client for an allowlisted registry host.
 func New(host string) (*Client, error) {
-	tokenHosts, ok := allowedRegistries[host]
+	cfg, ok := allowedRegistries[host]
 	if !ok {
 		return nil, fmt.Errorf("registry %q is not on the allowlist", host)
 	}
 	c := &Client{
 		BaseURL:    "https://" + host,
-		TokenHosts: tokenHosts,
+		TokenHosts: cfg.tokenHosts,
 	}
 	c.HTTP = &http.Client{Timeout: 60 * time.Second, CheckRedirect: c.checkRedirect}
 	return c, nil

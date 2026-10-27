@@ -16,7 +16,6 @@ concurrency:
 permissions:
   contents: read
   id-token: none
-  packages: write
 
 env:
   ORG: ${{ github.repository_owner }}
@@ -97,6 +96,10 @@ jobs:
   build-ci-image:
     needs: [setup]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # this is important, it's how we authenticate with Vault
+      packages: write
     container: ghcr.io/rancher/ci-image/go1.27 # zizmor: ignore[unpinned-images] -- internal image is exempt from this rule
     strategy:
       fail-fast: false
@@ -124,6 +127,18 @@ jobs:
           echo "${GITHUB_TOKEN}" | docker login -u "${GITHUB_ACTOR}" --password-stdin ghcr.io
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Read AppCo Secrets"
+        uses: rancher-eio/read-vault-secrets@main
+        with:
+          secrets: |
+            secret/data/github/org/rancher/appco/credentials username | APPCO_USERNAME ;
+            secret/data/github/org/rancher/appco/credentials password | APPCO_PASSWORD
+
+      - name: Log in to AppCo
+        shell: bash
+        run: |
+          echo "${APPCO_PASSWORD}" | docker login -u "${APPCO_USERNAME}" --password-stdin dp.apps.rancher.io
 
       - name: Verify rolling tag bases
         shell: bash

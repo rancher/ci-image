@@ -24,7 +24,7 @@ func TestUpdateTable_LanguageColumns(t *testing.T) {
 	for _, want := range []string{
 		"| Image | Language | Version | Description |",
 		"| `go1.26` | go | 1.26.10 | Go |",
-		"| `charts` | none | none | Charts |",
+		"| `charts` | n/a | n/a | Charts |",
 		"intro\n", "outro\n",
 	} {
 		if !strings.Contains(got, want) {

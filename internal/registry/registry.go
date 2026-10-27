@@ -128,7 +128,12 @@ func New(host string) (*Client, error) {
 	if cfg.usernameEnv != "" {
 		c.Username = os.Getenv(cfg.usernameEnv)
 		c.Password = os.Getenv(cfg.passwordEnv)
-		c.credsHint = fmt.Sprintf("set %s and %s", cfg.usernameEnv, cfg.passwordEnv)
+		if c.Username == "" || c.Password == "" {
+			if u, p, ok := storedCredentials(host, os.Getenv, execCredHelper); ok {
+				c.Username, c.Password = u, p
+			}
+		}
+		c.credsHint = fmt.Sprintf("set %s and %s, or run `docker login %s`", cfg.usernameEnv, cfg.passwordEnv, host)
 	}
 	c.HTTP = &http.Client{Timeout: 60 * time.Second, CheckRedirect: c.checkRedirect}
 	return c, nil

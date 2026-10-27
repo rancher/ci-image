@@ -76,17 +76,25 @@ func TestChooseTag(t *testing.T) {
 	}
 }
 
-func TestChooseTag_VariantSuffix(t *testing.T) {
+func TestChooseTag_VariantAndRevision(t *testing.T) {
 	tags := []string{
-		"1.27.3-dev-14.2", "1.27.5-dev-14.2", "1.27.10-dev-14.2", "1.28.0-dev-14.2",
-		"1.27.9-dev-14.3",      // other OS release: a deliberate manual move
-		"1.27.7", "1.27.8-1.1", // different variants never cross over
-		"1.27.4-dev-14.2-rc1", // not the same variant either
+		// Application Collection: no rolling tag, every tag carries a revision.
+		"1.26.9-dev-34.1", "1.26.9-dev-34.2", "1.26.10-dev-36.2", "1.26.10-dev-36.3", "1.26.10-dev-36.10",
+		"1.27.0-dev-37.1",              // next line: reported, never proposed
+		"1.26.11-slim-40.1", "1.26.11", // other variants never cross over
+		"1.26.11-dev", "1.26.12-dev-40.1-rc1", // other shapes / unparseable
+		// BCI: variant plus build revision, and a revisionless rolling tag.
+		"24.18.1-base", "24.18.1-base-13.1", "24.18.1-base-13.2", "24.18.2-base-14.1", "24.18.2-base", "24.19.0-base-1.1",
+		"1.27.2", "1.27.2-1.1", "1.27.3-2.1",
 	}
 	tests := []struct{ cur, chosen, newer string }{
-		{"1.27.3-dev-14.2", "1.27.10-dev-14.2", "1.28.0-dev-14.2"}, // numeric patch order, same suffix only
-		{"1.28.0-dev-14.2", "1.28.0-dev-14.2", ""},
-		{"1.27.7", "1.27.7", ""}, // plain tags ignore suffixed ones
+		{"1.26.9-dev-34.1", "1.26.10-dev-36.10", "1.27.0-dev-37.1"}, // version and revision both advance, numerically
+		{"1.26.10-dev-36.3", "1.26.10-dev-36.10", "1.27.0-dev-37.1"},
+		{"1.26.9-dev-34.2", "1.26.10-dev-36.10", "1.27.0-dev-37.1"},
+		{"24.18.1-base-13.1", "24.18.2-base-14.1", "24.19.0-base-1.1"}, // BCI variant + revision
+		{"24.18.1-base", "24.18.2-base", ""},                           // revisionless stays revisionless
+		{"1.27.2-1.1", "1.27.3-2.1", ""},                               // BCI revision without a variant
+		{"1.27.2", "1.27.2", ""},                                       // plain tags ignore revisioned ones
 	}
 	for _, tt := range tests {
 		c, n := chooseTag(tt.cur, slices.Clone(tags))
@@ -96,10 +104,10 @@ func TestChooseTag_VariantSuffix(t *testing.T) {
 	}
 }
 
-func TestDiscoverBase_VariantSuffixBump(t *testing.T) {
+func TestDiscoverBase_VariantAndRevisionBump(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/tags/list") {
-			fmt.Fprint(w, `{"tags":["1.27.3-dev-14.2","1.27.5-dev-14.2","1.28.0-dev-14.2"]}`)
+			fmt.Fprint(w, `{"tags":["1.26.9-dev-34.1","1.26.10-dev-36.2","1.26.10-dev-36.3","1.27.0-dev-37.1"]}`)
 			return
 		}
 		w.Header().Set("Docker-Content-Digest", "sha256:"+hex64("b"))
@@ -111,16 +119,16 @@ func TestDiscoverBase_VariantSuffixBump(t *testing.T) {
 	}
 	t.Cleanup(func() { newRegistry = orig })
 
-	base := "dp.apps.rancher.io/containers/go:1.27.3-dev-14.2@sha256:" + hex64("a")
+	base := "dp.apps.rancher.io/containers/go:1.26.9-dev-34.1@sha256:" + hex64("a")
 	cache := &tagLists{lists: map[string]*tagList{}}
 	c, _, sk, _ := discoverBase(context.Background(), cache, base, []string{"go1.27"})
 	if sk != nil || c == nil {
 		t.Fatalf("expected a candidate, got skipped=%+v", sk)
 	}
-	if c.Latest != "1.27.5-dev-14.2" || c.Refresh || c.Bump != BumpPatch {
-		t.Errorf("candidate = %+v, want a patch bump to 1.27.5-dev-14.2", c)
+	if c.Latest != "1.26.10-dev-36.3" || c.Refresh || c.Bump != BumpPatch {
+		t.Errorf("candidate = %+v, want a patch bump to 1.26.10-dev-36.3", c)
 	}
-	if want := "dp.apps.rancher.io/containers/go:1.27.5-dev-14.2@sha256:" + hex64("b"); c.newBase != want {
+	if want := "dp.apps.rancher.io/containers/go:1.26.10-dev-36.3@sha256:" + hex64("b"); c.newBase != want {
 		t.Errorf("newBase = %q, want %q", c.newBase, want)
 	}
 }

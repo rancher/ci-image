@@ -138,6 +138,12 @@ jobs:
         run: |
           echo "${APPCO_PASSWORD}" | docker login -u "${APPCO_USERNAME}" --password-stdin dp.apps.rancher.io
 
+      - name: Verify rolling tag bases
+        shell: bash
+        run: go run main.go verify-aliases "${IMAGE}"
+        env:
+          IMAGE: ${{ matrix.image }}
+
       - name: Build
         shell: bash
         run: make build NO_CACHE=1 IMAGE="${IMAGE}" VERSION="${VERSION}"

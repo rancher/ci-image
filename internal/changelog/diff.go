@@ -180,6 +180,28 @@ func computeImageChanges(imgName string, prevTools, nextTools map[string]string,
 		ic.BaseImageUpdated = &BaseImageChange{From: prev.Base, To: next.Base}
 	}
 
+	// Only report a version move when both locks recorded one, so locks written
+	// before language_version existed don't produce noise on the first run.
+	if prev.LanguageVersion != "" && next.LanguageVersion != "" && prev.LanguageVersion != next.LanguageVersion {
+		ic.LanguageVersionChanged = &LanguageVersionChange{
+			Language: next.Language, From: prev.LanguageVersion, To: next.LanguageVersion,
+		}
+	}
+
+	prevAliases, nextAliases := toSet(prev.TagAliases), toSet(next.TagAliases)
+	for _, a := range prev.TagAliases {
+		if !nextAliases[a] {
+			ic.TagAliasesRemoved = append(ic.TagAliasesRemoved, a)
+		}
+	}
+	for _, a := range next.TagAliases {
+		if !prevAliases[a] {
+			ic.TagAliasesAdded = append(ic.TagAliasesAdded, a)
+		}
+	}
+	slices.Sort(ic.TagAliasesAdded)
+	slices.Sort(ic.TagAliasesRemoved)
+
 	prevPlats := append([]string(nil), prev.Platforms...)
 	nextPlats := append([]string(nil), next.Platforms...)
 	slices.Sort(prevPlats)

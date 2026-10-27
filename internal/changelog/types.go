@@ -84,6 +84,8 @@ type ImageChanges struct {
 func (ic ImageChanges) HasChanges() bool {
 	return ic.BaseImageUpdated != nil ||
 		ic.PlatformsChanged != nil ||
+		ic.LanguageVersionChanged != nil ||
+		len(ic.TagAliasesAdded) > 0 || len(ic.TagAliasesRemoved) > 0 ||
 		len(ic.PackagesAdded) > 0 || len(ic.PackagesRemoved) > 0 ||
 		len(ic.ToolVersionChanged) > 0 ||
 		len(ic.ToolsAdded) > 0 || len(ic.ToolsRemoved) > 0 ||

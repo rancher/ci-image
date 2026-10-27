@@ -8,6 +8,8 @@ Each image bundles a curated set of tools at pinned, checksum-verified versions 
 
 Images are published to `ghcr.io/rancher/ci-image/<name>`, each tagged independently as `<YYYYMMDD>-<run_number>` (e.g. `ghcr.io/rancher/ci-image/go1.26:20240419-42`). The date and run number come from the CI job that built them.
 
+Language images (Go, Python, Node) are also tagged with the full language version of their base image, e.g. `ghcr.io/rancher/ci-image/go1.26:1.26.10` or `node22:22.23.2`. These rolling tags move to the newest build whenever the base is bumped; the date-stamped tag stays the immutable one.
+
 <!-- BEGIN IMAGES TABLE -->
 | Image | Language | Version | Description |
 |-------|----------|---------|-------------|
@@ -73,7 +75,7 @@ jobs:
       - run: go build ./...
 ```
 
-Pin to a specific date-stamped tag (e.g. `go1.26:20240419-42`) for fully reproducible workflows.
+Pin to a specific date-stamped tag (e.g. `go1.26:20240419-42`) for fully reproducible workflows. The rolling version tags (e.g. `go1.26:1.26.10`) are convenient but mutable.
 
 ## Advanced Features
 

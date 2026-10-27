@@ -2,6 +2,6 @@
 | Image | Language | Version | Description |
 |-------|----------|---------|-------------|
 {{- range .}}
-| `{{.Name}}` | {{if .Language}}{{.Language}}{{else}}none{{end}} | {{if .Version}}{{.Version}}{{else}}none{{end}} | {{.Description}} |
+| `{{.Name}}` | {{if .Language}}{{.Language}}{{else}}n/a{{end}} | {{if .Version}}{{.Version}}{{else}}n/a{{end}} | {{.Description}} |
 {{- end}}
 <!-- END IMAGES TABLE -->

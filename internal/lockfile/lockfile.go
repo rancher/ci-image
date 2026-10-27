@@ -21,7 +21,6 @@ type ImageConfig struct {
 	Tools           []string          `yaml:"tools,omitempty"`            // tool names only; versions in top-level tools map
 	Aliases         map[string]string `yaml:"aliases,omitempty"`          // symlink_name: tool_name
 	FamilySelectors map[string]string `yaml:"family_selectors,omitempty"` // family → default tool
-	GoVersion       string            `yaml:"go_version,omitempty"`
 	Language        string            `yaml:"language,omitempty"`         // go, python or node; empty for non-language images
 	LanguageVersion string            `yaml:"language_version,omitempty"` // full X.Y.Z of the base
 	TagAliases      []string          `yaml:"tag_aliases,omitempty"`      // rolling tags applied besides the CalVer tag

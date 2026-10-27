@@ -4,6 +4,44 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20261027-32 (2026-10-27)
+
+### Image: go1.25:20261027-32
+
+- Base image: `registry.suse.com/bci/golang:1.25.14` → `registry.suse.com/bci/golang:1.25.14`
+
+### Image: go1.26:20261027-32
+
+- Base image: `registry.suse.com/bci/golang:1.26.9` → `registry.suse.com/bci/golang:1.26.10`
+
+### Image: go1.27:20261027-32
+
+- Base image: `registry.suse.com/bci/golang:1.27.2` → `registry.suse.com/bci/golang:1.27.3`
+
+### Image: python3.11:20261027-32
+
+- Base image: `registry.suse.com/bci/python:3.11.15` → `registry.suse.com/bci/python:3.11.15`
+
+### Image: python3.13:20261027-32
+
+- Base image: `registry.suse.com/bci/python:3.13.15` → `registry.suse.com/bci/python:3.13.15`
+
+### Image: node22:20261027-32
+
+- Base image: `registry.suse.com/bci/nodejs:22.23.2` → `registry.suse.com/bci/nodejs:22.23.2`
+
+### Image: node24:20261027-32
+
+- Base image: `registry.suse.com/bci/nodejs:24` → `registry.suse.com/bci/nodejs:24.18.1-base`
+
+### Image: charts:20261027-32
+
+- Base image: `registry.suse.com/bci/bci-base:15.7` → `registry.suse.com/bci/bci-base:15.7`
+
+### Image: nix:20261027-32
+
+- Base image: `registry.suse.com/bci/bci-base:15.7` → `registry.suse.com/bci/bci-base:15.7`
+
 ## Revision: 20261027-31 (2026-10-27)
 
 ### Image: go1.25:20261027-31

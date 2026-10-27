@@ -6,25 +6,38 @@
 package registry
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"slices"
 	"strings"
 	"time"
 )
 
+// registryConfig describes how to talk to an allowlisted registry.
+type registryConfig struct {
+	// tokenHosts are the extra hosts the registry may delegate token issuance
+	// to (its own host is always accepted). A challenge can name any realm, so
+	// tokens are only requested from hosts listed here.
+	tokenHosts []string
+	// usernameEnv and passwordEnv name the environment variables holding
+	// basic-auth credentials, for registries that require them.
+	usernameEnv, passwordEnv string
+}
+
 // allowedRegistries is the compile-time allowlist of registries this client
-// will talk to, mapped to the extra hosts each may delegate token issuance to
-// (a registry's own host is always accepted). A registry's challenge can name
-// any realm, so tokens are only requested from hosts listed here. Adding an
-// entry requires a code change visible in PR review.
-var allowedRegistries = map[string][]string{
+// will talk to. Adding an entry requires a code change visible in PR review.
+var allowedRegistries = map[string]registryConfig{
 	// registry.suse.com issues anonymous pull tokens via SCC.
-	"registry.suse.com": {"scc.suse.com"},
+	"registry.suse.com": {tokenHosts: []string{"scc.suse.com"}},
+	// dp.apps.rancher.io (Application Collection) answers with a Basic challenge.
+	// The password is a user access token or a service account secret.
+	"dp.apps.rancher.io": {usernameEnv: "APPCO_USERNAME", passwordEnv: "APPCO_PASSWORD"},
 }
 
 const (
@@ -93,17 +106,34 @@ type Client struct {
 	HTTP    *http.Client
 	// TokenHosts are additional hosts, besides BaseURL's, that may issue tokens.
 	TokenHosts []string
+	// Username and Password are basic-auth credentials, for registries that
+	// require them. Only ever sent to BaseURL's host.
+	Username, Password string
+
+	// credsHint tells the user where to supply credentials when a registry
+	// asks for them and none are set.
+	credsHint string
 }
 
 // New returns a client for an allowlisted registry host.
 func New(host string) (*Client, error) {
-	tokenHosts, ok := allowedRegistries[host]
+	cfg, ok := allowedRegistries[host]
 	if !ok {
 		return nil, fmt.Errorf("registry %q is not on the allowlist", host)
 	}
 	c := &Client{
 		BaseURL:    "https://" + host,
-		TokenHosts: tokenHosts,
+		TokenHosts: cfg.tokenHosts,
+	}
+	if cfg.usernameEnv != "" {
+		c.Username = os.Getenv(cfg.usernameEnv)
+		c.Password = os.Getenv(cfg.passwordEnv)
+		if c.Username == "" || c.Password == "" {
+			if u, p, ok := storedCredentials(host, os.Getenv, execCredHelper); ok {
+				c.Username, c.Password = u, p
+			}
+		}
+		c.credsHint = fmt.Sprintf("set %s and %s, or run `docker login %s`", cfg.usernameEnv, cfg.passwordEnv, host)
 	}
 	c.HTTP = &http.Client{Timeout: 60 * time.Second, CheckRedirect: c.checkRedirect}
 	return c, nil
@@ -206,6 +236,7 @@ func (c *Client) do(ctx context.Context, method, path, accept string) (*http.Res
 	}
 
 	token := ""
+	basic := false
 	for attempt := 0; attempt < 2; attempt++ {
 		req, err := http.NewRequestWithContext(ctx, method, target.String(), nil)
 		if err != nil {
@@ -217,6 +248,10 @@ func (c *Client) do(ctx context.Context, method, path, accept string) (*http.Res
 		}
 		if token != "" {
 			req.Header.Set("Authorization", "Bearer "+token)
+		} else if basic {
+			// Only ever sent to base's host: the host check above covers the
+			// request, and checkRedirect refuses any redirect off it.
+			req.SetBasicAuth(c.Username, c.Password)
 		}
 		resp, err := c.HTTP.Do(req)
 		if err != nil {
@@ -229,6 +264,13 @@ func (c *Client) do(ctx context.Context, method, path, accept string) (*http.Res
 		resp.Body.Close()
 		if resp.StatusCode != http.StatusUnauthorized || attempt == 1 {
 			return nil, fmt.Errorf("%s %s: unexpected status %d", method, target, resp.StatusCode)
+		}
+		if strings.HasPrefix(strings.ToLower(challenge), "basic ") {
+			if c.Username == "" || c.Password == "" {
+				return nil, fmt.Errorf("%s requires credentials: %s", base.Host, cmp.Or(c.credsHint, "none configured"))
+			}
+			basic = true
+			continue
 		}
 		if token, err = c.fetchToken(ctx, base, challenge); err != nil {
 			return nil, err

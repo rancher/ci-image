@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -14,6 +16,7 @@ import (
 	"github.com/rancher/ci-image/internal/config"
 	"github.com/rancher/ci-image/internal/dockerfile"
 	"github.com/rancher/ci-image/internal/fileutil"
+	"github.com/rancher/ci-image/internal/language"
 	"github.com/rancher/ci-image/internal/lockfile"
 	"github.com/rancher/ci-image/internal/readme"
 	"github.com/rancher/ci-image/internal/resolver"
@@ -36,6 +39,7 @@ const (
 func runGenerate(args []string) error {
 	configPath := defaultConfig
 	imageRepo := ""
+	offline := false
 	for i := 0; i < len(args); i++ {
 		switch {
 		case args[i] == "--config" && i+1 < len(args):
@@ -48,6 +52,8 @@ func runGenerate(args []string) error {
 			imageRepo = args[i]
 		case strings.HasPrefix(args[i], "--image-repo="):
 			imageRepo = strings.TrimPrefix(args[i], "--image-repo=")
+		case args[i] == "--offline":
+			offline = true
 		}
 	}
 
@@ -68,6 +74,15 @@ func runGenerate(args []string) error {
 		return err
 	}
 
+	// Rolling tags must match the digest the image is built from; fail before
+	// writing anything if a base's tag and digest disagree.
+	warnIneligibleAliases(os.Stderr, cfg)
+	if offlineRequested(offline) {
+		fmt.Fprintln(os.Stderr, "notice: offline mode: skipping base tag/digest verification for rolling tags")
+	} else if err := verifyAliasDigests(context.Background(), cfg, nil); err != nil {
+		return fmt.Errorf("verifying rolling tag bases (use --offline or %s=1 to skip): %w", offlineEnv, err)
+	}
+
 	// Generate Dockerfiles (cfg now has resolved versions/checksums).
 	files, err := dockerfile.Generate(cfg, defaultSourceURL(imageRepo))
 	if err != nil {
@@ -81,31 +96,33 @@ func runGenerate(args []string) error {
 		return fmt.Errorf("creating output dir %s: %w", dockerfilesDir, err)
 	}
 
-	for imageName, content := range files {
+	var report writeReport
+
+	dockerfileGroup := report.group("Dockerfiles")
+	for _, imageName := range slices.Sorted(maps.Keys(files)) {
 		outputPath := filepath.Join(dockerfilesDir, "Dockerfile."+imageName)
-		changed, err := fileutil.WriteIfChanged(outputPath, []byte(content), 0o644)
+		changed, err := fileutil.WriteIfChanged(outputPath, []byte(files[imageName]), 0o644)
 		if err != nil {
 			return fmt.Errorf("writing %s: %w", outputPath, err)
 		}
-		if changed {
-			log.Printf("Updated %s", outputPath)
-		}
+		dockerfileGroup.note(outputPath, changed)
 	}
+	dockerfileGroup.log()
 
 	if err := os.MkdirAll(dockerScriptsDir, 0o755); err != nil {
 		return fmt.Errorf("creating output dir %s: %w", dockerScriptsDir, err)
 	}
 
-	for name, content := range selectors {
+	scriptGroup := report.group("selector scripts")
+	for _, name := range slices.Sorted(maps.Keys(selectors)) {
 		outputPath := filepath.Join(dockerScriptsDir, name)
-		changed, err := fileutil.WriteIfChanged(outputPath, []byte(content), 0o755)
+		changed, err := fileutil.WriteIfChanged(outputPath, []byte(selectors[name]), 0o755)
 		if err != nil {
 			return fmt.Errorf("writing %s: %w", outputPath, err)
 		}
-		if changed {
-			log.Printf("Updated %s", outputPath)
-		}
+		scriptGroup.note(outputPath, changed)
 	}
+	scriptGroup.log()
 
 	// Archive any Dockerfiles for images no longer in config.
 	if err := archiveRemovedDockerfiles(files); err != nil {
@@ -119,26 +136,88 @@ func runGenerate(args []string) error {
 
 	// Write the compiled images lock.
 	imagesLockPath := filepath.Join(filepath.Dir(configPath), "images-lock.yaml")
-	if err := writeImagesLock(cfg, imagesLockPath); err != nil {
+	changed, err := writeImagesLock(cfg, imagesLockPath)
+	if err != nil {
 		return fmt.Errorf("writing %s: %w", imagesLockPath, err)
 	}
-	log.Printf("Generated %s", imagesLockPath)
+	lockGroup := report.group(imagesLockPath)
+	lockGroup.note(imagesLockPath, changed)
+	lockGroup.log()
 
 	// Update the Available Images table in README.md.
 	rows := make([]readme.ImageRow, 0, len(cfg.Images))
 	for _, img := range cfg.Images {
+		info := language.Detect(img.Base)
 		rows = append(rows, readme.ImageRow{
 			Name:        img.Name,
-			GoVersion:   extractGoVersion(img.Base),
+			Language:    info.Language,
+			Version:     info.Version,
 			Description: img.Description,
 		})
 	}
 	readmeFile := filepath.Join(filepath.Dir(configPath), readmePath)
-	if err := readme.UpdateTable(readmeFile, rows); err != nil {
+	changed, err = readme.UpdateTable(readmeFile, rows)
+	if err != nil {
 		return fmt.Errorf("updating %s: %w", readmeFile, err)
 	}
+	readmeGroup := report.group(readmeFile)
+	readmeGroup.note(readmeFile, changed)
+	readmeGroup.log()
 
+	report.done()
 	return nil
+}
+
+// writeReport tracks which generated files were rewritten, by group, so a run
+// that changed nothing is as visible as one that did without a line per file.
+type writeReport struct{ groups []*writeGroup }
+
+// writeGroup is a class of generated files (Dockerfiles, selector scripts, ...).
+type writeGroup struct {
+	name    string
+	updated []string
+	total   int
+}
+
+func (r *writeReport) group(name string) *writeGroup {
+	g := &writeGroup{name: name}
+	r.groups = append(r.groups, g)
+	return g
+}
+
+func (g *writeGroup) note(path string, changed bool) {
+	g.total++
+	if changed {
+		g.updated = append(g.updated, path)
+	}
+}
+
+// log names each updated file, or says once that the whole group is unchanged.
+func (g *writeGroup) log() {
+	if len(g.updated) == 0 {
+		if g.total > 1 {
+			log.Printf("Unchanged %s (%d files)", g.name, g.total)
+		} else {
+			log.Printf("Unchanged %s", g.name)
+		}
+		return
+	}
+	for _, path := range g.updated {
+		log.Printf("Updated   %s", path)
+	}
+}
+
+func (r *writeReport) done() {
+	updated, total := 0, 0
+	for _, g := range r.groups {
+		updated += len(g.updated)
+		total += g.total
+	}
+	if updated == 0 {
+		log.Printf("Done: nothing to update (%d files already up to date)", total)
+		return
+	}
+	log.Printf("Done: %d updated, %d unchanged", updated, total-updated)
 }
 
 // cleanupRemovedSelectors deletes select-*.sh, ci-select.sh, and ci-env-init.sh
@@ -211,21 +290,6 @@ func archiveRemovedDockerfiles(generated map[string]string) error {
 // Type aliases for clarity in this package - all canonical types live in lockfile package.
 type imagesLock = lockfile.ImagesLock
 type imageLockConfig = lockfile.ImageConfig
-
-// extractGoVersion returns the Go version from a SUSE BCI golang base image
-// reference (e.g. "registry.suse.com/bci/golang:1.25.9@sha256:…" → "1.25.9").
-// Only matches the known BCI registry prefix; returns "" for any other base.
-func extractGoVersion(base string) string {
-	const prefix = "registry.suse.com/bci/golang:"
-	if !strings.HasPrefix(base, prefix) {
-		return ""
-	}
-	tag := base[len(prefix):]
-	if at := strings.IndexByte(tag, '@'); at != -1 {
-		tag = tag[:at]
-	}
-	return tag
-}
 
 // collectScriptFiles scans the dockerfiles/scripts/ directory for generated
 // selector scripts and returns their metadata indexed by script name (without .sh).
@@ -331,18 +395,18 @@ const imagesLockHeader = "# images-lock.yaml — compiled image index generated 
 // writeImagesLock writes images-lock.yaml: the active image names, top-level
 // universal packages and tool versions, plus a per-image configs map with the
 // resolved base, platforms, image-specific packages, tool memberships, and
-// optional metadata such as Go version and description.
-func writeImagesLock(cfg *config.Config, path string) error {
+// optional metadata such as language, rolling tags and description.
+func writeImagesLock(cfg *config.Config, path string) (changed bool, err error) {
 	// Collect script file metadata
 	scripts, err := collectScriptFiles()
 	if err != nil {
-		return fmt.Errorf("collecting script files: %w", err)
+		return false, fmt.Errorf("collecting script files: %w", err)
 	}
 
 	// Collect hook file metadata
 	hooks, err := collectHookFiles()
 	if err != nil {
-		return fmt.Errorf("collecting hook files: %w", err)
+		return false, fmt.Errorf("collecting hook files: %w", err)
 	}
 
 	lk := imagesLock{
@@ -388,6 +452,9 @@ func writeImagesLock(cfg *config.Config, path string) error {
 			aliases = img.Aliases
 		}
 
+		info := language.Detect(img.Base)
+		tagAliases, _ := imageAliases(img)
+
 		// Record which family selectors are active for this image and their defaults.
 		// Build a set of tool names in this image for quick lookup.
 		toolSet := make(map[string]bool, len(resolvedTools))
@@ -417,17 +484,18 @@ func writeImagesLock(cfg *config.Config, path string) error {
 			Tools:           toolNames,
 			Aliases:         aliases,
 			FamilySelectors: familySelectors,
-			GoVersion:       extractGoVersion(img.Base),
+			Language:        info.Language,
+			LanguageVersion: info.Version,
+			TagAliases:      tagAliases,
 			Description:     img.Description,
 		}
 	}
 
 	body, err := yaml.Marshal(lk)
 	if err != nil {
-		return fmt.Errorf("marshalling images lock: %w", err)
+		return false, fmt.Errorf("marshalling images lock: %w", err)
 	}
-	_, err = fileutil.WriteIfChanged(path, append([]byte(imagesLockHeader), body...), 0o644)
-	return err
+	return fileutil.WriteIfChanged(path, append([]byte(imagesLockHeader), body...), 0o644)
 }
 
 const defaultSourceRepo = "rancher/ci-image"

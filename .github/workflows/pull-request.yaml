@@ -44,7 +44,7 @@ jobs:
 
       - name: Generate
         shell: bash
-        run: make generate
+        run: make generate-offline
 
       - name: Verify
         shell: bash

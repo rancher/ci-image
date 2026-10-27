@@ -209,6 +209,10 @@ type Image struct {
 	Tools       []string          `yaml:"tools,omitempty"`       // tool names; must not include universal tools
 	Aliases     map[string]string `yaml:"aliases,omitempty"`     // symlink_name: tool_name; creates /usr/local/bin symlinks
 	Description string            `yaml:"description,omitempty"` // org.opencontainers.image.description; optional
+	// LanguageTag also tags the image with the full language version of its
+	// base (e.g. go1.26:1.26.10). The tag is derived from base, never written
+	// by hand; ignored with a warning when base has no full X.Y.Z tag.
+	LanguageTag bool `yaml:"language_tag,omitempty"`
 }
 
 // ChecksumList is a map of checksums for tools - where key is platform and value is checksum

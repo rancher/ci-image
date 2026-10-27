@@ -103,7 +103,28 @@ Only one tool in a family should have `family_default: true`.
 ## Adding a New Go Version
 
 1. Add a new entry under `images:` in `deps.yaml` with the desired Go base image (e.g. `registry.suse.com/bci/golang:1.X.Y@sha256:...`) and a name like `go1.X`.
-2. Run `make generate` and commit the new Dockerfile.
+2. Set `language_tag: true` on the image to also publish the rolling full-version tag (e.g. `go1.X:1.X.Y`).
+3. Run `make generate` and commit the new Dockerfile.
+
+## Rolling Language Tags
+
+`language_tag: true` on an image in `deps.yaml` adds a tag with the full language version of its `base:` (Go, Python and Node bases are recognised) in addition to the CalVer tag. The tag is always derived from `base:`, never written by hand, so it cannot disagree with what the image is built on.
+
+- The base tag must start with a full `X.Y.Z` (a variant suffix such as `24.18.1-base` is allowed and dropped from the alias). Otherwise `make generate` warns and the image gets no rolling tag.
+- `make generate` also checks against the registry that the base's tag still resolves to the pinned digest, and fails if they disagree. Pass `--offline` (or set `CI_IMAGE_OFFLINE=1`) to skip that check when there is no network.
+- `go run main.go tags <image>` prints the rolling tags recorded in `images-lock.yaml`.
+
+## Application Collection bases
+
+Bases from Application Collection (`dp.apps.rancher.io/containers/{go,python,node}`) are supported. Use the `-dev` tags, which include zypper, e.g. `dp.apps.rancher.io/containers/go:1.26.9-dev-34.1@sha256:...`.
+
+The registry requires credentials. Anything that talks to it (`make manual-updates --base-images`) reads them from `APPCO_USERNAME` and `APPCO_PASSWORD` if both are set. Otherwise it reuses an existing `docker login dp.apps.rancher.io` (or `podman login`): it reads `REGISTRY_AUTH_FILE`, docker's `config.json` and podman's `auth.json`, and asks credential helpers such as the macOS keychain for the password. With neither it fails naming the variables.
+
+Both kinds of AppCo credential work the same way: a user account's username and access token, or a service account's username and secret. The user account inherits the subscriptions of every organization the user belongs to; a service account only has its own organization's. **Use a service account for CI**, belonging to an organization that holds the subscription the images need, so a leaked secret exposes one organization's content rather than everything a person can pull.
+
+## Base image tags
+
+Base tags are read as `VERSION[-VARIANT][-REVISION]`: `24.18.1-base-13.2` is version `24.18.1`, variant `base`, build revision `13.2`; `1.26.10-dev-36.3` is `1.26.10`, `dev`, `36.3`; `1.27.2-1.1` is `1.27.2` with revision `1.1`. `manual-updates --base-images` moves a tag to the newest version in the same `X.Y` line and, within that, the newest revision, so `1.26.9-dev-34.1` can become `1.26.10-dev-36.3` and `24.18.1-base-13.1` can become `24.18.1-base-13.2`. The variant must match, and a tag with a revision only moves to tags that also have one. Moving to a new `X.Y` line is a deliberate manual change. Prerelease tags such as `1.27.3-rc1` are never matched.
 
 ## Archive
 

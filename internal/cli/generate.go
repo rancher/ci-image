@@ -153,6 +153,7 @@ func runGenerate(args []string) error {
 	if err := readme.UpdateTable(readmeFile, rows); err != nil {
 		return fmt.Errorf("updating %s: %w", readmeFile, err)
 	}
+	log.Printf("Updated %s", readmeFile)
 
 	return nil
 }

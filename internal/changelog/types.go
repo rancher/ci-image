@@ -66,6 +66,9 @@ type ImageChanges struct {
 	Image                  string
 	BaseImageUpdated       *BaseImageChange
 	PlatformsChanged       *PlatformsChange
+	LanguageVersionChanged *LanguageVersionChange // language version shipped by the base changed
+	TagAliasesAdded        []string               // rolling tags newly applied
+	TagAliasesRemoved      []string               // rolling tags no longer applied
 	PackagesAdded          []string
 	PackagesRemoved        []string
 	ToolVersionChanged     []ToolVersionChange
@@ -87,6 +90,14 @@ func (ic ImageChanges) HasChanges() bool {
 		len(ic.ToolHooksChanged) > 0 ||
 		len(ic.AliasesAdded) > 0 || len(ic.AliasesRemoved) > 0 ||
 		len(ic.SelectorDefaultChanged) > 0
+}
+
+// LanguageVersionChange records the language version shipped by an image's base
+// changing, e.g. Go 1.26.9 → 1.26.10.
+type LanguageVersionChange struct {
+	Language string
+	From     string
+	To       string
 }
 
 // SelectorChange records a family selector being introduced or removed globally.

@@ -103,7 +103,16 @@ Only one tool in a family should have `family_default: true`.
 ## Adding a New Go Version
 
 1. Add a new entry under `images:` in `deps.yaml` with the desired Go base image (e.g. `registry.suse.com/bci/golang:1.X.Y@sha256:...`) and a name like `go1.X`.
-2. Run `make generate` and commit the new Dockerfile.
+2. Set `language_tag: true` on the image to also publish the rolling full-version tag (e.g. `go1.X:1.X.Y`).
+3. Run `make generate` and commit the new Dockerfile.
+
+## Rolling Language Tags
+
+`language_tag: true` on an image in `deps.yaml` adds a tag with the full language version of its `base:` (Go, Python and Node bases are recognised) in addition to the CalVer tag. The tag is always derived from `base:`, never written by hand, so it cannot disagree with what the image is built on.
+
+- The base tag must start with a full `X.Y.Z` (a variant suffix such as `24.18.1-base` is allowed and dropped from the alias). Otherwise `make generate` warns and the image gets no rolling tag.
+- `make generate` also checks against the registry that the base's tag still resolves to the pinned digest, and fails if they disagree. Pass `--offline` (or set `CI_IMAGE_OFFLINE=1`) to skip that check when there is no network.
+- `go run main.go tags <image>` prints the rolling tags recorded in `images-lock.yaml`.
 
 ## Application Collection bases
 

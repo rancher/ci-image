@@ -7,6 +7,7 @@ import (
 	"maps"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -273,55 +274,44 @@ func (c *tagLists) get(ctx context.Context, cl *registry.Client, host, repo stri
 	return l.tags, l.err
 }
 
-// chooseTag picks the tag to move a base image to.
+// chooseTag picks the tag to move a base image to. Tags are parsed as
+// VERSION[-VARIANT][-REVISION] (see registry.ParseTag).
 //
-//   - Tags with three or more components (1.27.2) advance to the newest patch
-//     within the same leading components (1.27.x).
-//   - Shorter or non-numeric tags (24, 15.7, latest) are floating pins: the tag
+//   - Tags with three or more version components (1.27.2) advance to the newest
+//     version within the same leading components (1.27.x). Within a version the
+//     newest build revision wins, so 1.26.9-dev-34.1 can move to
+//     1.26.10-dev-36.3 or 24.18.1-base-13.1 to 24.18.1-base-13.2.
+//   - Shorter or unparseable tags (24, 15.7, latest) are floating pins: the tag
 //     stays and only the digest is refreshed.
-//   - A variant suffix (1.27.3-dev-14.2, 24.18.1-base) is kept: only tags with
-//     the identical suffix are candidates, so a different variant or OS release
-//     is never crossed into.
+//   - The variant must match, and a tag with a revision only moves to tags that
+//     also have one (and the reverse), so a different flavour is never crossed
+//     into.
 //
-// newer lists tags of the same shape beyond that line, reported but never
+// newer lists tags of the same flavour beyond that line, reported but never
 // proposed — moving to a new Go/Node/OS line is a deliberate, manual change.
 func chooseTag(cur string, tags []string) (chosen string, newer string) {
-	curVer, curSuffix := splitVariant(cur)
-	nums, ok := parseVersion(curVer)
-	if !ok || strings.HasPrefix(cur, "v") {
+	curTag, ok := registry.ParseTag(cur)
+	if !ok {
 		return cur, ""
 	}
-	best, bestNums := cur, nums
-	over, overNums := "", nums
+	nums := curTag.Version
+	best, bestTag := cur, curTag
+	over, overTag := "", curTag
 	for _, t := range tags {
-		ver, suffix := splitVariant(t)
-		n, ok := parseVersion(ver)
-		if !ok || suffix != curSuffix || len(n) != len(nums) || strings.HasPrefix(t, "v") {
+		tag, ok := registry.ParseTag(t)
+		if !ok || !curTag.SameFlavour(tag) || len(tag.Version) != len(nums) {
 			continue
 		}
 		// Only fully-patched tags (3+ components) advance within their line.
-		sameLine := len(nums) >= 3 && slices.Equal(n[:len(n)-1], nums[:len(nums)-1])
+		sameLine := len(nums) >= 3 && slices.Equal(tag.Version[:len(nums)-1], nums[:len(nums)-1])
 		switch {
-		case sameLine && compareNums(n, bestNums) > 0:
-			best, bestNums = t, n
-		case !sameLine && compareNums(n, overNums) > 0:
-			over, overNums = t, n
+		case sameLine && tag.Compare(bestTag) > 0:
+			best, bestTag = t, tag
+		case !sameLine && tag.Compare(overTag) > 0:
+			over, overTag = t, tag
 		}
 	}
 	return best, over
-}
-
-// splitVariant splits a tag into its dotted version and a variant suffix that
-// starts with a letter ("1.27.3-dev-14.2" → "1.27.3", "-dev-14.2"). Suffixes
-// starting with a digit (SUSE build numbers like "1.27.3-1.1") are not
-// variants; the tag is returned whole and fails to parse as a version.
-func splitVariant(tag string) (version, suffix string) {
-	for i := 0; i+1 < len(tag); i++ {
-		if tag[i] == '-' && (tag[i+1] >= 'a' && tag[i+1] <= 'z' || tag[i+1] >= 'A' && tag[i+1] <= 'Z') {
-			return tag[:i], tag[i:]
-		}
-	}
-	return tag, ""
 }
 
 func discoverBase(ctx context.Context, cache *tagLists, base string, images []string) (c *Candidate, upToDate string, sk *Skipped, info []string) {
@@ -365,9 +355,7 @@ func discoverBase(ctx context.Context, cache *tagLists, base string, images []st
 		Refresh: chosen == ref.Tag, ref: ref, newBase: next.String(),
 	}
 	if !cand.Refresh {
-		curVer, _ := splitVariant(ref.Tag)
-		newVer, _ := splitVariant(chosen)
-		cand.Bump, _ = Classify(curVer, newVer)
+		cand.Bump = classifyTags(ref.Tag, chosen)
 	}
 	return cand, "", nil, info
 }
@@ -449,4 +437,27 @@ func (c *Candidate) fillChecksums(p *Proposal, sums map[string]string) {
 	for _, plat := range slices.Sorted(maps.Keys(sums)) {
 		p.Changes = append(p.Changes, ChecksumChange{Platform: plat, Old: c.tool.Checksums[plat], New: sums[plat]})
 	}
+}
+
+// classifyTags sizes a base tag move from its version alone; a revision-only
+// rebuild (same version) is a patch.
+func classifyTags(cur, next string) Bump {
+	c, ok1 := registry.ParseTag(cur)
+	n, ok2 := registry.ParseTag(next)
+	if !ok1 || !ok2 {
+		return BumpPatch
+	}
+	b, ok := Classify(dotted(c.Version), dotted(n.Version))
+	if !ok {
+		return BumpPatch
+	}
+	return b
+}
+
+func dotted(v []int) string {
+	parts := make([]string, len(v))
+	for i, n := range v {
+		parts[i] = strconv.Itoa(n)
+	}
+	return strings.Join(parts, ".")
 }

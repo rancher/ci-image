@@ -128,16 +128,28 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "Read AppCo Secrets"
+      # Vault authenticates with the workflow's OIDC token, which a fork running this workflow on its own repository does not get.
+      - name: Read AppCo credentials from Vault
+        if: ${{ !github.event.repository.fork }}
         uses: rancher-eio/read-vault-secrets@main
         with:
           secrets: |
             secret/data/github/org/rancher/appco/credentials username | APPCO_USERNAME ;
             secret/data/github/org/rancher/appco/credentials password | APPCO_PASSWORD
 
+      # Credentials resolve from repository secrets first (a fork can set its
+      # own), then from Vault. Without either, skip: only images based on
+      # dp.apps.rancher.io need them.
       - name: Log in to AppCo
         shell: bash
+        env:
+          APPCO_USERNAME: ${{ secrets.APPCO_USERNAME || env.APPCO_USERNAME }}
+          APPCO_PASSWORD: ${{ secrets.APPCO_PASSWORD || env.APPCO_PASSWORD }}
         run: |
+          if [ -z "${APPCO_USERNAME}" ] || [ -z "${APPCO_PASSWORD}" ]; then
+            echo "::notice::No AppCo credentials available; skipping AppCo login. Images based on dp.apps.rancher.io will not build."
+            exit 0
+          fi
           echo "${APPCO_PASSWORD}" | docker login -u "${APPCO_USERNAME}" --password-stdin dp.apps.rancher.io
 
       - name: Verify rolling tag bases
@@ -145,6 +157,8 @@ jobs:
         run: go run main.go verify-aliases "${IMAGE}"
         env:
           IMAGE: ${{ matrix.image }}
+          APPCO_USERNAME: ${{ secrets.APPCO_USERNAME || env.APPCO_USERNAME }}
+          APPCO_PASSWORD: ${{ secrets.APPCO_PASSWORD || env.APPCO_PASSWORD }}
 
       - name: Build and push image
         shell: bash

@@ -14,6 +14,7 @@ import (
 	"github.com/rancher/ci-image/internal/config"
 	"github.com/rancher/ci-image/internal/dockerfile"
 	"github.com/rancher/ci-image/internal/fileutil"
+	"github.com/rancher/ci-image/internal/language"
 	"github.com/rancher/ci-image/internal/lockfile"
 	"github.com/rancher/ci-image/internal/readme"
 	"github.com/rancher/ci-image/internal/resolver"
@@ -127,9 +128,11 @@ func runGenerate(args []string) error {
 	// Update the Available Images table in README.md.
 	rows := make([]readme.ImageRow, 0, len(cfg.Images))
 	for _, img := range cfg.Images {
+		info := language.Detect(img.Base)
 		rows = append(rows, readme.ImageRow{
 			Name:        img.Name,
-			GoVersion:   extractGoVersion(img.Base),
+			Language:    info.Language,
+			Version:     info.Version,
 			Description: img.Description,
 		})
 	}
@@ -211,21 +214,6 @@ func archiveRemovedDockerfiles(generated map[string]string) error {
 // Type aliases for clarity in this package - all canonical types live in lockfile package.
 type imagesLock = lockfile.ImagesLock
 type imageLockConfig = lockfile.ImageConfig
-
-// extractGoVersion returns the Go version from a SUSE BCI golang base image
-// reference (e.g. "registry.suse.com/bci/golang:1.25.9@sha256:…" → "1.25.9").
-// Only matches the known BCI registry prefix; returns "" for any other base.
-func extractGoVersion(base string) string {
-	const prefix = "registry.suse.com/bci/golang:"
-	if !strings.HasPrefix(base, prefix) {
-		return ""
-	}
-	tag := base[len(prefix):]
-	if at := strings.IndexByte(tag, '@'); at != -1 {
-		tag = tag[:at]
-	}
-	return tag
-}
 
 // collectScriptFiles scans the dockerfiles/scripts/ directory for generated
 // selector scripts and returns their metadata indexed by script name (without .sh).
@@ -331,7 +319,7 @@ const imagesLockHeader = "# images-lock.yaml — compiled image index generated 
 // writeImagesLock writes images-lock.yaml: the active image names, top-level
 // universal packages and tool versions, plus a per-image configs map with the
 // resolved base, platforms, image-specific packages, tool memberships, and
-// optional metadata such as Go version and description.
+// optional metadata such as language, rolling tags and description.
 func writeImagesLock(cfg *config.Config, path string) error {
 	// Collect script file metadata
 	scripts, err := collectScriptFiles()
@@ -388,6 +376,9 @@ func writeImagesLock(cfg *config.Config, path string) error {
 			aliases = img.Aliases
 		}
 
+		info := language.Detect(img.Base)
+		tagAliases, _ := imageAliases(img)
+
 		// Record which family selectors are active for this image and their defaults.
 		// Build a set of tool names in this image for quick lookup.
 		toolSet := make(map[string]bool, len(resolvedTools))
@@ -417,7 +408,9 @@ func writeImagesLock(cfg *config.Config, path string) error {
 			Tools:           toolNames,
 			Aliases:         aliases,
 			FamilySelectors: familySelectors,
-			GoVersion:       extractGoVersion(img.Base),
+			Language:        info.Language,
+			LanguageVersion: info.Version,
+			TagAliases:      tagAliases,
 			Description:     img.Description,
 		}
 	}

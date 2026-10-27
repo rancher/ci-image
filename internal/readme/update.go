@@ -25,7 +25,6 @@ const (
 // ImageRow is one row of data for the Available Images table.
 type ImageRow struct {
 	Name        string
-	GoVersion   string
 	Language    string // empty for images that don't ship a language
 	Version     string // full language version; empty when unknown
 	Description string

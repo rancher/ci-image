@@ -24,7 +24,11 @@ func Execute(args []string) error {
 		return runChangedImages(args)
 	case "changelog":
 		return runChangelog(args)
+	case "tags":
+		return runTags(args)
+	case "verify-aliases":
+		return runVerifyAliases(args)
 	default:
-		return fmt.Errorf("unknown command %q; valid commands: generate, update, manual-updates, validate, changed-images, changelog", cmd)
+		return fmt.Errorf("unknown command %q; valid commands: generate, update, manual-updates, validate, changed-images, changelog, tags, verify-aliases", cmd)
 	}
 }

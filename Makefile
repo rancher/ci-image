@@ -20,6 +20,9 @@ TARGET_PLATFORMS ?= linux/amd64,linux/arm64
 # Falls back to a local dev value so `make push` works outside CI.
 VERSION          ?= $(shell date -u +%Y%m%d-%H%M)-dev
 NO_CACHE         ?=
+# Rolling language-version tags (e.g. 1.26.10) recorded in images-lock.yaml for IMAGE.
+# Deferred so it is only evaluated when building a single IMAGE.
+ALIAS_TAGS       ?= $(shell go run main.go tags "$(value IMAGE)")
 
 _GIT_COMMIT  := $(shell git rev-parse HEAD 2>/dev/null || echo unknown)
 _GIT_REMOTE  := $(shell git remote get-url origin 2>/dev/null | sed 's|git@github.com:|https://github.com/|;s|\.git$$||' || true)
@@ -87,6 +90,7 @@ define buildx
 		--label "org.opencontainers.image.version=$(VERSION)" \
 		--tag "$(IMAGE_REPO)/$(value IMAGE):$(VERSION)" \
 		--tag "$(IMAGE_REPO)/$(value IMAGE):latest" \
+		$(foreach t,$(ALIAS_TAGS),--tag "$(IMAGE_REPO)/$(value IMAGE):$(t)") \
 		$(2) \
 		.
 endef

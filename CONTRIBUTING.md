@@ -105,6 +105,10 @@ Only one tool in a family should have `family_default: true`.
 1. Add a new entry under `images:` in `deps.yaml` with the desired Go base image (e.g. `registry.suse.com/bci/golang:1.X.Y@sha256:...`) and a name like `go1.X`.
 2. Run `make generate` and commit the new Dockerfile.
 
+## Base image tags
+
+Base tags are read as `VERSION[-VARIANT][-REVISION]`: `24.18.1-base-13.2` is version `24.18.1`, variant `base`, build revision `13.2`; `1.26.10-dev-36.3` is `1.26.10`, `dev`, `36.3`; `1.27.2-1.1` is `1.27.2` with revision `1.1`. `manual-updates --base-images` moves a tag to the newest version in the same `X.Y` line and, within that, the newest revision, so `1.26.9-dev-34.1` can become `1.26.10-dev-36.3` and `24.18.1-base-13.1` can become `24.18.1-base-13.2`. The variant must match, and a tag with a revision only moves to tags that also have one. Moving to a new `X.Y` line is a deliberate manual change. Prerelease tags such as `1.27.3-rc1` are never matched.
+
 ## Archive
 
 When `make generate` detects that a `dockerfiles/Dockerfile.<name>` no longer has a corresponding image in `deps.yaml`, it moves the file to `archive/Dockerfile.<name>.<YYYYMMDD-HHMMSS>` (UTC). Commit the archived file alongside the removal in `deps.yaml`.

@@ -114,6 +114,14 @@ Only one tool in a family should have `family_default: true`.
 - `make generate` also checks against the registry that the base's tag still resolves to the pinned digest, and fails if they disagree. Pass `--offline` (or set `CI_IMAGE_OFFLINE=1`) to skip that check when there is no network.
 - `go run main.go tags <image>` prints the rolling tags recorded in `images-lock.yaml`; `make build`/`make push` apply them. CI also runs `go run main.go verify-aliases <image>` right before pushing.
 
+## Application Collection bases
+
+Bases from Application Collection (`dp.apps.rancher.io/containers/{go,python,node}`) are supported. Use the `-dev` tags, which include zypper, e.g. `dp.apps.rancher.io/containers/go:1.27.3-dev-14.2@sha256:...`. The rolling tag is still the bare version (`1.27.3`).
+
+The registry requires credentials. Anything that talks to it (`make generate` for images with `language_tag`, `make manual-updates --base-images`, `verify-aliases`) reads them from `APPCO_USERNAME` and `APPCO_PASSWORD`; without them it fails naming those variables (`make generate` can skip the check with `--offline`). Building and pulling these images in CI additionally needs a `docker login dp.apps.rancher.io`. Credentials are only ever sent to `dp.apps.rancher.io`.
+
+`manual-updates --base-images` keeps the suffix when it bumps a patch (`1.27.3-dev-14.2` to `1.27.5-dev-14.2`). A new OS release (`-dev-14.3`) is a deliberate manual change.
+
 ## Archive
 
 When `make generate` detects that a `dockerfiles/Dockerfile.<name>` no longer has a corresponding image in `deps.yaml`, it moves the file to `archive/Dockerfile.<name>.<YYYYMMDD-HHMMSS>` (UTC). Commit the archived file alongside the removal in `deps.yaml`.

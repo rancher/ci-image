@@ -57,6 +57,5 @@ func UpdateTable(readmeFile string, rows []ImageRow) (changed bool, err error) {
 		return false, fmt.Errorf("rendering images table: %w", err)
 	}
 
-	_, err = fileutil.WriteIfChanged(readmeFile, []byte(before+tb.String()+after), 0o644)
-	return false, err
+	return fileutil.WriteIfChanged(readmeFile, []byte(before+tb.String()+after), 0o644)
 }

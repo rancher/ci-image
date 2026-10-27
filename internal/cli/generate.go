@@ -439,8 +439,7 @@ func writeImagesLock(cfg *config.Config, path string) (changed bool, err error) 
 	if err != nil {
 		return false, fmt.Errorf("marshalling images lock: %w", err)
 	}
-	_, err = fileutil.WriteIfChanged(path, append([]byte(imagesLockHeader), body...), 0o644)
-	return false, err
+	return fileutil.WriteIfChanged(path, append([]byte(imagesLockHeader), body...), 0o644)
 }
 
 const defaultSourceRepo = "rancher/ci-image"

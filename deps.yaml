@@ -17,7 +17,7 @@ images:
 
   - name: go1.26
     description: "CI image with Go 1.26 toolchain"
-    base: "registry.suse.com/bci/golang:1.26.10@sha256:a952c9a6c7e794483b8988363575338d3ea3b01427511f28e4e58921cb577f22"
+    base: "dp.apps.rancher.io/containers/go:1.26.10-dev-36.2@sha256:b7ada50469a9196a084f4cb76da220819d1841461b2a2e13a7c3c2a805793091"
     language_tag: true
     packages:
       - nodejs24
@@ -33,7 +33,7 @@ images:
 
   - name: go1.27
     description: "CI image with Go 1.27 toolchain"
-    base: "registry.suse.com/bci/golang:1.27.3@sha256:634cd6f1e373bcde01a1f8df6d1c3a9784142353a0842b5371d6385b4e9d2abb"
+    base: "dp.apps.rancher.io/containers/go:1.27.3-dev-14.2@sha256:87f7c372cde4e0ff098514640c8139c66c50f0f300d45e3556ed5cb4538393c8"
     language_tag: true
     packages:
       - nodejs24

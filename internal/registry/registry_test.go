@@ -147,3 +147,88 @@ func TestDigestMissingHeader(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestNew_AppCoUsesEnvCredentials(t *testing.T) {
+	t.Setenv("APPCO_USERNAME", "user")
+	t.Setenv("APPCO_TOKEN", "s3cret")
+	c, err := New("dp.apps.rancher.io")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.BaseURL != "https://dp.apps.rancher.io" || c.Username != "user" || c.Password != "s3cret" {
+		t.Fatalf("got %+v", c)
+	}
+}
+
+// basicRegistry answers 401 with a Basic challenge until valid credentials are
+// presented, like dp.apps.rancher.io.
+func basicRegistry(t *testing.T, user, pass string) *httptest.Server {
+	t.Helper()
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u, p, ok := r.BasicAuth()
+		if !ok || u != user || p != pass {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Realm"`)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		fmt.Fprint(w, `{"tags":["1.27.3-dev-14.2"]}`)
+	}))
+	t.Cleanup(ts.Close)
+	return ts
+}
+
+func TestBasicChallengeWithCredentials(t *testing.T) {
+	ts := basicRegistry(t, "user", "s3cret")
+	c := &Client{BaseURL: ts.URL, HTTP: ts.Client(), Username: "user", Password: "s3cret"}
+	tags, err := c.Tags(context.Background(), "containers/go")
+	if err != nil || !slices.Equal(tags, []string{"1.27.3-dev-14.2"}) {
+		t.Fatalf("tags = %v, err = %v", tags, err)
+	}
+}
+
+func TestBasicChallengeWithoutCredentials(t *testing.T) {
+	ts := basicRegistry(t, "user", "s3cret")
+	c := &Client{BaseURL: ts.URL, HTTP: ts.Client()}
+	_, err := c.Tags(context.Background(), "containers/go")
+	if err == nil || !strings.Contains(err.Error(), "credentials") {
+		t.Fatalf("want an error mentioning credentials, got %v", err)
+	}
+}
+
+func TestBasicChallengeWrongCredentialsFail(t *testing.T) {
+	ts := basicRegistry(t, "user", "s3cret")
+	c := &Client{BaseURL: ts.URL, HTTP: ts.Client(), Username: "user", Password: "wrong"}
+	if _, err := c.Tags(context.Background(), "containers/go"); err == nil {
+		t.Fatal("wrong credentials must fail")
+	}
+}
+
+// Credentials must never reach a host other than the registry's own, even if
+// the registry redirects there.
+func TestBasicCredentialsNotSentOffHost(t *testing.T) {
+	var leaked bool
+	other := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "" {
+			leaked = true
+		}
+	}))
+	defer other.Close()
+	reg := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, _, ok := r.BasicAuth(); !ok {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Realm"`)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		http.Redirect(w, r, other.URL+"/steal", http.StatusTemporaryRedirect)
+	}))
+	defer reg.Close()
+	c := &Client{BaseURL: reg.URL, Username: "user", Password: "s3cret"}
+	c.HTTP = &http.Client{CheckRedirect: c.checkRedirect}
+
+	if _, err := c.Tags(context.Background(), "containers/go"); err == nil {
+		t.Fatal("redirect off the registry host must be refused")
+	}
+	if leaked {
+		t.Fatal("credentials were sent to another host")
+	}
+}

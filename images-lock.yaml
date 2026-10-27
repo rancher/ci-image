@@ -238,7 +238,7 @@ configs:
             helm: helmv4
         description: Nix environment
     node22:
-        base: registry.suse.com/bci/nodejs:22.23.2@sha256:d4b8c2c22214b0351c9c149c3cddc3f763f8f11dfe2c5779f6245f514c415544
+        base: registry.suse.com/bci/nodejs:22.23.2@sha256:d318c464bc8f4467c3e0b5dc4d9cb62b5e32532a099e43bf5c73a67f3c8ac900
         platforms:
             - linux/amd64
             - linux/arm64
@@ -253,7 +253,7 @@ configs:
             helm: helmv4
         description: CI image with Node 22 toolchain
     node24:
-        base: registry.suse.com/bci/nodejs:24@sha256:719aa24270f9d490ac9e78973a2ef8f6328b23eddbfe09613859e07c356d9f65
+        base: registry.suse.com/bci/nodejs:24.18.1-base@sha256:b40c0d9763833ecc6e8bc37a810a147c895b1a1c505243bf9ad3a3f0978b26b6
         platforms:
             - linux/amd64
             - linux/arm64

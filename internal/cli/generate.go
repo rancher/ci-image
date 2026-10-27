@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -95,31 +96,33 @@ func runGenerate(args []string) error {
 		return fmt.Errorf("creating output dir %s: %w", dockerfilesDir, err)
 	}
 
-	for imageName, content := range files {
+	var report writeReport
+
+	dockerfileGroup := report.group("Dockerfiles")
+	for _, imageName := range slices.Sorted(maps.Keys(files)) {
 		outputPath := filepath.Join(dockerfilesDir, "Dockerfile."+imageName)
-		changed, err := fileutil.WriteIfChanged(outputPath, []byte(content), 0o644)
+		changed, err := fileutil.WriteIfChanged(outputPath, []byte(files[imageName]), 0o644)
 		if err != nil {
 			return fmt.Errorf("writing %s: %w", outputPath, err)
 		}
-		if changed {
-			log.Printf("Updated %s", outputPath)
-		}
+		dockerfileGroup.note(outputPath, changed)
 	}
+	dockerfileGroup.log()
 
 	if err := os.MkdirAll(dockerScriptsDir, 0o755); err != nil {
 		return fmt.Errorf("creating output dir %s: %w", dockerScriptsDir, err)
 	}
 
-	for name, content := range selectors {
+	scriptGroup := report.group("selector scripts")
+	for _, name := range slices.Sorted(maps.Keys(selectors)) {
 		outputPath := filepath.Join(dockerScriptsDir, name)
-		changed, err := fileutil.WriteIfChanged(outputPath, []byte(content), 0o755)
+		changed, err := fileutil.WriteIfChanged(outputPath, []byte(selectors[name]), 0o755)
 		if err != nil {
 			return fmt.Errorf("writing %s: %w", outputPath, err)
 		}
-		if changed {
-			log.Printf("Updated %s", outputPath)
-		}
+		scriptGroup.note(outputPath, changed)
 	}
+	scriptGroup.log()
 
 	// Archive any Dockerfiles for images no longer in config.
 	if err := archiveRemovedDockerfiles(files); err != nil {
@@ -137,9 +140,9 @@ func runGenerate(args []string) error {
 	if err != nil {
 		return fmt.Errorf("writing %s: %w", imagesLockPath, err)
 	}
-	if changed {
-		log.Printf("Updated %s", imagesLockPath)
-	}
+	lockGroup := report.group(imagesLockPath)
+	lockGroup.note(imagesLockPath, changed)
+	lockGroup.log()
 
 	// Update the Available Images table in README.md.
 	rows := make([]readme.ImageRow, 0, len(cfg.Images))
@@ -157,11 +160,64 @@ func runGenerate(args []string) error {
 	if err != nil {
 		return fmt.Errorf("updating %s: %w", readmeFile, err)
 	}
-	if changed {
-		log.Printf("Updated %s", readmeFile)
-	}
+	readmeGroup := report.group(readmeFile)
+	readmeGroup.note(readmeFile, changed)
+	readmeGroup.log()
 
+	report.done()
 	return nil
+}
+
+// writeReport tracks which generated files were rewritten, by group, so a run
+// that changed nothing is as visible as one that did without a line per file.
+type writeReport struct{ groups []*writeGroup }
+
+// writeGroup is a class of generated files (Dockerfiles, selector scripts, ...).
+type writeGroup struct {
+	name    string
+	updated []string
+	total   int
+}
+
+func (r *writeReport) group(name string) *writeGroup {
+	g := &writeGroup{name: name}
+	r.groups = append(r.groups, g)
+	return g
+}
+
+func (g *writeGroup) note(path string, changed bool) {
+	g.total++
+	if changed {
+		g.updated = append(g.updated, path)
+	}
+}
+
+// log names each updated file, or says once that the whole group is unchanged.
+func (g *writeGroup) log() {
+	if len(g.updated) == 0 {
+		if g.total > 1 {
+			log.Printf("Unchanged %s (%d files)", g.name, g.total)
+		} else {
+			log.Printf("Unchanged %s", g.name)
+		}
+		return
+	}
+	for _, path := range g.updated {
+		log.Printf("Updated   %s", path)
+	}
+}
+
+func (r *writeReport) done() {
+	updated, total := 0, 0
+	for _, g := range r.groups {
+		updated += len(g.updated)
+		total += g.total
+	}
+	if updated == 0 {
+		log.Printf("Done: nothing to update (%d files already up to date)", total)
+		return
+	}
+	log.Printf("Done: %d updated, %d unchanged", updated, total-updated)
 }
 
 // cleanupRemovedSelectors deletes select-*.sh, ci-select.sh, and ci-env-init.sh

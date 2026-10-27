@@ -4,6 +4,38 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20261027-33 (2026-10-27)
+
+### Image: go1.25:20261027-33
+
+- Added rolling tag: `1.25.14`
+
+### Image: go1.26:20261027-33
+
+- Base image: `registry.suse.com/bci/golang:1.26.10` → `dp.apps.rancher.io/containers/go:1.26.10-dev-36.2`
+- Added rolling tag: `1.26.10`
+
+### Image: go1.27:20261027-33
+
+- Base image: `registry.suse.com/bci/golang:1.27.3` → `dp.apps.rancher.io/containers/go:1.27.3-dev-14.2`
+- Added rolling tag: `1.27.3`
+
+### Image: python3.11:20261027-33
+
+- Added rolling tag: `3.11.15`
+
+### Image: python3.13:20261027-33
+
+- Added rolling tag: `3.13.15`
+
+### Image: node22:20261027-33
+
+- Added rolling tag: `22.23.2`
+
+### Image: node24:20261027-33
+
+- Added rolling tag: `24.18.1`
+
 ## Revision: 20261027-32 (2026-10-27)
 
 ### Image: go1.25:20261027-32

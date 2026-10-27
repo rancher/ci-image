@@ -146,9 +146,11 @@ configs:
             kubectl: kubectl1.36
         language: go
         language_version: 1.25.14
+        tag_aliases:
+            - 1.25.14
         description: CI image with Go 1.25 toolchain
     go1.26:
-        base: registry.suse.com/bci/golang:1.26.10@sha256:a952c9a6c7e794483b8988363575338d3ea3b01427511f28e4e58921cb577f22
+        base: dp.apps.rancher.io/containers/go:1.26.10-dev-36.2@sha256:b7ada50469a9196a084f4cb76da220819d1841461b2a2e13a7c3c2a805793091
         platforms:
             - linux/amd64
             - linux/arm64
@@ -183,9 +185,11 @@ configs:
             kubectl: kubectl1.36
         language: go
         language_version: 1.26.10
+        tag_aliases:
+            - 1.26.10
         description: CI image with Go 1.26 toolchain
     go1.27:
-        base: registry.suse.com/bci/golang:1.27.3@sha256:634cd6f1e373bcde01a1f8df6d1c3a9784142353a0842b5371d6385b4e9d2abb
+        base: dp.apps.rancher.io/containers/go:1.27.3-dev-14.2@sha256:87f7c372cde4e0ff098514640c8139c66c50f0f300d45e3556ed5cb4538393c8
         platforms:
             - linux/amd64
             - linux/arm64
@@ -220,6 +224,8 @@ configs:
             kubectl: kubectl1.36
         language: go
         language_version: 1.27.3
+        tag_aliases:
+            - 1.27.3
         description: CI image with Go 1.27 toolchain
     nix:
         base: registry.suse.com/bci/bci-base:15.7@sha256:79595412dc8da75bac1a5f9cc75c7d579523dbeeb6fc594d10b22967819760c3
@@ -256,6 +262,8 @@ configs:
             helm: helmv4
         language: node
         language_version: 22.23.2
+        tag_aliases:
+            - 22.23.2
         description: CI image with Node 22 toolchain
     node24:
         base: registry.suse.com/bci/nodejs:24.18.1-base@sha256:b40c0d9763833ecc6e8bc37a810a147c895b1a1c505243bf9ad3a3f0978b26b6
@@ -273,6 +281,8 @@ configs:
             helm: helmv4
         language: node
         language_version: 24.18.1
+        tag_aliases:
+            - 24.18.1
         description: CI image with Node 24 toolchain
     python3.11:
         base: registry.suse.com/bci/python:3.11.15@sha256:9dc1899218a47bb92b62d97d32be31258ab8a455049f7e2313ca9ea87a443380
@@ -290,6 +300,8 @@ configs:
             helm: helmv4
         language: python
         language_version: 3.11.15
+        tag_aliases:
+            - 3.11.15
         description: CI image with Python 3.11 toolchain
     python3.13:
         base: registry.suse.com/bci/python:3.13.15@sha256:c2fdbafcbfdfe9b52dbf1c93e0a672e8a53ec9ec56059c6bbb3eae9b645f3c4e
@@ -307,4 +319,6 @@ configs:
             helm: helmv4
         language: python
         language_version: 3.13.15
+        tag_aliases:
+            - 3.13.15
         description: CI image with Python 3.13 toolchain

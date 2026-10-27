@@ -1,4 +1,4 @@
-FROM registry.suse.com/bci/golang:1.26.10@sha256:a952c9a6c7e794483b8988363575338d3ea3b01427511f28e4e58921cb577f22
+FROM dp.apps.rancher.io/containers/go:1.26.10-dev-36.2@sha256:b7ada50469a9196a084f4cb76da220819d1841461b2a2e13a7c3c2a805793091
 
 LABEL org.opencontainers.image.source="https://github.com/rancher/ci-image" \
       org.opencontainers.image.title="Rancher go1.26 CI image" \

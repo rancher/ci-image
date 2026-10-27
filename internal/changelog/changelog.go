@@ -138,6 +138,19 @@ func renderEntry(entry Entry) string {
 				trimDigest(ic.BaseImageUpdated.From),
 				trimDigest(ic.BaseImageUpdated.To))
 		}
+		if lv := ic.LanguageVersionChanged; lv != nil {
+			fmt.Fprintf(&sb, "- %s: `%s` → `%s`\n", languageTitle(lv.Language), lv.From, lv.To)
+		}
+		if len(ic.TagAliasesAdded) == 1 && len(ic.TagAliasesRemoved) == 1 {
+			fmt.Fprintf(&sb, "- Rolling tag: `%s` → `%s`\n", ic.TagAliasesRemoved[0], ic.TagAliasesAdded[0])
+		} else {
+			for _, a := range ic.TagAliasesAdded {
+				fmt.Fprintf(&sb, "- Added rolling tag: `%s`\n", a)
+			}
+			for _, a := range ic.TagAliasesRemoved {
+				fmt.Fprintf(&sb, "- Removed rolling tag: `%s`\n", a)
+			}
+		}
 		if ic.PlatformsChanged != nil {
 			fmt.Fprintf(&sb, "- Platforms: `%s` → `%s`\n",
 				strings.Join(ic.PlatformsChanged.From, ", "),
@@ -229,4 +242,17 @@ func trimDigest(ref string) string {
 		return ref[:idx]
 	}
 	return ref
+}
+
+// languageTitle renders a lock language key for display ("go" → "Go").
+func languageTitle(lang string) string {
+	switch lang {
+	case "go":
+		return "Go"
+	case "python":
+		return "Python"
+	case "node":
+		return "Node"
+	}
+	return lang
 }

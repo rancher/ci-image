@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -37,6 +38,7 @@ const (
 func runGenerate(args []string) error {
 	configPath := defaultConfig
 	imageRepo := ""
+	offline := false
 	for i := 0; i < len(args); i++ {
 		switch {
 		case args[i] == "--config" && i+1 < len(args):
@@ -49,6 +51,8 @@ func runGenerate(args []string) error {
 			imageRepo = args[i]
 		case strings.HasPrefix(args[i], "--image-repo="):
 			imageRepo = strings.TrimPrefix(args[i], "--image-repo=")
+		case args[i] == "--offline":
+			offline = true
 		}
 	}
 
@@ -67,6 +71,15 @@ func runGenerate(args []string) error {
 	// Run 'update' to fetch new versions and refresh deps.lock.
 	if err := resolver.ApplyLock(cfg, lk); err != nil {
 		return err
+	}
+
+	// Rolling tags must match the digest the image is built from; fail before
+	// writing anything if a base's tag and digest disagree.
+	warnIneligibleAliases(os.Stderr, cfg)
+	if offlineRequested(offline) {
+		fmt.Fprintln(os.Stderr, "notice: offline mode: skipping base tag/digest verification for rolling tags")
+	} else if err := verifyAliasDigests(context.Background(), cfg, nil); err != nil {
+		return fmt.Errorf("verifying rolling tag bases (use --offline or %s=1 to skip): %w", offlineEnv, err)
 	}
 
 	// Generate Dockerfiles (cfg now has resolved versions/checksums).

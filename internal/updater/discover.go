@@ -279,19 +279,24 @@ func (c *tagLists) get(ctx context.Context, cl *registry.Client, host, repo stri
 //     within the same leading components (1.27.x).
 //   - Shorter or non-numeric tags (24, 15.7, latest) are floating pins: the tag
 //     stays and only the digest is refreshed.
+//   - A variant suffix (1.27.3-dev-14.2, 24.18.1-base) is kept: only tags with
+//     the identical suffix are candidates, so a different variant or OS release
+//     is never crossed into.
 //
 // newer lists tags of the same shape beyond that line, reported but never
 // proposed — moving to a new Go/Node/OS line is a deliberate, manual change.
 func chooseTag(cur string, tags []string) (chosen string, newer string) {
-	nums, ok := parseVersion(cur)
+	curVer, curSuffix := splitVariant(cur)
+	nums, ok := parseVersion(curVer)
 	if !ok || strings.HasPrefix(cur, "v") {
 		return cur, ""
 	}
 	best, bestNums := cur, nums
 	over, overNums := "", nums
 	for _, t := range tags {
-		n, ok := parseVersion(t)
-		if !ok || len(n) != len(nums) || strings.HasPrefix(t, "v") {
+		ver, suffix := splitVariant(t)
+		n, ok := parseVersion(ver)
+		if !ok || suffix != curSuffix || len(n) != len(nums) || strings.HasPrefix(t, "v") {
 			continue
 		}
 		// Only fully-patched tags (3+ components) advance within their line.
@@ -304,6 +309,19 @@ func chooseTag(cur string, tags []string) (chosen string, newer string) {
 		}
 	}
 	return best, over
+}
+
+// splitVariant splits a tag into its dotted version and a variant suffix that
+// starts with a letter ("1.27.3-dev-14.2" → "1.27.3", "-dev-14.2"). Suffixes
+// starting with a digit (SUSE build numbers like "1.27.3-1.1") are not
+// variants; the tag is returned whole and fails to parse as a version.
+func splitVariant(tag string) (version, suffix string) {
+	for i := 0; i+1 < len(tag); i++ {
+		if tag[i] == '-' && (tag[i+1] >= 'a' && tag[i+1] <= 'z' || tag[i+1] >= 'A' && tag[i+1] <= 'Z') {
+			return tag[:i], tag[i:]
+		}
+	}
+	return tag, ""
 }
 
 func discoverBase(ctx context.Context, cache *tagLists, base string, images []string) (c *Candidate, upToDate string, sk *Skipped, info []string) {
@@ -347,7 +365,9 @@ func discoverBase(ctx context.Context, cache *tagLists, base string, images []st
 		Refresh: chosen == ref.Tag, ref: ref, newBase: next.String(),
 	}
 	if !cand.Refresh {
-		cand.Bump, _ = Classify(ref.Tag, chosen)
+		curVer, _ := splitVariant(ref.Tag)
+		newVer, _ := splitVariant(chosen)
+		cand.Bump, _ = Classify(curVer, newVer)
 	}
 	return cand, "", nil, info
 }

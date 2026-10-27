@@ -50,3 +50,30 @@ func TestWriteImagesLock_LanguageFields(t *testing.T) {
 		}
 	}
 }
+
+func TestWriteImagesLock_ReportsWhetherItChanged(t *testing.T) {
+	t.Chdir(t.TempDir())
+	const dg = "@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	cfg := &config.Config{Images: []config.Image{
+		{Name: "go1.26", Base: "registry.suse.com/bci/golang:1.26.10" + dg},
+	}}
+
+	for _, step := range []struct {
+		name string
+		base string
+		want bool
+	}{
+		{"first write creates the lock", "registry.suse.com/bci/golang:1.26.10" + dg, true},
+		{"identical rerun is a no-op", "registry.suse.com/bci/golang:1.26.10" + dg, false},
+		{"base bump rewrites", "registry.suse.com/bci/golang:1.26.11" + dg, true},
+	} {
+		cfg.Images[0].Base = step.base
+		changed, err := writeImagesLock(cfg, "images-lock.yaml")
+		if err != nil {
+			t.Fatalf("%s: %v", step.name, err)
+		}
+		if changed != step.want {
+			t.Errorf("%s: changed = %v, want %v", step.name, changed, step.want)
+		}
+	}
+}

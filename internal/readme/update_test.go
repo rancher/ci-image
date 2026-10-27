@@ -35,3 +35,29 @@ func TestUpdateTable_LanguageColumns(t *testing.T) {
 		t.Errorf("stale content kept:\n%s", got)
 	}
 }
+
+func TestUpdateTable_ReportsWhetherItChanged(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "README.md")
+	if err := os.WriteFile(path, []byte(beginTag+"\nold\n"+endTag+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rows := []ImageRow{{Name: "go1.26", Language: "go", Version: "1.26.10", Description: "Go"}}
+
+	for _, step := range []struct {
+		name string
+		rows []ImageRow
+		want bool
+	}{
+		{"first render replaces the old table", rows, true},
+		{"identical rerun is a no-op", rows, false},
+		{"changed row rewrites", []ImageRow{{Name: "go1.26", Language: "go", Version: "1.26.11", Description: "Go"}}, true},
+	} {
+		changed, err := UpdateTable(path, step.rows)
+		if err != nil {
+			t.Fatalf("%s: %v", step.name, err)
+		}
+		if changed != step.want {
+			t.Errorf("%s: changed = %v, want %v", step.name, changed, step.want)
+		}
+	}
+}

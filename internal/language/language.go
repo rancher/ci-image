@@ -9,7 +9,6 @@ package language
 import (
 	"context"
 	"fmt"
-	"regexp"
 
 	"github.com/rancher/ci-image/internal/registry"
 )
@@ -25,10 +24,6 @@ var repos = map[string]string{
 	"dp.apps.rancher.io/containers/python": "python",
 	"dp.apps.rancher.io/containers/node":   "node",
 }
-
-// fullVersionRe accepts a full X.Y.Z, optionally followed by a variant suffix
-// such as the "-base" of "24.18.1-base". The suffix is not part of the version.
-var fullVersionRe = regexp.MustCompile(`^(\d+\.\d+\.\d+)(?:-[A-Za-z][\w.-]*)?$`)
 
 // Info describes what a base reference ships.
 type Info struct {
@@ -56,11 +51,13 @@ func Detect(base string) Info {
 	if ref.Tag == "" {
 		return Info{Language: lang, Reason: "base has no tag"}
 	}
-	m := fullVersionRe.FindStringSubmatch(ref.Tag)
-	if m == nil {
-		return Info{Language: lang, Reason: fmt.Sprintf("base tag %q is not a full X.Y.Z version", ref.Tag)}
+	// The variant and build revision (24.18.1-base-13.2, 1.26.10-dev-36.3) are
+	// not part of the version; the alias is the bare X.Y.Z.
+	tag, ok := registry.ParseTag(ref.Tag)
+	if !ok || len(tag.Version) != 3 {
+		return Info{Language: lang, Reason: fmt.Sprintf("base tag %q is not a full X.Y.Z version with an optional variant and build revision", ref.Tag)}
 	}
-	return Info{Language: lang, Version: m[1], AliasOK: true}
+	return Info{Language: lang, Version: fmt.Sprintf("%d.%d.%d", tag.Version[0], tag.Version[1], tag.Version[2]), AliasOK: true}
 }
 
 // Alias returns the rolling tag for a base reference: the bare full version

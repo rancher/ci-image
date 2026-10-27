@@ -37,16 +37,16 @@ RUN groupadd -g 121 runner && \
     chown root:runner /var/ci-tools && \
     chmod 2755 /var/ci-tools
 
-# cosign v3.1.2
+# cosign v3.1.4
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf" ;; \
-        arm64) CHECKSUM="90e7ae0b5dfd60f20816b52c012addf7fc055ebcc7bea4ce81c428ca8518c302" ;; \
+        amd64) CHECKSUM="424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa" ;; \
+        arm64) CHECKSUM="ade83b7aac62e131cacfe96d958948b2150cc9efec46a570a2649b8e27dedad2" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/sigstore/cosign/releases/download/v3.1.2/cosign-linux-amd64" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/sigstore/cosign/releases/download/v3.1.2/cosign-linux-arm64" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-amd64" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-arm64" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/cosign" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/cosign" > "${TMP_DIR}/checksum.sha256" && \
@@ -54,17 +54,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/cosign" "/usr/local/bin/cosign" && \
     rm -rf "${TMP_DIR}"
 
-# gh v2.96.0
+# gh v2.103.3
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="83d5c2ccad5498f58bf6368acb1ab32588cf43ab3a4b1c301bf36328b1c8bd60" ;; \
-        arm64) CHECKSUM="06f86ec7103d41993b76cd78072f43595c34aaa56506d971d9860e67140bf909" ;; \
+        amd64) CHECKSUM="4c806978ffce1cec70853302a56d70ac6da4f19bae7adca4e1a8ab00633dd91d" ;; \
+        arm64) CHECKSUM="ee32df2323c8847f5fac6cb6b4b69ca75828e9329a8f22f677021f7b3306ce63" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/gh.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v2.96.0/gh_2.96.0_linux_amd64.tar.gz"; EXTRACT="gh_2.96.0_linux_amd64/bin/gh" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v2.96.0/gh_2.96.0_linux_arm64.tar.gz"; EXTRACT="gh_2.96.0_linux_arm64/bin/gh" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v2.103.3/gh_2.103.3_linux_amd64.tar.gz"; EXTRACT="gh_2.103.3_linux_amd64/bin/gh" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v2.103.3/gh_2.103.3_linux_arm64.tar.gz"; EXTRACT="gh_2.103.3_linux_arm64/bin/gh" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
@@ -111,17 +111,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/helmv4" && \
     rm -rf "${TMP_DIR}"
 
-# slsactl v0.1.35
+# slsactl v0.1.45
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="dd8f75429cc629a4b36bf92297420d3147a140f545d3a92f2b8ffb8414f0d10b" ;; \
-        arm64) CHECKSUM="f68817d75ebe0ed0a14d55b9c637968244c38ff087a8fae21c89092f2d44db54" ;; \
+        amd64) CHECKSUM="ba17982ac91d427ecbe9cad1b2dfa0183cf4bddb6e616ab9525105be6095eb60" ;; \
+        arm64) CHECKSUM="d7ef77e7327b9992077b5a9e99ceb2bf7e5cb0ee04753bb8b8ad0f59cb5b1e08" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/slsactl.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.35/slsactl_0.1.35_linux_amd64.tar.gz"; EXTRACT="slsactl" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.35/slsactl_0.1.35_linux_arm64.tar.gz"; EXTRACT="slsactl" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.45/slsactl_0.1.45_linux_amd64.tar.gz"; EXTRACT="slsactl" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.45/slsactl_0.1.45_linux_arm64.tar.gz"; EXTRACT="slsactl" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
@@ -130,16 +130,16 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/slsactl" && \
     rm -rf "${TMP_DIR}"
 
-# yq v4.53.3
+# yq v4.54.1
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="fa52a4e758c63d38299163fbdd1edfb4c4963247918bf9c1c5d31d84789eded4" ;; \
-        arm64) CHECKSUM="578648e463a11c1b6db6010cbf41eafed6bee79466fcffa1bb446672cf7945ea" ;; \
+        amd64) CHECKSUM="8e34fc298390875de416e6a4afcb8cabeceb25d9aa8506c1a2f9353cf702ea5f" ;; \
+        arm64) CHECKSUM="189088da0c6429ec5178dfaab1a114805f6cab0b61b165ab236efedf1d57a71b" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.53.3/yq_linux_amd64" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.53.3/yq_linux_arm64" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.54.1/yq_linux_amd64" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v4.54.1/yq_linux_arm64" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/yq" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/yq" > "${TMP_DIR}/checksum.sha256" && \

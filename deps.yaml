@@ -109,20 +109,20 @@ packages:
 universal:
   - name: cosign
     source: sigstore/cosign
-    version: v3.1.2
+    version: v3.1.4
     checksums:
-      linux/amd64: "f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf"
-      linux/arm64: "90e7ae0b5dfd60f20816b52c012addf7fc055ebcc7bea4ce81c428ca8518c302"
+      linux/amd64: "424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa"
+      linux/arm64: "ade83b7aac62e131cacfe96d958948b2150cc9efec46a570a2649b8e27dedad2"
     release:
       download_template: "cosign-{os}-{arch}"
       checksum_template: "cosign_checksums.txt"
 
   - name: gh
     source: cli/cli
-    version: v2.96.0
+    version: v2.103.3
     checksums:
-      linux/amd64: "83d5c2ccad5498f58bf6368acb1ab32588cf43ab3a4b1c301bf36328b1c8bd60"
-      linux/arm64: "06f86ec7103d41993b76cd78072f43595c34aaa56506d971d9860e67140bf909"
+      linux/amd64: "4c806978ffce1cec70853302a56d70ac6da4f19bae7adca4e1a8ab00633dd91d"
+      linux/arm64: "ee32df2323c8847f5fac6cb6b4b69ca75828e9329a8f22f677021f7b3306ce63"
     release:
       download_template: "gh_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "gh_{version|trimprefix:v}_{os}_{arch}/bin/gh"
@@ -155,10 +155,10 @@ universal:
 
   - name: slsactl
     source: rancherlabs/slsactl
-    version: v0.1.35
+    version: v0.1.45
     checksums:
-      linux/amd64: "dd8f75429cc629a4b36bf92297420d3147a140f545d3a92f2b8ffb8414f0d10b"
-      linux/arm64: "f68817d75ebe0ed0a14d55b9c637968244c38ff087a8fae21c89092f2d44db54"
+      linux/amd64: "ba17982ac91d427ecbe9cad1b2dfa0183cf4bddb6e616ab9525105be6095eb60"
+      linux/arm64: "d7ef77e7327b9992077b5a9e99ceb2bf7e5cb0ee04753bb8b8ad0f59cb5b1e08"
     release:
       download_template: "slsactl_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "slsactl"
@@ -166,10 +166,10 @@ universal:
 
   - name: yq
     source: mikefarah/yq
-    version: v4.53.3
+    version: v4.54.1
     checksums:
-      linux/amd64: "fa52a4e758c63d38299163fbdd1edfb4c4963247918bf9c1c5d31d84789eded4"
-      linux/arm64: "578648e463a11c1b6db6010cbf41eafed6bee79466fcffa1bb446672cf7945ea"
+      linux/amd64: "8e34fc298390875de416e6a4afcb8cabeceb25d9aa8506c1a2f9353cf702ea5f"
+      linux/arm64: "189088da0c6429ec5178dfaab1a114805f6cab0b61b165ab236efedf1d57a71b"
     release:
       download_template: "yq_{os}_{arch}"
       checksum_template: "checksums"
@@ -189,10 +189,10 @@ tools:
 
   - name: goreleaser
     source: goreleaser/goreleaser
-    version: v2.17.1
+    version: v2.19.0
     checksums:
-      linux/amd64: "a99bbc7ae0d8d897b07c4c497a9b62f222558804715ef219d1af05a7e417bc80"
-      linux/arm64: "702f03769ac8bcb0e47839c82243cc614ae995633599a98c63062e13ea85f829"
+      linux/amd64: "ebc3194ad1d1b1787614405285a0039665cd4c5bd3305215a1b201600f90630b"
+      linux/arm64: "ef33741b684c9f62d6a21e7a3c8b051f139ea7b1d301693b67cc819c46226d53"
     release:
       download_template: "goreleaser_{os|title}_{arch|replace:amd64=x86_64}.tar.gz"
       extract: "goreleaser"
@@ -208,10 +208,10 @@ tools:
 
   - name: oras
     source: oras-project/oras
-    version: v1.3.3
+    version: v1.3.6
     checksums:
-      linux/amd64: "9ce999f8d2de03fc03968b29d743077a58783e545e5eaa53917ca177352d0e59"
-      linux/arm64: "ac7156f93a21e903f7ad606c792f3560f17e0cd0e36365634701b1e7cc4e4eca"
+      linux/amd64: "66fb0ad7206f3f6fa77ed5b552049d364ccf4b50b1684554f731f76302b52ca0"
+      linux/arm64: "b84269e78dfc2d5329a4aab373da3200de95e6c138338cf6c66c10c0a3f248c1"
     release:
       download_template: "oras_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "oras"
@@ -220,10 +220,10 @@ tools:
   - name: kuberlr
     family: kubectl
     source: flavio/kuberlr
-    version: v0.7.0
+    version: v0.9.0
     checksums:
-      linux/amd64: "2f131dbf61d136eafcafa583f7884262972c6cc4059d8c811fc2e46ac7ca6128"
-      linux/arm64: "50a94652653cd067587878d45518326430c9a731e642cb05d0d8e4d3813b18be"
+      linux/amd64: "089fb94e6bf67e541e65fa8becfe7f705ef32fab9001bee8c803b24982a50e3d"
+      linux/arm64: "57e5fb485b08fa97e0beafd431292159dbaa332dded96dfb2cb8476b0b012a44"
     release:
       download_template: "kuberlr_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "kuberlr_{version|trimprefix:v}_{os}_{arch}/kuberlr"

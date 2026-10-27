@@ -125,6 +125,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Verify rolling tag bases
+        shell: bash
+        run: go run main.go verify-aliases "${IMAGE}"
+        env:
+          IMAGE: ${{ matrix.image }}
+
       - name: Build and push image
         shell: bash
         run: make push NO_CACHE=1 ORG="${ORG}" IMAGE="${IMAGE}" VERSION="${VERSION}"

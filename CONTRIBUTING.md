@@ -116,11 +116,13 @@ Only one tool in a family should have `family_default: true`.
 
 ## Application Collection bases
 
-Bases from Application Collection (`dp.apps.rancher.io/containers/{go,python,node}`) are supported. Use the `-dev` tags, which include zypper, e.g. `dp.apps.rancher.io/containers/go:1.27.3-dev-14.2@sha256:...`. The rolling tag is still the bare version (`1.27.3`).
+Bases from Application Collection (`dp.apps.rancher.io/containers/{go,python,node}`) are supported. Use the `-dev` tags, which include zypper, e.g. `dp.apps.rancher.io/containers/go:1.26.9-dev-34.1@sha256:...`. AppCo has no rolling tag, so the base must carry the final build revision. The image's rolling tag is still the bare version (`1.26.9`).
 
 The registry requires credentials. Anything that talks to it (`make generate` for images with `language_tag`, `make manual-updates --base-images`, `verify-aliases`) reads them from `APPCO_USERNAME` and `APPCO_PASSWORD`; without them it fails naming those variables (`make generate` can skip the check with `--offline`). Building and pulling these images in CI additionally needs a `docker login dp.apps.rancher.io`. Credentials are only ever sent to `dp.apps.rancher.io`.
 
-`manual-updates --base-images` keeps the suffix when it bumps a patch (`1.27.3-dev-14.2` to `1.27.5-dev-14.2`). A new OS release (`-dev-14.3`) is a deliberate manual change.
+## Base image tags
+
+Base tags are read as `VERSION[-VARIANT][-REVISION]`: `24.18.1-base-13.2` is version `24.18.1`, variant `base`, build revision `13.2`; `1.26.10-dev-36.3` is `1.26.10`, `dev`, `36.3`; `1.27.2-1.1` is `1.27.2` with revision `1.1`. `manual-updates --base-images` moves a tag to the newest version in the same `X.Y` line and, within that, the newest revision, so `1.26.9-dev-34.1` can become `1.26.10-dev-36.3` and `24.18.1-base-13.1` can become `24.18.1-base-13.2`. The variant must match, and a tag with a revision only moves to tags that also have one. Moving to a new `X.Y` line is a deliberate manual change. Prerelease tags such as `1.27.3-rc1` are never matched.
 
 ## Archive
 

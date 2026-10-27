@@ -19,6 +19,11 @@ var repos = map[string]string{
 	"registry.suse.com/bci/golang": "go",
 	"registry.suse.com/bci/python": "python",
 	"registry.suse.com/bci/nodejs": "node",
+
+	// Application Collection; the -dev-<os> tags include zypper.
+	"dp.apps.rancher.io/containers/go":     "go",
+	"dp.apps.rancher.io/containers/python": "python",
+	"dp.apps.rancher.io/containers/node":   "node",
 }
 
 // fullVersionRe accepts a full X.Y.Z, optionally followed by a variant suffix

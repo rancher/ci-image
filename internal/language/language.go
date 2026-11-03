@@ -8,6 +8,7 @@ package language
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/rancher/ci-image/internal/clierr"
@@ -78,6 +79,12 @@ type DigestResolver interface {
 	Digest(ctx context.Context, repo, tag string) (string, error)
 }
 
+// ErrDigestDrift is matched (via errors.Is) by the error VerifyDigest returns
+// when a base's tag resolves to a different digest than the one it is pinned
+// to. The pinned digest still builds reproducibly; it only means the base has
+// a newer build to consider, so callers may treat it as a warning.
+var ErrDigestDrift = errors.New("tag and digest disagree")
+
 // VerifyDigest checks that the tag of a pinned base reference still resolves
 // to the digest it is pinned to. Docker ignores the tag when a digest is
 // present, so without this a hand edit could leave the two disagreeing and the
@@ -105,6 +112,7 @@ func VerifyDigest(ctx context.Context, r DigestResolver, base string) error {
 				{Key: "pinned", Value: ref.Digest},
 				{Key: "current", Value: got},
 			},
+			Err: ErrDigestDrift,
 		}
 	}
 	return nil

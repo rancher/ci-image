@@ -70,11 +70,11 @@ func TestVerifyDigest(t *testing.T) {
 		t.Fatalf("match: %v", err)
 	}
 	err := VerifyDigest(context.Background(), fakeResolver{digest: other}, base)
-	if err == nil || !strings.Contains(err.Error(), other) || !strings.Contains(err.Error(), pinned) {
+	if err == nil || !errors.Is(err, ErrDigestDrift) || !strings.Contains(err.Error(), other) || !strings.Contains(err.Error(), pinned) {
 		t.Fatalf("mismatch must name both digests, got %v", err)
 	}
-	if err := VerifyDigest(context.Background(), fakeResolver{err: errors.New("boom")}, base); err == nil {
-		t.Fatal("registry error must fail")
+	if err := VerifyDigest(context.Background(), fakeResolver{err: errors.New("boom")}, base); err == nil || errors.Is(err, ErrDigestDrift) {
+		t.Fatal("registry error must fail and not count as drift")
 	}
 	if err := VerifyDigest(context.Background(), fakeResolver{}, "registry.suse.com/bci/golang:1.26.10"); err == nil {
 		t.Fatal("base without digest must fail")

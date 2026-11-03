@@ -75,13 +75,17 @@ func runGenerate(args []string) error {
 		return err
 	}
 
-	// Rolling tags must match the digest the image is built from; fail before
-	// writing anything if a base's tag and digest disagree.
+	// Warn when a base's tag has moved past its pinned digest; the pin is still
+	// reproducible, so only registry failures stop generation.
 	warnIneligibleAliases(os.Stderr, cfg)
 	if offlineRequested(offline) {
 		fmt.Fprintln(os.Stderr, "notice: offline mode: skipping base tag/digest verification for rolling tags")
-	} else if err := verifyAliasDigests(context.Background(), cfg, nil); err != nil {
-		return clierr.WithHint(err, fmt.Sprintf("pass --offline or set %s=1 to skip checking rolling tag bases against the registry", offlineEnv))
+	} else {
+		warnings, err := verifyAliasDigests(context.Background(), cfg, nil)
+		printWarnings(os.Stderr, warnings)
+		if err != nil {
+			return clierr.WithHint(err, fmt.Sprintf("pass --offline or set %s=1 to skip checking rolling tag bases against the registry", offlineEnv))
+		}
 	}
 
 	// Generate Dockerfiles (cfg now has resolved versions/checksums).

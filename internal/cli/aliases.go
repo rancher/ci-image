@@ -50,10 +50,16 @@ func warnIneligibleAliases(w io.Writer, cfg *config.Config) {
 	}
 }
 
-// verifyAliasDigests fails if any image that gets a rolling tag has a base
-// whose tag no longer resolves to its pinned digest. Shared bases are looked
-// up once. only restricts the check to the named images when non-empty.
-func verifyAliasDigests(ctx context.Context, cfg *config.Config, only []string) error {
+// driftHint is the advice printed under every digest-drift warning.
+const driftHint = "consider running the base-image update helper, then regenerate"
+
+// verifyAliasDigests checks every image that gets a rolling tag against the
+// registry. A base whose tag now resolves to a different digest is returned as
+// a warning: the pinned digest still builds reproducibly, so drift only means
+// an update is worth considering. Anything else (unreachable registry, bad
+// reference) is an error. Shared bases are looked up once. only restricts the
+// check to the named images when non-empty.
+func verifyAliasDigests(ctx context.Context, cfg *config.Config, only []string) (warnings []error, err error) {
 	clients := map[string]*registry.Client{}
 	checked := map[string]error{}
 	var errs []error
@@ -67,11 +73,31 @@ func verifyAliasDigests(ctx context.Context, cfg *config.Config, only []string) 
 		if _, done := checked[img.Base]; !done {
 			checked[img.Base] = verifyBase(ctx, clients, img.Base)
 		}
-		if err := checked[img.Base]; err != nil {
-			errs = append(errs, clierr.WithFields(err, clierr.Field{Key: "image", Value: img.Name}))
+		err := checked[img.Base]
+		if err == nil {
+			continue
+		}
+		err = clierr.WithFields(err, clierr.Field{Key: "image", Value: img.Name})
+		if errors.Is(err, language.ErrDigestDrift) {
+			warnings = append(warnings, err)
+		} else {
+			errs = append(errs, err)
 		}
 	}
-	return errors.Join(errs...)
+	return warnings, errors.Join(errs...)
+}
+
+// printWarnings renders each drift warning with its hint. Under GitHub
+// Actions it also emits a workflow annotation (newlines escaped as %0A) so the
+// drift shows on the run summary.
+func printWarnings(w io.Writer, warnings []error) {
+	for _, warning := range warnings {
+		hinted := clierr.WithHint(warning, driftHint)
+		fmt.Fprintln(w, clierr.Render("warning", hinted))
+		if os.Getenv("GITHUB_ACTIONS") == "true" {
+			fmt.Fprintf(w, "::warning title=Base image digest drift::%s\n", strings.ReplaceAll(hinted.Error(), "\n", "%0A"))
+		}
+	}
 }
 
 func verifyBase(ctx context.Context, clients map[string]*registry.Client, base string) error {
@@ -119,10 +145,14 @@ func runVerifyAliases(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := verifyAliasDigests(context.Background(), cfg, images); err != nil {
+	warnings, err := verifyAliasDigests(context.Background(), cfg, images)
+	printWarnings(os.Stderr, warnings)
+	if err != nil {
 		return err
 	}
-	fmt.Fprintln(os.Stderr, "alias digests verified")
+	if len(warnings) == 0 {
+		fmt.Fprintln(os.Stderr, "alias digests verified")
+	}
 	return nil
 }
 

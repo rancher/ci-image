@@ -10,7 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rancher/ci-image/internal/clierr"
 	"github.com/rancher/ci-image/internal/config"
+	"github.com/rancher/ci-image/internal/language"
 	"github.com/rancher/ci-image/internal/registry"
 )
 
@@ -81,27 +83,38 @@ func TestVerifyAliasDigests(t *testing.T) {
 		goImage("b", "1.26.10", digA, true),  // shared base: one lookup
 		goImage("c", "1.25.14", digB, false), // no alias: never checked
 	)
-	if err := verifyAliasDigests(ctx, cfg, nil); err != nil {
-		t.Fatalf("match: %v", err)
+	if w, err := verifyAliasDigests(ctx, cfg, nil); err != nil || len(w) != 0 {
+		t.Fatalf("match: warnings %v, err %v", w, err)
 	}
 	if *hits != 1 {
 		t.Errorf("expected 1 registry lookup, got %d", *hits)
 	}
 
 	fakeRegistry(t, digB)
-	err := verifyAliasDigests(ctx, testCfg(goImage("a", "1.26.10", digA, true)), nil)
-	if err == nil {
-		t.Fatal("mismatch must fail")
+	warnings, err := verifyAliasDigests(ctx, testCfg(goImage("a", "1.26.10", digA, true)), nil)
+	if err != nil {
+		t.Fatalf("drift must not be an error, got %v", err)
 	}
-	for _, want := range []string{"    image:   a\n", "    pinned:  " + digA, "    current: " + digB} {
-		if !strings.Contains(err.Error(), want) {
-			t.Errorf("mismatch error missing %q:\n%s", want, err)
+	if len(warnings) != 1 {
+		t.Fatalf("drift must produce one warning, got %v", warnings)
+	}
+	var buf bytes.Buffer
+	printWarnings(&buf, warnings)
+	for _, want := range []string{
+		"warning: base image tag and digest disagree\n",
+		"    image:   a\n",
+		"    pinned:  " + digA + "\n",
+		"    current: " + digB + "\n",
+		"hint: " + driftHint,
+	} {
+		if !strings.Contains(buf.String(), want) {
+			t.Errorf("rendered warning missing %q:\n%s", want, buf.String())
 		}
 	}
 
 	// only filters to the named images.
-	if err := verifyAliasDigests(ctx, testCfg(goImage("a", "1.26.10", digA, true)), []string{"other"}); err != nil {
-		t.Fatalf("filtered-out image must not be checked: %v", err)
+	if w, err := verifyAliasDigests(ctx, testCfg(goImage("a", "1.26.10", digA, true)), []string{"other"}); err != nil || len(w) != 0 {
+		t.Fatalf("filtered-out image must not be checked: %v %v", w, err)
 	}
 }
 
@@ -162,4 +175,25 @@ func captureStdout(t *testing.T, fn func()) string {
 	var buf bytes.Buffer
 	buf.ReadFrom(r)
 	return buf.String()
+}
+
+func TestPrintWarningsLayout(t *testing.T) {
+	t.Setenv("GITHUB_ACTIONS", "true")
+	drift := clierr.WithFields(&clierr.Detail{
+		Headline: "base image tag and digest disagree",
+		Fields:   []clierr.Field{{Key: "base", Value: "r/x:1"}, {Key: "pinned", Value: digA}, {Key: "current", Value: digB}},
+		Err:      language.ErrDigestDrift,
+	}, clierr.Field{Key: "image", Value: "node22"})
+	var buf bytes.Buffer
+	printWarnings(&buf, []error{drift})
+	want := "warning: base image tag and digest disagree\n" +
+		"    image:   node22\n" +
+		"    base:    r/x:1\n" +
+		"    pinned:  " + digA + "\n" +
+		"    current: " + digB + "\n" +
+		"hint: " + driftHint + "\n" +
+		"::warning title=Base image digest drift::base image tag and digest disagree%0A    image:   node22%0A"
+	if !strings.HasPrefix(buf.String(), want) {
+		t.Errorf("got:\n%s\nwant prefix:\n%s", buf.String(), want)
+	}
 }

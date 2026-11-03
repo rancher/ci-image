@@ -7,6 +7,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/rancher/ci-image/internal/clierr"
 	"github.com/rancher/ci-image/internal/config"
 )
 
@@ -74,11 +75,11 @@ func NewDockerfileVars(cfg *config.Config, img config.Image, sourceURL string) (
 	}
 
 	var toolInstalls []ToolInstall
-	var errs []string
+	errs := clierr.Problems{Headline: "cannot build Dockerfile variables"}
 	for _, t := range tools {
 		install, err := buildItemInstall(t, imgPlatforms)
 		if err != nil {
-			errs = append(errs, fmt.Sprintf("tool %q: %s", t.Name, err))
+			errs.Add("tool %q: %s", t.Name, err)
 			continue
 		}
 		toolInstalls = append(toolInstalls, ToolInstall{
@@ -88,8 +89,8 @@ func NewDockerfileVars(cfg *config.Config, img config.Image, sourceURL string) (
 			Setup:   buildToolSetup(t, hookTemplates),
 		})
 	}
-	if len(errs) > 0 {
-		return DockerfileVars{}, fmt.Errorf("%s", strings.Join(errs, "\n"))
+	if err := errs.Err(); err != nil {
+		return DockerfileVars{}, err
 	}
 
 	// Collect family selectors: one per unique family across all tools in this image.

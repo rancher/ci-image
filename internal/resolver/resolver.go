@@ -26,6 +26,7 @@ import (
 
 	ghrelease "github.com/mallardduck/ghreleases"
 
+	"github.com/rancher/ci-image/internal/clierr"
 	"github.com/rancher/ci-image/internal/config"
 	"github.com/rancher/ci-image/internal/resolver/depslock"
 )
@@ -108,7 +109,7 @@ func Update(cfg *config.Config, lk *depslock.Lock) error {
 // Returns an error if any tool's checksums don't match what's upstream for
 // the recorded version. Allows stale (old but correct) lock entries.
 func ValidateLock(cfg *config.Config, lk *depslock.Lock) error {
-	var problems []string
+	problems := clierr.Problems{Headline: "deps.lock validation failed"}
 
 	for i := range cfg.Tools {
 		t := &cfg.Tools[i]
@@ -118,7 +119,7 @@ func ValidateLock(cfg *config.Config, lk *depslock.Lock) error {
 
 		cached, ok := lk.Tools[t.Name]
 		if !ok || cached.ResolvedVersion == "" || len(cached.Checksums) == 0 {
-			problems = append(problems, fmt.Sprintf("tool %q: not found in deps.lock or missing checksums", t.Name))
+			problems.Add("tool %q: not found in deps.lock or missing checksums", t.Name)
 			continue
 		}
 
@@ -127,7 +128,7 @@ func ValidateLock(cfg *config.Config, lk *depslock.Lock) error {
 
 		platforms := toolPlatforms(cfg, t)
 		if len(platforms) == 0 {
-			problems = append(problems, fmt.Sprintf("tool %q: no images include this tool — cannot validate", t.Name))
+			problems.Add("tool %q: no images include this tool — cannot validate", t.Name)
 			continue
 		}
 
@@ -137,9 +138,9 @@ func ValidateLock(cfg *config.Config, lk *depslock.Lock) error {
 			errMsg := fmt.Sprintf("tool %q: failed to fetch checksums for %s: %v", t.Name, version, err)
 			var statusErr *ghrelease.HTTPStatusError
 			if errors.As(err, &statusErr) && statusErr.StatusCode == http.StatusNotFound {
-				errMsg += "\n    (This may indicate manual editing of deps.lock with a non-existent version, or the release was deleted upstream)"
+				errMsg += " (this may indicate manual editing of deps.lock with a non-existent version, or the release was deleted upstream)"
 			}
-			problems = append(problems, errMsg)
+			problems.Add("%s", errMsg)
 			continue
 		}
 
@@ -147,11 +148,11 @@ func ValidateLock(cfg *config.Config, lk *depslock.Lock) error {
 		for platform, expectedSum := range expectedChecksums {
 			actualSum, ok := cached.Checksums[platform]
 			if !ok {
-				problems = append(problems, fmt.Sprintf("tool %q (%s): missing checksum for platform %s", t.Name, version, platform))
+				problems.Add("tool %q (%s): missing checksum for platform %s", t.Name, version, platform)
 				continue
 			}
 			if actualSum != expectedSum {
-				problems = append(problems, fmt.Sprintf("tool %q (%s): checksum mismatch for %s:\n  locked: %s\n  actual: %s", t.Name, version, platform, actualSum, expectedSum))
+				problems.Add("tool %q (%s): checksum mismatch for platform %s (locked %s, upstream %s)", t.Name, version, platform, actualSum, expectedSum)
 			}
 		}
 
@@ -163,8 +164,8 @@ func ValidateLock(cfg *config.Config, lk *depslock.Lock) error {
 		}
 	}
 
-	if len(problems) > 0 {
-		return fmt.Errorf("deps.lock validation failed:\n  %s", strings.Join(problems, "\n  "))
+	if err := problems.Err(); err != nil {
+		return err
 	}
 
 	return nil

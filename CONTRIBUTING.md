@@ -111,8 +111,8 @@ Only one tool in a family should have `family_default: true`.
 `language_tag: true` on an image in `deps.yaml` adds a tag with the full language version of its `base:` (Go, Python and Node bases are recognised) in addition to the CalVer tag. The tag is always derived from `base:`, never written by hand, so it cannot disagree with what the image is built on.
 
 - The base tag must start with a full `X.Y.Z` (a variant suffix such as `24.18.1-base` is allowed and dropped from the alias). Otherwise `make generate` warns and the image gets no rolling tag.
-- `make generate` also checks against the registry that the base's tag still resolves to the pinned digest, and fails if they disagree. Pass `--offline` (or set `CI_IMAGE_OFFLINE=1`) to skip that check when there is no network.
-- `go run main.go tags <image>` prints the rolling tags recorded in `images-lock.yaml`; `make build`/`make push` apply them. CI also runs `go run main.go verify-aliases <image>` right before pushing.
+- `make generate` also checks against the registry that the base's tag still resolves to the pinned digest, and warns if they disagree: the pinned digest still builds reproducibly, so this is a prompt to run the base-image update helper and regenerate, not an error. Registry failures (unreachable, bad credentials) still fail. Pass `--offline` (or set `CI_IMAGE_OFFLINE=1`) to skip that check when there is no network.
+- `go run main.go tags <image>` prints the rolling tags recorded in `images-lock.yaml`; `make build`/`make push` apply them. CI also runs `go run main.go verify-aliases <image>` right before pushing; digest drift shows up there as a warning annotation and does not fail the job.
 
 ## Application Collection bases
 

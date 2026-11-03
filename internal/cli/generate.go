@@ -13,6 +13,7 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
+	"github.com/rancher/ci-image/internal/clierr"
 	"github.com/rancher/ci-image/internal/config"
 	"github.com/rancher/ci-image/internal/dockerfile"
 	"github.com/rancher/ci-image/internal/fileutil"
@@ -74,13 +75,17 @@ func runGenerate(args []string) error {
 		return err
 	}
 
-	// Rolling tags must match the digest the image is built from; fail before
-	// writing anything if a base's tag and digest disagree.
+	// Warn when a base's tag has moved past its pinned digest; the pin is still
+	// reproducible, so only registry failures stop generation.
 	warnIneligibleAliases(os.Stderr, cfg)
 	if offlineRequested(offline) {
 		fmt.Fprintln(os.Stderr, "notice: offline mode: skipping base tag/digest verification for rolling tags")
-	} else if err := verifyAliasDigests(context.Background(), cfg, nil); err != nil {
-		return fmt.Errorf("verifying rolling tag bases (use --offline or %s=1 to skip): %w", offlineEnv, err)
+	} else {
+		warnings, err := verifyAliasDigests(context.Background(), cfg, nil)
+		printWarnings(os.Stderr, warnings)
+		if err != nil {
+			return clierr.WithHint(err, fmt.Sprintf("pass --offline or set %s=1 to skip checking rolling tag bases against the registry", offlineEnv))
+		}
 	}
 
 	// Generate Dockerfiles (cfg now has resolved versions/checksums).

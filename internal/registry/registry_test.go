@@ -232,3 +232,34 @@ func TestBasicCredentialsNotSentOffHost(t *testing.T) {
 		t.Fatal("credentials were sent to another host")
 	}
 }
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+// TestCredentialErrorLayout needs no listener: it pins the multi-line shape
+// users see when a registry wants credentials and none are configured.
+func TestCredentialErrorLayout(t *testing.T) {
+	rt := roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusUnauthorized,
+			Header:     http.Header{"Www-Authenticate": {`Basic realm="Realm"`}},
+			Body:       http.NoBody,
+		}, nil
+	})
+	c := &Client{BaseURL: "https://dp.apps.rancher.io", HTTP: &http.Client{Transport: rt}, credsHint: "set U and P, or run `docker login dp.apps.rancher.io`"}
+	_, err := c.Tags(context.Background(), "containers/go")
+	if err == nil {
+		t.Fatal("want an error")
+	}
+	for _, want := range []string{
+		"registry requires credentials\n",
+		"    registry: dp.apps.rancher.io\n",
+		"    request:  GET https://dp.apps.rancher.io/v2/containers/go/tags/list",
+		"    fix:      set U and P, or run `docker login dp.apps.rancher.io`",
+	} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error missing %q:\n%s", want, err)
+		}
+	}
+}

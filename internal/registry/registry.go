@@ -17,6 +17,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/rancher/ci-image/internal/clierr"
 )
 
 // registryConfig describes how to talk to an allowlisted registry.
@@ -263,11 +265,24 @@ func (c *Client) do(ctx context.Context, method, path, accept string) (*http.Res
 		challenge := resp.Header.Get("WWW-Authenticate")
 		resp.Body.Close()
 		if resp.StatusCode != http.StatusUnauthorized || attempt == 1 {
-			return nil, fmt.Errorf("%s %s: unexpected status %d", method, target, resp.StatusCode)
+			return nil, &clierr.Detail{
+				Headline: "registry request failed: unexpected HTTP status",
+				Fields: []clierr.Field{
+					{Key: "request", Value: method + " " + target.String()},
+					{Key: "status", Value: statusLine(resp.StatusCode)},
+				},
+			}
 		}
 		if strings.HasPrefix(strings.ToLower(challenge), "basic ") {
 			if c.Username == "" || c.Password == "" {
-				return nil, fmt.Errorf("%s requires credentials: %s", base.Host, cmp.Or(c.credsHint, "none configured"))
+				return nil, &clierr.Detail{
+					Headline: "registry requires credentials",
+					Fields: []clierr.Field{
+						{Key: "registry", Value: base.Host},
+						{Key: "request", Value: method + " " + target.String()},
+						{Key: "fix", Value: cmp.Or(c.credsHint, "no credential source is configured for this registry")},
+					},
+				}
 			}
 			basic = true
 			continue
@@ -276,14 +291,25 @@ func (c *Client) do(ctx context.Context, method, path, accept string) (*http.Res
 			return nil, err
 		}
 	}
-	return nil, fmt.Errorf("%s %s: authentication failed", method, target)
+	return nil, &clierr.Detail{
+		Headline: "registry authentication failed",
+		Fields: []clierr.Field{
+			{Key: "request", Value: method + " " + target.String()},
+		},
+	}
 }
 
 var challengeParamRe = regexp.MustCompile(`(\w+)="([^"]*)"`)
 
 func (c *Client) fetchToken(ctx context.Context, base *url.URL, challenge string) (string, error) {
 	if !strings.HasPrefix(strings.ToLower(challenge), "bearer ") {
-		return "", fmt.Errorf("unsupported auth challenge %q", challenge)
+		return "", &clierr.Detail{
+			Headline: "registry sent an unsupported authentication challenge",
+			Fields: []clierr.Field{
+				{Key: "registry", Value: base.Host},
+				{Key: "challenge", Value: challenge},
+			},
+		}
 	}
 	params := map[string]string{}
 	for _, m := range challengeParamRe.FindAllStringSubmatch(challenge, -1) {
@@ -292,7 +318,13 @@ func (c *Client) fetchToken(ctx context.Context, base *url.URL, challenge string
 	realm, err := url.Parse(params["realm"])
 	if err != nil || (realm.Host != base.Host && !slices.Contains(c.TokenHosts, realm.Host)) ||
 		(realm.Scheme != "https" && base.Scheme == "https") {
-		return "", fmt.Errorf("refusing token realm %q: not an allowed token host for %s", params["realm"], base.Host)
+		return "", &clierr.Detail{
+			Headline: "refusing token realm: not an allowed token host",
+			Fields: []clierr.Field{
+				{Key: "registry", Value: base.Host},
+				{Key: "realm", Value: params["realm"]},
+			},
+		}
 	}
 	q := realm.Query()
 	for _, k := range []string{"service", "scope"} {
@@ -312,7 +344,14 @@ func (c *Client) fetchToken(ctx context.Context, base *url.URL, challenge string
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("token request: unexpected status %d", resp.StatusCode)
+		return "", &clierr.Detail{
+			Headline: "token request failed: unexpected HTTP status",
+			Fields: []clierr.Field{
+				{Key: "registry", Value: base.Host},
+				{Key: "token endpoint", Value: realm.Host},
+				{Key: "status", Value: statusLine(resp.StatusCode)},
+			},
+		}
 	}
 	var body struct {
 		Token       string `json:"token"`
@@ -328,4 +367,9 @@ func (c *Client) fetchToken(ctx context.Context, base *url.URL, challenge string
 		return body.AccessToken, nil
 	}
 	return "", fmt.Errorf("token response contained no token")
+}
+
+// statusLine renders an HTTP status as "401 Unauthorized".
+func statusLine(code int) string {
+	return fmt.Sprintf("%d %s", code, http.StatusText(code))
 }

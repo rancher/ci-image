@@ -13,6 +13,7 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
+	"github.com/rancher/ci-image/internal/clierr"
 	"github.com/rancher/ci-image/internal/config"
 	"github.com/rancher/ci-image/internal/language"
 	"github.com/rancher/ci-image/internal/lockfile"
@@ -67,7 +68,7 @@ func verifyAliasDigests(ctx context.Context, cfg *config.Config, only []string) 
 			checked[img.Base] = verifyBase(ctx, clients, img.Base)
 		}
 		if err := checked[img.Base]; err != nil {
-			errs = append(errs, fmt.Errorf("image %s: %w", img.Name, err))
+			errs = append(errs, clierr.WithFields(err, clierr.Field{Key: "image", Value: img.Name}))
 		}
 	}
 	return errors.Join(errs...)

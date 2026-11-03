@@ -13,6 +13,7 @@ package clierr
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -83,4 +84,30 @@ func (p *Problems) Error() string {
 // their own indentation.
 func Render(level string, err error) string {
 	return level + ": " + err.Error()
+}
+
+// WithFields adds context to err, e.g. which image it came from. Fields go
+// before any the error already has. A *Detail keeps its headline; any other
+// error becomes the headline of a new Detail and stays reachable via Unwrap.
+func WithFields(err error, fields ...Field) error {
+	if d, ok := err.(*Detail); ok {
+		c := *d
+		c.Fields = append(slices.Clone(fields), d.Fields...)
+		return &c
+	}
+	return &Detail{Headline: err.Error(), Fields: fields, Err: err}
+}
+
+type hinted struct {
+	err  error
+	hint string
+}
+
+func (h *hinted) Error() string { return h.err.Error() + "\nhint: " + h.hint }
+func (h *hinted) Unwrap() error { return h.err }
+
+// WithHint appends a closing "hint:" line to err, for advice that applies to
+// the whole failure rather than to one of its fields.
+func WithHint(err error, hint string) error {
+	return &hinted{err: err, hint: hint}
 }

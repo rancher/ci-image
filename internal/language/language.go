@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/rancher/ci-image/internal/clierr"
 	"github.com/rancher/ci-image/internal/registry"
 )
 
@@ -87,15 +88,24 @@ func VerifyDigest(ctx context.Context, r DigestResolver, base string) error {
 		return err
 	}
 	if ref.Tag == "" || ref.Digest == "" {
-		return fmt.Errorf("%s: base must carry both a tag and a digest", base)
+		return &clierr.Detail{
+			Headline: "base must carry both a tag and a digest",
+			Fields:   []clierr.Field{{Key: "base", Value: base}},
+		}
 	}
 	got, err := r.Digest(ctx, ref.Repo, ref.Tag)
 	if err != nil {
-		return fmt.Errorf("resolving %s:%s: %w", ref.Repo, ref.Tag, err)
+		return clierr.WithFields(err, clierr.Field{Key: "base", Value: ref.Registry + "/" + ref.Repo + ":" + ref.Tag})
 	}
 	if got != ref.Digest {
-		return fmt.Errorf("%s/%s:%s resolves to %s but base is pinned to %s: tag and digest disagree",
-			ref.Registry, ref.Repo, ref.Tag, got, ref.Digest)
+		return &clierr.Detail{
+			Headline: "base image tag and digest disagree",
+			Fields: []clierr.Field{
+				{Key: "base", Value: ref.Registry + "/" + ref.Repo + ":" + ref.Tag},
+				{Key: "pinned", Value: ref.Digest},
+				{Key: "current", Value: got},
+			},
+		}
 	}
 	return nil
 }

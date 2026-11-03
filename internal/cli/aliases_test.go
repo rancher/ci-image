@@ -90,8 +90,13 @@ func TestVerifyAliasDigests(t *testing.T) {
 
 	fakeRegistry(t, digB)
 	err := verifyAliasDigests(ctx, testCfg(goImage("a", "1.26.10", digA, true)), nil)
-	if err == nil || !strings.Contains(err.Error(), digA) || !strings.Contains(err.Error(), digB) || !strings.Contains(err.Error(), "image a") {
-		t.Fatalf("mismatch must name image and both digests, got %v", err)
+	if err == nil {
+		t.Fatal("mismatch must fail")
+	}
+	for _, want := range []string{"    image:   a\n", "    pinned:  " + digA, "    current: " + digB} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("mismatch error missing %q:\n%s", want, err)
+		}
 	}
 
 	// only filters to the named images.

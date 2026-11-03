@@ -44,3 +44,29 @@ func TestRender(t *testing.T) {
 		t.Errorf("got %q", got)
 	}
 }
+
+func TestWithFields(t *testing.T) {
+	inner := &Detail{Headline: "registry requires credentials", Fields: []Field{{"registry", "r"}}}
+	got := WithFields(inner, Field{"image", "node22"}).Error()
+	want := "registry requires credentials\n    image:    node22\n    registry: r"
+	if got != want {
+		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	}
+	if len(inner.Fields) != 1 {
+		t.Error("WithFields must not modify its argument")
+	}
+
+	cause := errors.New("boom")
+	wrapped := WithFields(cause, Field{"image", "a"})
+	if !errors.Is(wrapped, cause) || wrapped.Error() != "boom\n    image: a" {
+		t.Errorf("plain error: got %q", wrapped.Error())
+	}
+}
+
+func TestWithHint(t *testing.T) {
+	cause := errors.New("boom")
+	h := WithHint(cause, "try again")
+	if h.Error() != "boom\nhint: try again" || !errors.Is(h, cause) {
+		t.Errorf("got %q", h.Error())
+	}
+}

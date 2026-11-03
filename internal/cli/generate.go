@@ -13,6 +13,7 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
+	"github.com/rancher/ci-image/internal/clierr"
 	"github.com/rancher/ci-image/internal/config"
 	"github.com/rancher/ci-image/internal/dockerfile"
 	"github.com/rancher/ci-image/internal/fileutil"
@@ -80,7 +81,7 @@ func runGenerate(args []string) error {
 	if offlineRequested(offline) {
 		fmt.Fprintln(os.Stderr, "notice: offline mode: skipping base tag/digest verification for rolling tags")
 	} else if err := verifyAliasDigests(context.Background(), cfg, nil); err != nil {
-		return fmt.Errorf("verifying rolling tag bases (use --offline or %s=1 to skip): %w", offlineEnv, err)
+		return clierr.WithHint(err, fmt.Sprintf("pass --offline or set %s=1 to skip checking rolling tag bases against the registry", offlineEnv))
 	}
 
 	// Generate Dockerfiles (cfg now has resolved versions/checksums).

@@ -162,10 +162,10 @@ universal:
 
   - name: slsactl
     source: rancherlabs/slsactl
-    version: v0.1.45
+    version: v0.1.47
     checksums:
-      linux/amd64: "ba17982ac91d427ecbe9cad1b2dfa0183cf4bddb6e616ab9525105be6095eb60"
-      linux/arm64: "d7ef77e7327b9992077b5a9e99ceb2bf7e5cb0ee04753bb8b8ad0f59cb5b1e08"
+      linux/amd64: "834d05c3bcfa3fcde7043f86452521cc8c36ca7fc6dd4fc0ce380789f0046ca1"
+      linux/arm64: "a362f1fbe4bc26cb6990a03c1e91c656aa308d2cba51c0046462e199ed8f2402"
     release:
       download_template: "slsactl_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "slsactl"
@@ -196,10 +196,10 @@ tools:
 
   - name: goreleaser
     source: goreleaser/goreleaser
-    version: v2.19.0
+    version: v2.20.0
     checksums:
-      linux/amd64: "ebc3194ad1d1b1787614405285a0039665cd4c5bd3305215a1b201600f90630b"
-      linux/arm64: "ef33741b684c9f62d6a21e7a3c8b051f139ea7b1d301693b67cc819c46226d53"
+      linux/amd64: "d2483159e6007f814132cb56635ad30a70013dbeb813d6033a7e01adf6ae108c"
+      linux/arm64: "2dada0a6bbcd10f3a05228d98e77d25fb362efb9e5bab6362cf37e64c8a26cb9"
     release:
       download_template: "goreleaser_{os|title}_{arch|replace:amd64=x86_64}.tar.gz"
       extract: "goreleaser"

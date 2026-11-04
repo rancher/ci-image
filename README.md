@@ -16,9 +16,9 @@ Language images (Go, Python, Node) are also tagged with the full language versio
 | `go1.25` | go | 1.25.14 | CI image with Go 1.25 toolchain |
 | `go1.26` | go | 1.26.10 | CI image with Go 1.26 toolchain |
 | `go1.27` | go | 1.27.3 | CI image with Go 1.27 toolchain |
-| `python3.11` | python | 3.11.15 | CI image with Python 3.11 toolchain |
-| `python3.13` | python | 3.13.15 | CI image with Python 3.13 toolchain |
-| `node22` | node | 22.23.2 | CI image with Node 22 toolchain |
+| `python3.11` | python | 3.11.17 | CI image with Python 3.11 toolchain |
+| `python3.13` | python | 3.13.16 | CI image with Python 3.13 toolchain |
+| `node22` | node | 22.23.4 | CI image with Node 22 toolchain |
 | `node24` | node | 24.18.1 | CI image with Node 24 toolchain |
 | `charts` | n/a | n/a | Rancher charts build environment |
 | `nix` | n/a | n/a | Nix environment |

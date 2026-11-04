@@ -113,17 +113,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/helmv4" && \
     rm -rf "${TMP_DIR}"
 
-# slsactl v0.1.45
+# slsactl v0.1.47
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="ba17982ac91d427ecbe9cad1b2dfa0183cf4bddb6e616ab9525105be6095eb60" ;; \
-        arm64) CHECKSUM="d7ef77e7327b9992077b5a9e99ceb2bf7e5cb0ee04753bb8b8ad0f59cb5b1e08" ;; \
+        amd64) CHECKSUM="834d05c3bcfa3fcde7043f86452521cc8c36ca7fc6dd4fc0ce380789f0046ca1" ;; \
+        arm64) CHECKSUM="a362f1fbe4bc26cb6990a03c1e91c656aa308d2cba51c0046462e199ed8f2402" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/slsactl.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.45/slsactl_0.1.45_linux_amd64.tar.gz"; EXTRACT="slsactl" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.45/slsactl_0.1.45_linux_arm64.tar.gz"; EXTRACT="slsactl" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.47/slsactl_0.1.47_linux_amd64.tar.gz"; EXTRACT="slsactl" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.47/slsactl_0.1.47_linux_arm64.tar.gz"; EXTRACT="slsactl" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \
@@ -168,17 +168,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/golangci-lint" && \
     rm -rf "${TMP_DIR}"
 
-# goreleaser v2.19.0
+# goreleaser v2.20.0
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="ebc3194ad1d1b1787614405285a0039665cd4c5bd3305215a1b201600f90630b" ;; \
-        arm64) CHECKSUM="ef33741b684c9f62d6a21e7a3c8b051f139ea7b1d301693b67cc819c46226d53" ;; \
+        amd64) CHECKSUM="d2483159e6007f814132cb56635ad30a70013dbeb813d6033a7e01adf6ae108c" ;; \
+        arm64) CHECKSUM="2dada0a6bbcd10f3a05228d98e77d25fb362efb9e5bab6362cf37e64c8a26cb9" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/goreleaser.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/goreleaser/goreleaser/releases/download/v2.19.0/goreleaser_Linux_x86_64.tar.gz"; EXTRACT="goreleaser" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/goreleaser/goreleaser/releases/download/v2.19.0/goreleaser_Linux_arm64.tar.gz"; EXTRACT="goreleaser" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/goreleaser/goreleaser/releases/download/v2.20.0/goreleaser_Linux_x86_64.tar.gz"; EXTRACT="goreleaser" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/goreleaser/goreleaser/releases/download/v2.20.0/goreleaser_Linux_arm64.tar.gz"; EXTRACT="goreleaser" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \

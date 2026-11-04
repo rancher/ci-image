@@ -26,11 +26,11 @@ packages:
     - zstd
     - wget
 tools:
-    charts-build-scripts: v1.9.34
+    charts-build-scripts: v1.9.36
     cosign: v3.1.4
     gh: v2.103.3
     golangci-lint: v2.15.0
-    goreleaser: v2.19.0
+    goreleaser: v2.20.0
     govulncheck: v1.6.0
     helmv3: v3.21.3
     helmv4: v4.2.3
@@ -45,10 +45,10 @@ tools:
     kubectl1.36: v1.36.3
     kuberlr: v0.9.0
     nix: 2.35.1
-    ob-charts-tool: v0.6.1
+    ob-charts-tool: v0.7.1
     oras: v1.3.6
-    release: v0.78.1
-    slsactl: v0.1.45
+    release: v0.78.2
+    slsactl: v0.1.47
     yq: v4.54.1
 selectors:
     - helm
@@ -111,7 +111,7 @@ configs:
             kubectl: kubectl1.36
         description: Rancher charts build environment
     go1.25:
-        base: registry.suse.com/bci/golang:1.25.14@sha256:540ab6a209c343bb1ee9e9a9eca2ab04e13e253ba0cf64725fef0f0bdef1fb58
+        base: registry.suse.com/bci/golang:1.25.14@sha256:f4041ea74930c6048770bcec19afca9a39092d8048dfdba54e87fb07bfc97f59
         platforms:
             - linux/amd64
             - linux/arm64
@@ -247,7 +247,7 @@ configs:
             helm: helmv4
         description: Nix environment
     node22:
-        base: registry.suse.com/bci/nodejs:22.23.2@sha256:d318c464bc8f4467c3e0b5dc4d9cb62b5e32532a099e43bf5c73a67f3c8ac900
+        base: registry.suse.com/bci/nodejs:22.23.4@sha256:81a00859656dfb8b0381e10ed5fbf5406964eaaa89f95e23a5d0a717697b8cbd
         platforms:
             - linux/amd64
             - linux/arm64
@@ -261,12 +261,12 @@ configs:
         family_selectors:
             helm: helmv4
         language: node
-        language_version: 22.23.2
+        language_version: 22.23.4
         tag_aliases:
-            - 22.23.2
+            - 22.23.4
         description: CI image with Node 22 toolchain
     node24:
-        base: registry.suse.com/bci/nodejs:24.18.1-base@sha256:b40c0d9763833ecc6e8bc37a810a147c895b1a1c505243bf9ad3a3f0978b26b6
+        base: registry.suse.com/bci/nodejs:24.18.1-base@sha256:3fde77f13e86261c773e0998973d685d5ab9f07c5e833fd6c58c94707393e5c2
         platforms:
             - linux/amd64
             - linux/arm64
@@ -285,7 +285,7 @@ configs:
             - 24.18.1
         description: CI image with Node 24 toolchain
     python3.11:
-        base: registry.suse.com/bci/python:3.11.15@sha256:9dc1899218a47bb92b62d97d32be31258ab8a455049f7e2313ca9ea87a443380
+        base: registry.suse.com/bci/python:3.11.17@sha256:34988e1b620e1fda1c400f4f01ea10b8a58cf4c847aec8641b500a05c39f213e
         platforms:
             - linux/amd64
             - linux/arm64
@@ -299,12 +299,12 @@ configs:
         family_selectors:
             helm: helmv4
         language: python
-        language_version: 3.11.15
+        language_version: 3.11.17
         tag_aliases:
-            - 3.11.15
+            - 3.11.17
         description: CI image with Python 3.11 toolchain
     python3.13:
-        base: registry.suse.com/bci/python:3.13.15@sha256:c2fdbafcbfdfe9b52dbf1c93e0a672e8a53ec9ec56059c6bbb3eae9b645f3c4e
+        base: registry.suse.com/bci/python:3.13.16@sha256:b1b604b2b42f5fed5f737541dad6b87b1a0090e2f6cc9a9c92ff4f5c3bd84e09
         platforms:
             - linux/amd64
             - linux/arm64
@@ -318,7 +318,7 @@ configs:
         family_selectors:
             helm: helmv4
         language: python
-        language_version: 3.13.15
+        language_version: 3.13.16
         tag_aliases:
-            - 3.13.15
+            - 3.13.16
         description: CI image with Python 3.13 toolchain

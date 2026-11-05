@@ -1,6 +1,6 @@
 module github.com/rancher/ci-image
 
-go 1.27.2
+go 1.27.3
 
 require (
 	github.com/mallardduck/ghreleases v0.7.0

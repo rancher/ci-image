@@ -16,6 +16,11 @@ type ReleaseFilter struct {
 	// TagPrefix restricts results to releases whose tag starts with this string.
 	// An empty prefix disables filtering and preserves the default behavior.
 	TagPrefix string
+
+	// IncludePrereleases makes LatestRelease consider prereleases and return
+	// the highest semver tag rather than the most recently published one.
+	// Drafts are always excluded.
+	IncludePrereleases bool
 }
 
 // WithTagPrefix returns a context that instructs LatestRelease to scan all
@@ -29,7 +34,22 @@ type ReleaseFilter struct {
 //	ctx := ghrelease.WithTagPrefix(context.Background(), "cli/")
 //	tag, err := client.LatestRelease(ctx, "rancher", "ob-charts-tool")
 func WithTagPrefix(ctx context.Context, prefix string) context.Context {
-	return context.WithValue(ctx, releaseFilterKey{}, ReleaseFilter{TagPrefix: prefix})
+	f, _ := releaseFilterFromContext(ctx)
+	f.TagPrefix = prefix
+	return context.WithValue(ctx, releaseFilterKey{}, f)
+}
+
+// WithPrereleases returns a context that instructs LatestRelease to include
+// prereleases when include is true. Because GitHub's /releases/latest never
+// returns prereleases, the paginated /releases endpoint is used and every
+// page is scanned: the result is the highest semver tag (see CompareVersions),
+// not the most recently published one. Tags that are not valid semver are
+// ignored. Drafts are always excluded. It composes with WithTagPrefix in
+// either order.
+func WithPrereleases(ctx context.Context, include bool) context.Context {
+	f, _ := releaseFilterFromContext(ctx)
+	f.IncludePrereleases = include
+	return context.WithValue(ctx, releaseFilterKey{}, f)
 }
 
 func releaseFilterFromContext(ctx context.Context) (ReleaseFilter, bool) {

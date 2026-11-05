@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -25,6 +26,16 @@ type Client struct {
 	// allowedHosts, when non-empty, restricts every request (and redirect) to
 	// these hosts and their subdomains, plus the base URL host.
 	allowedHosts []string
+
+	manifestVerifier SignatureVerifier
+	// manifestVerifierErr is set when WithManifestVerifier was given a nil
+	// verifier; every manifest fetch then fails closed.
+	manifestVerifierErr error
+
+	artifactVerifier SignatureVerifier
+	// artifactVerifierErr is set when WithArtifactVerifier was given a nil
+	// verifier; every download then fails closed.
+	artifactVerifierErr error
 }
 
 // Option configures a Client. Pass options to NewClient or NewClientWithHTTP.
@@ -52,6 +63,97 @@ func WithAllowedHosts(hosts ...string) Option {
 	}
 }
 
+// SignatureVerifier authenticates content against a detached signature, for
+// example a Sigstore bundle or an OpenPGP .asc file. A checksum file published
+// next to a binary proves integrity but not authenticity; verifying a signature
+// closes that gap, whether the content is the checksum manifest
+// (WithManifestVerifier) or the downloaded asset itself (WithArtifactVerifier).
+// One implementation can serve both roles.
+type SignatureVerifier interface {
+	// SignatureName returns the asset name of the detached signature for the
+	// asset named assetName (e.g. "checksums.txt" -> "checksums.txt.sigstore.json",
+	// "tool.tar.gz" -> "tool.tar.gz.asc").
+	SignatureName(assetName string) string
+
+	// Verify reports whether signature authenticates exactly the bytes read from
+	// content. It must read content to EOF; returning nil having read less is
+	// treated as a failure. Any non-nil error rejects the content.
+	Verify(ctx context.Context, content io.Reader, signature []byte) error
+}
+
+// WithManifestVerifier makes FetchChecksums, FetchChecksumsLenient and
+// FetchMultiHashChecksums authenticate each checksum manifest before parsing
+// it. The signature is located via v.SignatureName (or WithSignatureURL), and a
+// missing signature fails with ErrSignatureMissing, a rejected one with
+// ErrSignatureInvalid, so enabling a verifier can never silently fall back to
+// unauthenticated checksums. Without this option behavior is unchanged.
+func WithManifestVerifier(v SignatureVerifier) Option {
+	return func(c *Client) {
+		c.manifestVerifier, c.manifestVerifierErr = v, nil
+		if isNilInterface(v) {
+			c.manifestVerifierErr = &wrapped{sentinel: ErrInvalidVerifier, cause: errors.New("WithManifestVerifier was given a nil verifier")}
+		}
+	}
+}
+
+// isNilInterface reports whether v is nil or an interface holding a nil
+// pointer, map, slice, func or chan - for example the result of ignoring the
+// error from a verifier constructor.
+func isNilInterface(v any) bool {
+	if v == nil {
+		return true
+	}
+	switch rv := reflect.ValueOf(v); rv.Kind() {
+	case reflect.Pointer, reflect.Map, reflect.Slice, reflect.Func, reflect.Chan, reflect.Interface:
+		return rv.IsNil()
+	}
+	return false
+}
+
+// WithArtifactVerifier makes Download and DownloadToBytes
+// authenticate each asset against its detached signature. The signature is
+// fetched before the asset, from DownloadOptions.SignatureURL or, failing that,
+// next to the asset via v.SignatureName. A missing signature fails with
+// ErrSignatureMissing and a rejected one with ErrSignatureInvalid; verification
+// never silently falls back to an unauthenticated download. Without this option
+// behavior is unchanged. Independent of WithManifestVerifier: use either or both.
+//
+// While a download is being verified the destination receives no bytes (see
+// DownloadOptions.StreamUnverified).
+func WithArtifactVerifier(v SignatureVerifier) Option {
+	return func(c *Client) {
+		c.artifactVerifier, c.artifactVerifierErr = v, nil
+		if isNilInterface(v) {
+			c.artifactVerifierErr = &wrapped{sentinel: ErrInvalidVerifier, cause: errors.New("WithArtifactVerifier was given a nil verifier")}
+		}
+	}
+}
+
+type signatureURLKey struct{}
+
+// WithSignatureURL returns a context telling the FetchChecksums* methods
+// exactly where the manifest's detached signature lives. Use it when the
+// manifest URL is a GitHub API asset URL (".../releases/assets/<id>"), where
+// the signature cannot be found by name: look it up in Release.Assets using
+// SignatureVerifier.SignatureName and pass its URL here. Without it the
+// signature is expected next to the manifest, at the same URL with the last
+// path segment replaced by SignatureName.
+func WithSignatureURL(ctx context.Context, url string) context.Context {
+	return context.WithValue(ctx, signatureURLKey{}, url)
+}
+
+// siblingURL replaces the last path segment of rawURL with name.
+func siblingURL(rawURL, name string) string {
+	q := ""
+	if i := strings.IndexAny(rawURL, "?#"); i >= 0 {
+		rawURL, q = rawURL[:i], rawURL[i:]
+	}
+	if i := strings.LastIndex(rawURL, "/"); i >= 0 {
+		rawURL = rawURL[:i+1]
+	}
+	return rawURL + name + q
+}
+
 // Release represents a GitHub release.
 type Release struct {
 	ID          int64
@@ -60,7 +162,10 @@ type Release struct {
 	Draft       bool
 	Prerelease  bool
 	PublishedAt time.Time
-	Assets      []Asset
+	// Body is the release notes text. It is populated by the single-release
+	// and latest-release lookups as well as by listings.
+	Body   string
+	Assets []Asset
 }
 
 // Asset represents a downloadable release asset.
@@ -208,33 +313,46 @@ func newClient(httpClient *http.Client, token string, opts []Option) *Client {
 // ReleaseFilter to the context with WithTagPrefix so that only releases
 // matching the desired prefix are considered.
 func (c *Client) LatestRelease(ctx context.Context, owner, repo string) (string, error) {
-	if filter, ok := releaseFilterFromContext(ctx); ok && filter.TagPrefix != "" {
+	rel, err := c.LatestReleaseInfo(ctx, owner, repo)
+	if err != nil {
+		return "", err
+	}
+	return rel.TagName, nil
+}
+
+// LatestReleaseInfo is LatestRelease that returns the whole release, not just
+// its tag, so callers can read Prerelease, PublishedAt, Body and Assets without
+// a second request. It honours the same context filters as LatestRelease
+// (WithTagPrefix, WithPrereleases).
+func (c *Client) LatestReleaseInfo(ctx context.Context, owner, repo string) (*Release, error) {
+	filter, _ := releaseFilterFromContext(ctx)
+	if filter.IncludePrereleases {
+		return c.highestRelease(ctx, owner, repo, filter)
+	}
+	if filter.TagPrefix != "" {
 		return c.latestReleaseWithFilter(ctx, owner, repo, filter)
 	}
 
 	url := fmt.Sprintf("%s/repos/%s/%s/releases/latest", c.baseURL, owner, repo)
 
-	var release struct {
-		TagName string `json:"tag_name"`
+	var raw apiRelease
+	if err := c.doGet(ctx, url, &raw); err != nil {
+		return nil, wrapFetchErr(err)
 	}
 
-	if err := c.doGet(ctx, url, &release); err != nil {
-		return "", wrapFetchErr(err)
-	}
-
-	return release.TagName, nil
+	return raw.toRelease(), nil
 }
 
 // latestReleaseWithFilter lists releases in descending publish order and
 // returns the first non-draft, non-prerelease one whose tag starts with
 // filter.TagPrefix. It paginates until a match is found or an empty page
 // signals exhaustion.
-func (c *Client) latestReleaseWithFilter(ctx context.Context, owner, repo string, filter ReleaseFilter) (string, error) {
+func (c *Client) latestReleaseWithFilter(ctx context.Context, owner, repo string, filter ReleaseFilter) (*Release, error) {
 	for page := 1; ; page++ {
 		url := fmt.Sprintf("%s/repos/%s/%s/releases?page=%d&per_page=100", c.baseURL, owner, repo, page)
 		var raw []apiRelease
 		if err := c.doGet(ctx, url, &raw); err != nil {
-			return "", wrapFetchErr(err)
+			return nil, wrapFetchErr(err)
 		}
 		if len(raw) == 0 {
 			break
@@ -245,11 +363,47 @@ func (c *Client) latestReleaseWithFilter(ctx context.Context, owner, repo string
 				continue
 			}
 			if strings.HasPrefix(rel.TagName, filter.TagPrefix) {
-				return rel.TagName, nil
+				return rel, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("%w: no release with tag prefix %q in %s/%s", ErrReleaseNotFound, filter.TagPrefix, owner, repo)
+	return nil, fmt.Errorf("%w: no release with tag prefix %q in %s/%s", ErrReleaseNotFound, filter.TagPrefix, owner, repo)
+}
+
+// highestRelease scans every page of non-draft releases matching the filter
+// prefix and returns the tag with the highest semver precedence. Prereleases
+// are included. Non-semver tags are ignored.
+func (c *Client) highestRelease(ctx context.Context, owner, repo string, filter ReleaseFilter) (*Release, error) {
+	var best *Release
+	for page := 1; ; page++ {
+		url := fmt.Sprintf("%s/repos/%s/%s/releases?page=%d&per_page=100", c.baseURL, owner, repo, page)
+		var raw []apiRelease
+		if err := c.doGet(ctx, url, &raw); err != nil {
+			return nil, wrapFetchErr(err)
+		}
+		if len(raw) == 0 {
+			break
+		}
+		for _, r := range raw {
+			if r.Draft || !strings.HasPrefix(r.TagName, filter.TagPrefix) {
+				continue
+			}
+			if _, ok := parseVersion(r.TagName); !ok {
+				continue
+			}
+			if best == nil {
+				best = r.toRelease()
+				continue
+			}
+			if cmp, _ := CompareVersions(r.TagName, best.TagName); cmp > 0 {
+				best = r.toRelease()
+			}
+		}
+	}
+	if best == nil {
+		return nil, fmt.Errorf("%w: no semver release in %s/%s", ErrReleaseNotFound, owner, repo)
+	}
+	return best, nil
 }
 
 // GetRelease fetches a specific release by tag.
@@ -390,6 +544,7 @@ type apiRelease struct {
 	ID          int64  `json:"id"`
 	TagName     string `json:"tag_name"`
 	Name        string `json:"name"`
+	Body        string `json:"body"`
 	Draft       bool   `json:"draft"`
 	Prerelease  bool   `json:"prerelease"`
 	PublishedAt string `json:"published_at"`
@@ -406,6 +561,7 @@ func (r apiRelease) toRelease() *Release {
 		ID:          r.ID,
 		TagName:     r.TagName,
 		Name:        r.Name,
+		Body:        r.Body,
 		Draft:       r.Draft,
 		Prerelease:  r.Prerelease,
 		PublishedAt: published,
@@ -419,7 +575,7 @@ func (r apiRelease) toRelease() *Release {
 
 // FetchChecksums downloads and parses a checksum file strictly (see ParseChecksumFile).
 func (c *Client) FetchChecksums(ctx context.Context, url string) (map[string]string, error) {
-	body, err := c.fetchBody(ctx, url)
+	body, err := c.fetchManifest(ctx, url)
 	if err != nil {
 		return nil, err
 	}
@@ -429,7 +585,7 @@ func (c *Client) FetchChecksums(ctx context.Context, url string) (map[string]str
 // FetchChecksumsLenient downloads and parses a checksum file leniently
 // (see ParseChecksumFileLenient).
 func (c *Client) FetchChecksumsLenient(ctx context.Context, url string) (map[string]string, error) {
-	body, err := c.fetchBody(ctx, url)
+	body, err := c.fetchManifest(ctx, url)
 	if err != nil {
 		return nil, err
 	}
@@ -438,7 +594,18 @@ func (c *Client) FetchChecksumsLenient(ctx context.Context, url string) (map[str
 
 // FetchMultiHashChecksums downloads a multi-hash checksum file and its sibling
 // hash-order file, then returns the SHA-256 column (see ParseMultiHashChecksumFile).
+//
+// Only the checksum file is authenticated by WithManifestVerifier; the hash-order
+// file is fetched unverified, since such files are not normally signed. It only
+// picks which column is read, and every column lives in the authenticated
+// checksum file, so tampering with it selects a different hash for the same
+// asset: a download checked against it fails with ErrChecksumMismatch, it cannot
+// make a forged asset pass.
 func (c *Client) FetchMultiHashChecksums(ctx context.Context, checksumURL, orderURL string) (map[string]string, error) {
+	body, err := c.fetchManifest(ctx, checksumURL)
+	if err != nil {
+		return nil, err
+	}
 	orderBody, err := c.fetchBody(ctx, orderURL)
 	if err != nil {
 		return nil, err
@@ -447,11 +614,87 @@ func (c *Client) FetchMultiHashChecksums(ctx context.Context, checksumURL, order
 	if err != nil {
 		return nil, err
 	}
-	body, err := c.fetchBody(ctx, checksumURL)
+	return ParseMultiHashChecksumFile(bytes.NewReader(body), order)
+}
+
+// fetchManifest fetches a checksum manifest and, when a SignatureVerifier is
+// configured, authenticates it against its detached signature.
+func (c *Client) fetchManifest(ctx context.Context, url string) ([]byte, error) {
+	if c.manifestVerifierErr != nil {
+		return nil, c.manifestVerifierErr
+	}
+	body, err := c.fetchBody(ctx, url)
 	if err != nil {
 		return nil, err
 	}
-	return ParseMultiHashChecksumFile(bytes.NewReader(body), order)
+	if c.manifestVerifier == nil {
+		return body, nil
+	}
+	sigURL, _ := ctx.Value(signatureURLKey{}).(string)
+	if sigURL == "" {
+		sigURL = siblingURL(url, c.manifestVerifier.SignatureName(lastPathSegment(url)))
+	}
+	sig, err := c.fetchSignature(ctx, sigURL)
+	if err != nil {
+		return nil, err
+	}
+	// The manifest is in memory, so count what the verifier reads: accepting
+	// after reading less than all of it authenticates nothing.
+	cr := &countingReader{r: bytes.NewReader(body)}
+	if err := safeVerify(ctx, c.manifestVerifier, cr, sig); err != nil {
+		return nil, &wrapped{sentinel: ErrSignatureInvalid, cause: err}
+	}
+	if cr.n != int64(len(body)) {
+		return nil, &wrapped{sentinel: ErrSignatureInvalid, cause: errVerifierFinished}
+	}
+	return body, nil
+}
+
+// countingReader counts the bytes read through it.
+type countingReader struct {
+	r io.Reader
+	n int64
+}
+
+func (c *countingReader) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	c.n += int64(n)
+	return n, err
+}
+
+// safeVerify calls v.Verify, turning a panic into an error: a panicking
+// verifier must fail verification, not crash the caller or let content through.
+func safeVerify(ctx context.Context, v SignatureVerifier, content io.Reader, sig []byte) (err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			err = fmt.Errorf("verifier panicked: %v", p)
+		}
+	}()
+	return v.Verify(ctx, content, sig)
+}
+
+// fetchSignature fetches a detached signature. A 404 means the release has no
+// signature, which is reported as ErrSignatureMissing so that enabling a
+// verifier can never degrade into an unauthenticated fetch.
+func (c *Client) fetchSignature(ctx context.Context, sigURL string) ([]byte, error) {
+	sig, err := c.fetchBody(ctx, sigURL)
+	if err != nil {
+		var st *HTTPStatusError
+		if errors.As(err, &st) && st.StatusCode == http.StatusNotFound {
+			return nil, &wrapped{sentinel: ErrSignatureMissing, cause: err}
+		}
+		return nil, err
+	}
+	return sig, nil
+}
+
+// lastPathSegment returns the final path segment of rawURL, ignoring any query
+// string or fragment.
+func lastPathSegment(rawURL string) string {
+	if i := strings.IndexAny(rawURL, "?#"); i >= 0 {
+		rawURL = rawURL[:i]
+	}
+	return rawURL[strings.LastIndex(rawURL, "/")+1:]
 }
 
 // fetchBody GETs url and returns the body, applying the default API timeout when

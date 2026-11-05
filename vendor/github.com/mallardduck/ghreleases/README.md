@@ -1,6 +1,8 @@
 # ghreleases
 
-A zero-dependency Go package for fetching and extracting GitHub release assets.
+A Go package for fetching and extracting GitHub release assets. The core module has
+**zero dependencies** (standard library only); the optional signature verifiers live in
+separate modules that bring their own - see [Authenticating checksum manifests](#authenticating-checksum-manifests-optional).
 
 ## Features
 
@@ -9,7 +11,8 @@ A zero-dependency Go package for fetching and extracting GitHub release assets.
 - **Checksum Validation** - Parse and verify SHA-256 checksums
 - **Archive Extraction** - Extract from .tar.gz, .tgz, .zip, and .gz archives
 - **Streaming Downloads** - Efficient downloads with built-in hash computation
-- **Zero Dependencies** - Standard library only for maximum portability
+- **Zero Dependencies (core module)** - Standard library only for maximum portability
+- **Optional Signature Verification** - Authenticate checksum manifests with pluggable verifiers (Sigstore, OpenPGP, or your own); off by default
 
 ## Installation
 
@@ -102,12 +105,69 @@ ctx := context.Background()
 // Get latest release tag
 tag, err := client.LatestRelease(ctx, "owner", "repo")
 
+// Or the whole latest release (Prerelease, PublishedAt, Body, Assets) in one
+// request; it honours the same WithTagPrefix / WithPrereleases context filters
+rel, err := client.LatestReleaseInfo(ctx, "owner", "repo")
+
 // Get specific release with assets
 release, err := client.GetRelease(ctx, "owner", "repo", "v1.0.0")
 for _, asset := range release.Assets {
     fmt.Printf("%s - %d bytes\n", asset.Name, asset.Size)
 }
 ```
+
+#### Authenticating checksum manifests (optional)
+
+A checksum file published next to the binary proves the download is intact, not that it is
+authentic: an attacker who can replace the release can replace both. A `SignatureVerifier`
+checks a detached signature over the checksum file *before* any checksum in it is trusted.
+
+```go
+client := ghrelease.NewClient(token, ghrelease.WithManifestVerifier(v))
+checksums, err := client.FetchChecksums(ctx, checksumsURL) // also fetches and checks the signature
+```
+
+- **Off by default.** Without `WithManifestVerifier` behavior is unchanged and no signature is fetched.
+- **Fails closed.** Once enabled, a missing signature returns `ErrSignatureMissing` and a rejected one
+  returns `ErrSignatureInvalid`; the client never falls back to the unsigned checksums.
+- **Opaque asset URLs.** GitHub API asset URLs end in a numeric ID, so the signature cannot be found by
+  name. Find it in `Release.Assets` via `v.SignatureName(...)` and pass `WithSignatureURL(ctx, url)`.
+- **Your choice of verifier.** `SignatureVerifier` is a two-method interface. Implement it with whatever
+  library or tool you prefer, or use one of the ready-made modules below.
+
+The same interface verifies the downloaded asset itself, which is what projects that sign their
+tarballs (rather than, or as well as, a checksum file) need. Manifest and asset verification are
+separate options, so you can use either or both, with the same verifier or different ones:
+
+```go
+client := ghrelease.NewClient(token,
+    ghrelease.WithManifestVerifier(v), // checksums.txt is signed
+    ghrelease.WithArtifactVerifier(v), // and/or each asset is signed
+)
+// The signature is fetched first (a missing one fails before the asset is downloaded), then the
+// asset is streamed through the verifier. Nothing reaches your writer until it passes.
+result, err := client.Download(assetURL, &buf, ghrelease.DownloadOptions{
+    SignatureURL: sigAssetURL, // needed for opaque GitHub API asset URLs
+})
+```
+
+Verifiers must read all of the content they accept: one that returns success having read only part
+of it is rejected, and one that panics fails closed. A nil verifier is an error
+(`ErrInvalidVerifier`), never a silent downgrade to no verification.
+
+Ready-made verifiers are **separate Go modules** so the core stays dependency-free. Importing one adds
+its dependencies to *your* build; pick the lightest that matches how your releases are signed:
+
+| Module | Verifies | Added to your build |
+|---|---|---|
+| `github.com/mallardduck/ghreleases/pgp` | Detached OpenPGP signatures (`.asc`), e.g. Helm | `ProtonMail/go-crypto` and its small `x/*` dependencies (9 modules, ~5 MB binary) |
+| `github.com/mallardduck/ghreleases/sigstore` | Keyless Sigstore bundles (`.sigstore.json`), e.g. goreleaser, syft, flux | `sigstore-go` and its TUF, transparency-log and gRPC stack (hundreds of modules in the graph, ~24 MB binary) |
+
+Both require a recent Go toolchain (their `go.mod` is newer than the core's) and refuse to run without
+an explicit trust root: a keyring for `pgp`, a pinned signer identity for `sigstore`. Weakening those
+checks (for example `sigstore.WithInsecureSubjectPattern`) is possible but must be spelled out.
+
+See the package documentation on pkg.go.dev for runnable examples.
 
 #### Fetching Checksums
 
@@ -121,7 +181,9 @@ expectedHash := checksums["myapp-linux-amd64"]
 checksums, err := client.FetchChecksumsLenient(ctx, checksumURL)
 
 // Multi-hash files (e.g. mikefarah/yq): "<filename> <hash> <hash> ..." plus a
-// sibling file naming the columns. The exact "SHA-256" column is selected.
+// sibling file naming the columns. The exact "SHA-256" column is selected. Only
+// the checksum file is signature-verified; the column-order file is not, and
+// tampering with it can only cause a mismatch, not a false pass.
 checksums, err := client.FetchMultiHashChecksums(ctx, checksumsURL, hashesOrderURL)
 ```
 
@@ -218,7 +280,7 @@ fmt.Println("Size:", result.Size)
 result, err := client.Download(assetURL, &buf, ghrelease.DownloadOptions{
     ExpectedHash: "abc123...",  // SHA-256 hex
 })
-// Returns ErrChecksumMismatch if hash doesn't match
+// Returns ErrChecksumMismatch if hash doesn't match, and buf receives nothing
 
 // Download to byte slice (convenience wrapper)
 data, result, err := client.DownloadToBytes(assetURL, ghrelease.DownloadOptions{})
@@ -231,6 +293,22 @@ result, err := client.Download(assetURL, &buf, ghrelease.DownloadOptions{
     Context: ctx,
 })
 ```
+
+#### Nothing is written until it is verified
+
+When `ExpectedHash` is set or an artifact verifier is configured (see below), `Download` holds the
+asset in a temporary file (`DownloadOptions.TempDir`, default `os.TempDir()`) and writes to your
+`io.Writer` only after every check has passed, so a failed check never leaves unverified bytes in
+your destination. With nothing to verify, bytes stream straight through.
+
+`DownloadOptions.StreamUnverified` is the explicit escape hatch: bytes are written as they arrive,
+the checks still run, but on failure the destination already holds unverified data and is yours to
+discard. `DownloadToBytes` always streams into its buffer, since the buffer is dropped on failure.
+
+> **Behavior change:** in releases up to and including v0.7.0, `Download` wrote to your writer as bytes
+> arrived, so a failed `ExpectedHash` check could leave unverified data in it. Code that already
+> discarded the writer on error is unaffected. If you relied on streaming into the writer while the
+> hash was still being checked, set `StreamUnverified: true` to keep that behavior.
 
 ### Archive Extraction
 
@@ -496,6 +574,9 @@ if errors.Is(err, ghrelease.ErrReleaseNotFound) && errors.As(err, &se) {
 - `ErrUnsupportedFormat` - Unsupported archive format
 - `ErrChecksumFormat` - Malformed multi-hash checksum file
 - `ErrHostNotAllowed` - Request or redirect blocked by `WithAllowedHosts`
+- `ErrSignatureMissing` - A verifier is configured but the signature was not found
+- `ErrSignatureInvalid` - A verifier rejected the signature
+- `ErrInvalidVerifier` - A nil verifier was configured; verification fails closed instead of being skipped
 
 ## Testing
 
@@ -512,10 +593,21 @@ MIT - See LICENSE file for details.
 
 ## Contributing
 
-This package is designed to be stable and dependency-free. Contributions should maintain:
+The core module is designed to be stable and dependency-free. Contributions to it should maintain:
 
 - Zero external dependencies
 - Standard library only
 - Comprehensive test coverage
 - Clear error messages
 - Simple, focused APIs
+
+Optional integrations that need third-party libraries (such as the signature verifiers) belong in
+their own module under a subdirectory, so importing the core never pulls them in.
+
+## Releases
+
+The core module is tagged `vX.Y.Z`. Each optional verifier module is versioned and released
+independently, with its directory as the tag prefix: `pgp/vX.Y.Z` and `sigstore/vX.Y.Z`. Pushing one
+of those tags runs the module's tests and the integration tests, then publishes a GitHub release
+whose notes list only that module's user-facing commits. The verifier modules do not import the core
+module, so they can be released without a core release (and vice versa).

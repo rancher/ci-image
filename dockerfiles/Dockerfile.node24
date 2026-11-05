@@ -1,4 +1,4 @@
-FROM registry.suse.com/bci/nodejs:24.18.1-base@sha256:b40c0d9763833ecc6e8bc37a810a147c895b1a1c505243bf9ad3a3f0978b26b6
+FROM registry.suse.com/bci/nodejs:24.18.1-base@sha256:3fde77f13e86261c773e0998973d685d5ab9f07c5e833fd6c58c94707393e5c2
 
 LABEL org.opencontainers.image.source="https://github.com/rancher/ci-image" \
       org.opencontainers.image.title="Rancher node24 CI image" \
@@ -111,17 +111,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/helmv4" && \
     rm -rf "${TMP_DIR}"
 
-# slsactl v0.1.45
+# slsactl v0.1.47
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="ba17982ac91d427ecbe9cad1b2dfa0183cf4bddb6e616ab9525105be6095eb60" ;; \
-        arm64) CHECKSUM="d7ef77e7327b9992077b5a9e99ceb2bf7e5cb0ee04753bb8b8ad0f59cb5b1e08" ;; \
+        amd64) CHECKSUM="834d05c3bcfa3fcde7043f86452521cc8c36ca7fc6dd4fc0ce380789f0046ca1" ;; \
+        arm64) CHECKSUM="a362f1fbe4bc26cb6990a03c1e91c656aa308d2cba51c0046462e199ed8f2402" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/slsactl.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.45/slsactl_0.1.45_linux_amd64.tar.gz"; EXTRACT="slsactl" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.45/slsactl_0.1.45_linux_arm64.tar.gz"; EXTRACT="slsactl" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.47/slsactl_0.1.47_linux_amd64.tar.gz"; EXTRACT="slsactl" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.47/slsactl_0.1.47_linux_arm64.tar.gz"; EXTRACT="slsactl" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \

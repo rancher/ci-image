@@ -1,7 +1,7 @@
 images:
   - name: go1.25
     description: "CI image with Go 1.25 toolchain"
-    base: "registry.suse.com/bci/golang:1.25.14@sha256:540ab6a209c343bb1ee9e9a9eca2ab04e13e253ba0cf64725fef0f0bdef1fb58" 
+    base: "registry.suse.com/bci/golang:1.25.14@sha256:f4041ea74930c6048770bcec19afca9a39092d8048dfdba54e87fb07bfc97f59" 
     language_tag: true
     packages:
       - nodejs24
@@ -49,28 +49,28 @@ images:
 
   - name: python3.11
     description: "CI image with Python 3.11 toolchain"
-    base: "registry.suse.com/bci/python:3.11.15@sha256:9dc1899218a47bb92b62d97d32be31258ab8a455049f7e2313ca9ea87a443380"
+    base: "registry.suse.com/bci/python:3.11.17@sha256:34988e1b620e1fda1c400f4f01ea10b8a58cf4c847aec8641b500a05c39f213e"
     language_tag: true
     packages:
     tools:
 
   - name: python3.13
     description: "CI image with Python 3.13 toolchain"
-    base: "registry.suse.com/bci/python:3.13.15@sha256:c2fdbafcbfdfe9b52dbf1c93e0a672e8a53ec9ec56059c6bbb3eae9b645f3c4e"
+    base: "registry.suse.com/bci/python:3.13.16@sha256:b1b604b2b42f5fed5f737541dad6b87b1a0090e2f6cc9a9c92ff4f5c3bd84e09"
     language_tag: true
     packages:
     tools:
 
   - name: node22
     description: "CI image with Node 22 toolchain"
-    base: "registry.suse.com/bci/nodejs:22.23.2@sha256:d318c464bc8f4467c3e0b5dc4d9cb62b5e32532a099e43bf5c73a67f3c8ac900"
+    base: "registry.suse.com/bci/nodejs:22.23.4@sha256:81a00859656dfb8b0381e10ed5fbf5406964eaaa89f95e23a5d0a717697b8cbd"
     language_tag: true
     packages:
     tools:
 
   - name: node24
     description: "CI image with Node 24 toolchain"
-    base: "registry.suse.com/bci/nodejs:24.18.1-base@sha256:b40c0d9763833ecc6e8bc37a810a147c895b1a1c505243bf9ad3a3f0978b26b6"
+    base: "registry.suse.com/bci/nodejs:24.18.1-base@sha256:3fde77f13e86261c773e0998973d685d5ab9f07c5e833fd6c58c94707393e5c2"
     language_tag: true
     packages:
     tools:
@@ -162,10 +162,10 @@ universal:
 
   - name: slsactl
     source: rancherlabs/slsactl
-    version: v0.1.45
+    version: v0.1.47
     checksums:
-      linux/amd64: "ba17982ac91d427ecbe9cad1b2dfa0183cf4bddb6e616ab9525105be6095eb60"
-      linux/arm64: "d7ef77e7327b9992077b5a9e99ceb2bf7e5cb0ee04753bb8b8ad0f59cb5b1e08"
+      linux/amd64: "834d05c3bcfa3fcde7043f86452521cc8c36ca7fc6dd4fc0ce380789f0046ca1"
+      linux/arm64: "a362f1fbe4bc26cb6990a03c1e91c656aa308d2cba51c0046462e199ed8f2402"
     release:
       download_template: "slsactl_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "slsactl"
@@ -196,10 +196,10 @@ tools:
 
   - name: goreleaser
     source: goreleaser/goreleaser
-    version: v2.19.0
+    version: v2.20.0
     checksums:
-      linux/amd64: "ebc3194ad1d1b1787614405285a0039665cd4c5bd3305215a1b201600f90630b"
-      linux/arm64: "ef33741b684c9f62d6a21e7a3c8b051f139ea7b1d301693b67cc819c46226d53"
+      linux/amd64: "d2483159e6007f814132cb56635ad30a70013dbeb813d6033a7e01adf6ae108c"
+      linux/arm64: "2dada0a6bbcd10f3a05228d98e77d25fb362efb9e5bab6362cf37e64c8a26cb9"
     release:
       download_template: "goreleaser_{os|title}_{arch|replace:amd64=x86_64}.tar.gz"
       extract: "goreleaser"

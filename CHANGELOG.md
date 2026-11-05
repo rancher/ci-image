@@ -4,6 +4,62 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20261105-34 (2026-11-05)
+
+### Image: go1.25:20261105-34
+
+- Base image: `registry.suse.com/bci/golang:1.25.14` → `registry.suse.com/bci/golang:1.25.14`
+- `goreleaser`: `v2.19.0` → `v2.20.0`
+- `slsactl`: `v0.1.45` → `v0.1.47`
+
+### Image: go1.26:20261105-34
+
+- `goreleaser`: `v2.19.0` → `v2.20.0`
+- `slsactl`: `v0.1.45` → `v0.1.47`
+
+### Image: go1.27:20261105-34
+
+- `goreleaser`: `v2.19.0` → `v2.20.0`
+- `slsactl`: `v0.1.45` → `v0.1.47`
+
+### Image: python3.11:20261105-34
+
+- Base image: `registry.suse.com/bci/python:3.11.15` → `registry.suse.com/bci/python:3.11.17`
+- Python: `3.11.15` → `3.11.17`
+- Rolling tag: `3.11.15` → `3.11.17`
+- `slsactl`: `v0.1.45` → `v0.1.47`
+
+### Image: python3.13:20261105-34
+
+- Base image: `registry.suse.com/bci/python:3.13.15` → `registry.suse.com/bci/python:3.13.16`
+- Python: `3.13.15` → `3.13.16`
+- Rolling tag: `3.13.15` → `3.13.16`
+- `slsactl`: `v0.1.45` → `v0.1.47`
+
+### Image: node22:20261105-34
+
+- Base image: `registry.suse.com/bci/nodejs:22.23.2` → `registry.suse.com/bci/nodejs:22.23.4`
+- Node: `22.23.2` → `22.23.4`
+- Rolling tag: `22.23.2` → `22.23.4`
+- `slsactl`: `v0.1.45` → `v0.1.47`
+
+### Image: node24:20261105-34
+
+- Base image: `registry.suse.com/bci/nodejs:24.18.1-base` → `registry.suse.com/bci/nodejs:24.18.1-base`
+- `slsactl`: `v0.1.45` → `v0.1.47`
+
+### Image: charts:20261105-34
+
+- `charts-build-scripts`: `v1.9.34` → `v1.9.36`
+- `goreleaser`: `v2.19.0` → `v2.20.0`
+- `ob-charts-tool`: `v0.6.1` → `v0.7.1`
+- `release`: `v0.78.1` → `v0.78.2`
+- `slsactl`: `v0.1.45` → `v0.1.47`
+
+### Image: nix:20261105-34
+
+- `slsactl`: `v0.1.45` → `v0.1.47`
+
 ## Revision: 20261027-33 (2026-10-27)
 
 ### Image: go1.25:20261027-33

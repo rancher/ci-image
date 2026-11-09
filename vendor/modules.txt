@@ -1,8 +1,14 @@
 # github.com/mallardduck/ghreleases v0.8.1
 ## explicit; go 1.18
 github.com/mallardduck/ghreleases
-# go.yaml.in/yaml/v4 v4.0.0-rc.6
+# go.yaml.in/yaml/v4 v4.0.0-rc.8
 ## explicit; go 1.18
 go.yaml.in/yaml/v4
 go.yaml.in/yaml/v4/internal/libyaml
-go.yaml.in/yaml/v4/plugin/limit
+go.yaml.in/yaml/v4/internal/plugin
+go.yaml.in/yaml/v4/internal/plugin/mergekey
+go.yaml.in/yaml/v4/plugin/aliasdata
+go.yaml.in/yaml/v4/plugin/errorformat/v3
+go.yaml.in/yaml/v4/plugin/errorformat/v4
+go.yaml.in/yaml/v4/plugin/loaderlimits
+go.yaml.in/yaml/v4/plugin/mergekey

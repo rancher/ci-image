@@ -1,4 +1,4 @@
 github.com/mallardduck/ghreleases v0.8.1 h1:OrVKsRHTrzaILUVwhkEXDxTuLj23ap6UnCFxChL78SU=
 github.com/mallardduck/ghreleases v0.8.1/go.mod h1:t6zCi4Gcgm2MvoZrK8QNIi/PnzwZ2cpf3sR+exRj7vI=
-go.yaml.in/yaml/v4 v4.0.0-rc.6 h1:1h7H1ohdUh93/FyE4YaDa1Zh64K6VVbjF4K6WUxMtH4=
-go.yaml.in/yaml/v4 v4.0.0-rc.6/go.mod h1:aZqd9kCMsGL7AuUv/m/PvWLdg5sjJsZ4oHDEnfPPfY0=
+go.yaml.in/yaml/v4 v4.0.0-rc.8 h1:fN4inF7W6XHH4Kb0btX0spuNk02igzhJa+rGbuRCkkY=
+go.yaml.in/yaml/v4 v4.0.0-rc.8/go.mod h1:aZqd9kCMsGL7AuUv/m/PvWLdg5sjJsZ4oHDEnfPPfY0=

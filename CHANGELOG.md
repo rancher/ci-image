@@ -4,6 +4,44 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20261112-36 (2026-11-12)
+
+### Image: go1.25:20261112-36
+
+- `slsactl`: `v0.1.47` → `v0.1.49`
+
+### Image: go1.26:20261112-36
+
+- `slsactl`: `v0.1.47` → `v0.1.49`
+
+### Image: go1.27:20261112-36
+
+- `slsactl`: `v0.1.47` → `v0.1.49`
+
+### Image: python3.11:20261112-36
+
+- `slsactl`: `v0.1.47` → `v0.1.49`
+
+### Image: python3.13:20261112-36
+
+- `slsactl`: `v0.1.47` → `v0.1.49`
+
+### Image: node22:20261112-36
+
+- `slsactl`: `v0.1.47` → `v0.1.49`
+
+### Image: node24:20261112-36
+
+- `slsactl`: `v0.1.47` → `v0.1.49`
+
+### Image: charts:20261112-36
+
+- `slsactl`: `v0.1.47` → `v0.1.49`
+
+### Image: nix:20261112-36
+
+- `slsactl`: `v0.1.47` → `v0.1.49`
+
 ## Revision: 20261112-35 (2026-11-12)
 
 ### Image: go1.26:20261112-35

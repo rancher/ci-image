@@ -1,4 +1,4 @@
-FROM dp.apps.rancher.io/containers/go:1.26.10-dev-36.2@sha256:b7ada50469a9196a084f4cb76da220819d1841461b2a2e13a7c3c2a805793091
+FROM dp.apps.rancher.io/containers/go:1.26.11-dev-36.3@sha256:13961d59d18a3349a97f5249f153345105f02fe42d6d01e446b88facbcc55af6
 
 LABEL org.opencontainers.image.source="https://github.com/rancher/ci-image" \
       org.opencontainers.image.title="Rancher go1.26 CI image" \

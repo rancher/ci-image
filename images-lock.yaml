@@ -150,7 +150,7 @@ configs:
             - 1.25.14
         description: CI image with Go 1.25 toolchain
     go1.26:
-        base: dp.apps.rancher.io/containers/go:1.26.10-dev-36.2@sha256:b7ada50469a9196a084f4cb76da220819d1841461b2a2e13a7c3c2a805793091
+        base: dp.apps.rancher.io/containers/go:1.26.11-dev-36.3@sha256:13961d59d18a3349a97f5249f153345105f02fe42d6d01e446b88facbcc55af6
         platforms:
             - linux/amd64
             - linux/arm64
@@ -184,12 +184,12 @@ configs:
             helm: helmv4
             kubectl: kubectl1.36
         language: go
-        language_version: 1.26.10
+        language_version: 1.26.11
         tag_aliases:
-            - 1.26.10
+            - 1.26.11
         description: CI image with Go 1.26 toolchain
     go1.27:
-        base: dp.apps.rancher.io/containers/go:1.27.3-dev-14.2@sha256:87f7c372cde4e0ff098514640c8139c66c50f0f300d45e3556ed5cb4538393c8
+        base: dp.apps.rancher.io/containers/go:1.27.4-dev-14.3@sha256:d34316ea8d340accb945a9344851546f246ffbb8e5e626a633fb8477593b8b5c
         platforms:
             - linux/amd64
             - linux/arm64
@@ -223,9 +223,9 @@ configs:
             helm: helmv4
             kubectl: kubectl1.36
         language: go
-        language_version: 1.27.3
+        language_version: 1.27.4
         tag_aliases:
-            - 1.27.3
+            - 1.27.4
         description: CI image with Go 1.27 toolchain
     nix:
         base: registry.suse.com/bci/bci-base:15.7@sha256:79595412dc8da75bac1a5f9cc75c7d579523dbeeb6fc594d10b22967819760c3

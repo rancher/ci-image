@@ -48,7 +48,7 @@ tools:
     ob-charts-tool: v0.7.1
     oras: v1.3.6
     release: v0.78.2
-    slsactl: v0.1.47
+    slsactl: v0.1.49
     yq: v4.54.1
 selectors:
     - helm

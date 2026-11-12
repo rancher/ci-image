@@ -162,10 +162,10 @@ universal:
 
   - name: slsactl
     source: rancherlabs/slsactl
-    version: v0.1.47
+    version: v0.1.49
     checksums:
-      linux/amd64: "834d05c3bcfa3fcde7043f86452521cc8c36ca7fc6dd4fc0ce380789f0046ca1"
-      linux/arm64: "a362f1fbe4bc26cb6990a03c1e91c656aa308d2cba51c0046462e199ed8f2402"
+      linux/amd64: "506c68861757f605bf80bd8e64d21dca2bd232fb0200bcf0d9ec84547d6ec5f8"
+      linux/arm64: "0ee1a29b0a60f0c57fed60cfbcfd23a8a6c9db0b29b1a377eb48aa7a86aeb1bb"
     release:
       download_template: "slsactl_{version|trimprefix:v}_{os}_{arch}.tar.gz"
       extract: "slsactl"

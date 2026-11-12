@@ -113,17 +113,17 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/${EXTRACT}" "/usr/local/bin/helmv4" && \
     rm -rf "${TMP_DIR}"
 
-# slsactl v0.1.47
+# slsactl v0.1.49
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="834d05c3bcfa3fcde7043f86452521cc8c36ca7fc6dd4fc0ce380789f0046ca1" ;; \
-        arm64) CHECKSUM="a362f1fbe4bc26cb6990a03c1e91c656aa308d2cba51c0046462e199ed8f2402" ;; \
+        amd64) CHECKSUM="506c68861757f605bf80bd8e64d21dca2bd232fb0200bcf0d9ec84547d6ec5f8" ;; \
+        arm64) CHECKSUM="0ee1a29b0a60f0c57fed60cfbcfd23a8a6c9db0b29b1a377eb48aa7a86aeb1bb" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     export TMP_FILE="${TMP_DIR}/slsactl.tar.gz" && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.47/slsactl_0.1.47_linux_amd64.tar.gz"; EXTRACT="slsactl" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.47/slsactl_0.1.47_linux_arm64.tar.gz"; EXTRACT="slsactl" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.49/slsactl_0.1.49_linux_amd64.tar.gz"; EXTRACT="slsactl" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/rancherlabs/slsactl/releases/download/v0.1.49/slsactl_0.1.49_linux_arm64.tar.gz"; EXTRACT="slsactl" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_FILE}" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_FILE}" > "${TMP_DIR}/checksum.sha256" && \

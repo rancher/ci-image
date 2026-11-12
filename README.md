@@ -14,8 +14,8 @@ Language images (Go, Python, Node) are also tagged with the full language versio
 | Image | Language | Version | Description |
 |-------|----------|---------|-------------|
 | `go1.25` | go | 1.25.14 | CI image with Go 1.25 toolchain |
-| `go1.26` | go | 1.26.10 | CI image with Go 1.26 toolchain |
-| `go1.27` | go | 1.27.3 | CI image with Go 1.27 toolchain |
+| `go1.26` | go | 1.26.11 | CI image with Go 1.26 toolchain |
+| `go1.27` | go | 1.27.4 | CI image with Go 1.27 toolchain |
 | `python3.11` | python | 3.11.17 | CI image with Python 3.11 toolchain |
 | `python3.13` | python | 3.13.16 | CI image with Python 3.13 toolchain |
 | `node22` | node | 22.23.4 | CI image with Node 22 toolchain |

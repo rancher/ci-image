@@ -21,9 +21,11 @@ RUN zypper -n refresh && \
         jq \
         make \
         tar \
+        zip \
         unzip \
         zstd \
         wget \
+        xz \
     && \
     zypper -n clean -a && \
     rm -rf /var/log/{lastlog,tallylog,zypper.log,zypp/history,YaST2}

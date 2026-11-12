@@ -21,9 +21,11 @@ RUN zypper -n refresh && \
         jq \
         make \
         tar \
+        zip \
         unzip \
         zstd \
         wget \
+        xz \
         git \
         patch \
     && \

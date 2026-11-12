@@ -22,9 +22,11 @@ packages:
     - jq
     - make
     - tar
+    - zip
     - unzip
     - zstd
     - wget
+    - xz
 tools:
     charts-build-scripts: v1.9.36
     cosign: v3.1.4

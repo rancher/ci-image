@@ -109,9 +109,11 @@ packages:
   - jq
   - make
   - tar
+  - zip
   - unzip
   - zstd
   - wget
+  - xz
 
 universal:
   - name: cosign

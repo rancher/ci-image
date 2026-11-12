@@ -4,6 +4,20 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20261112-35 (2026-11-12)
+
+### Image: go1.26:20261112-35
+
+- Base image: `dp.apps.rancher.io/containers/go:1.26.10-dev-36.2` → `dp.apps.rancher.io/containers/go:1.26.11-dev-36.3`
+- Go: `1.26.10` → `1.26.11`
+- Rolling tag: `1.26.10` → `1.26.11`
+
+### Image: go1.27:20261112-35
+
+- Base image: `dp.apps.rancher.io/containers/go:1.27.3-dev-14.2` → `dp.apps.rancher.io/containers/go:1.27.4-dev-14.3`
+- Go: `1.27.3` → `1.27.4`
+- Rolling tag: `1.27.3` → `1.27.4`
+
 ## Revision: 20261105-34 (2026-11-05)
 
 ### Image: go1.25:20261105-34

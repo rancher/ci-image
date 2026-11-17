@@ -4,6 +4,12 @@ All notable changes to ci-image are documented here.
 Versions follow the `YYYYMMDD-<run_number>` format used by CI builds.
 
 <!-- BEGIN ENTRIES -->
+## Revision: 20261117-38 (2026-11-17)
+
+### Image: charts:20261117-38
+
+- `release`: `v0.78.2` → `v0.78.5`
+
 ## Revision: 20261112-37 (2026-11-12)
 
 ### Universal Packages Added

@@ -414,16 +414,16 @@ RUN case "${ARCH}" in \
     install "${TMP_DIR}/kubectl1.36" "/usr/local/bin/kubectl1.36" && \
     rm -rf "${TMP_DIR}"
 
-# release v0.78.2
+# release v0.78.5
 RUN case "${ARCH}" in \
-        amd64) CHECKSUM="1b4f5fb6e8db3c4f82713764f13fa4546e5521218fb8631cf79d6818c435e3da" ;; \
-        arm64) CHECKSUM="cde5df86321ac96d3808e995f3b25a205c7dac99b11d6cc468abf043ac3492ec" ;; \
+        amd64) CHECKSUM="690eff967e63e52dc8a1d37bf6a5271fce9565f6a197a693314db324b105a261" ;; \
+        arm64) CHECKSUM="c2e3c48bcb582f135b734141dc4e149f62e7fc0572f1662a54bd47cdb5f9cc86" ;; \
         *) echo "Unsupported: ${ARCH}"; exit 1 ;; \
     esac && \
     export TMP_DIR=$(mktemp -d) && \
     case "${ARCH}" in \
-        amd64) DOWNLOAD_URL="https://github.com/rancher/ecm-distro-tools/releases/download/v0.78.2/release-linux-amd64" ;; \
-        arm64) DOWNLOAD_URL="https://github.com/rancher/ecm-distro-tools/releases/download/v0.78.2/release-linux-arm64" ;; \
+        amd64) DOWNLOAD_URL="https://github.com/rancher/ecm-distro-tools/releases/download/v0.78.5/release-linux-amd64" ;; \
+        arm64) DOWNLOAD_URL="https://github.com/rancher/ecm-distro-tools/releases/download/v0.78.5/release-linux-arm64" ;; \
     esac && \
     curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "${DOWNLOAD_URL}" > "${TMP_DIR}/release" && \
     printf "%s  %s\n" "${CHECKSUM}" "${TMP_DIR}/release" > "${TMP_DIR}/checksum.sha256" && \
